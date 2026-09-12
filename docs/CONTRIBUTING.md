@@ -13,6 +13,13 @@ Albornoz, Rios, Riveros Valgañón). Basado en la propuesta aceptada
 - `fix/<nombre>` — correcciones puntuales sobre `develop`, o directo sobre
   `main` para un hotfix urgente.
 
+**Ojo:** el repo tiene activado "Automatically delete head branches", así
+que cuando se mergea un PR de `develop` hacia `main`, GitHub borra
+`develop` sola. Si eso pasa, recrearla desde `main`
+(`git checkout main && git pull && git checkout -b develop && git push -u origin develop`)
+antes de abrir la siguiente `feature/*`. Si molesta, se puede desactivar
+en Settings → General → Pull Requests del repo.
+
 ## Convención de títulos (issues y PRs)
 
 ```
@@ -78,12 +85,17 @@ Usar los scripts de `scripts/github/` en vez de escribir los comandos de
 
 - `new-issue.sh` — crea el issue con el título y la label correctos, y
   busca duplicados antes de crearlo.
-- `setup-board.sh` — crea el Project Board una sola vez (lo corre quien
-  tenga el scope de `project` primero).
+- `setup-board.sh` — deja armado `scripts/github/project.env` apuntando al
+  board (ya no hace falta correrlo: el board ya existe, ver abajo).
 - `add-to-board.sh` — agrega un issue existente al board y le pone estado.
 
-El board tiene 6 columnas de Status (definidas en la propuesta, sección 16):
-`Backlog`, `To Do`, `In Progress`, `Review`, `Testing`, `Done`.
+El board del equipo es **Roadmap-TUPAD** (`gh project view 9 --owner
+juanpiRiv`), ya linkeado al repo. Su número está guardado en
+`scripts/github/project.env`. A diferencia de lo que decía la propuesta
+original (6 columnas), el Status real tiene 4 opciones: `Todo`,
+`In progress`, `Done`, `Blocked`. El board también trae un campo nativo
+**Priority** con `P0`/`P1`/`P2` — usarlo en vez de (o además de) escribir
+la prioridad solo en el cuerpo del issue.
 
 ## Vincular el PR con el issue
 
