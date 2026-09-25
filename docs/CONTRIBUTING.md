@@ -2,7 +2,7 @@
 
 Convenciones de ramas, issues y Project Board para el equipo (Rivero
 Albornoz, Rios, Riveros Valgañón). Basado en la propuesta aceptada
-(`docs/TFI_Primera_Entrega.pdf`, secciones 13-16).
+([`docs/01-propuesta.md`](./01-propuesta.md), secciones 13-16).
 
 ## Ramas
 
@@ -54,7 +54,7 @@ quien revisa, nunca quien crea el issue.
 
 ## Módulos (scope) y qué requerimientos cubren
 
-Del catálogo de requerimientos (RF-01..34) en `docs/TFI_Primera_Entrega.pdf`:
+Del catálogo de requerimientos (RF-01..34) en [`docs/01-propuesta.md`](./01-propuesta.md#13-requerimientos-funcionales):
 
 | Módulo | Cubre |
 | --- | --- |

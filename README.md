@@ -13,7 +13,7 @@
 ---
 
 ## 📌 Descripción del Proyecto
-Plataforma web orientada a profesionales independientes, emprendedores y pequeños comercios para centralizar la gestión financiera cotidiana, la emisión de comprobantes electrónicos y la consulta de indicadores económicos oficiales.
+Plataforma web orientada inicialmente a **monotributistas que venden productos, prestan servicios o ambas cosas**, para centralizar la gestión financiera cotidiana, la emisión de comprobantes electrónicos y la consulta de indicadores económicos oficiales.
 
 ### Características Principales (MVP)
 * **Gestión Financiera:** Registro, categorización y filtros de ingresos y egresos.
@@ -35,7 +35,7 @@ Plataforma web orientada a profesionales independientes, emprendedores y pequeñ
 | **Seguridad** | JWT, bcrypt / Argon2, HTTPS |
 | **Integraciones** | ARCA Web Services (WSAA/WSFEv1), APIs Banco Central (BCRA), Kapso / WhatsApp |
 | **Testing** | Vitest, Jest, Supertest, Postman |
-| **Infraestructura** | Cloudflare Pages (Frontend), Railway (Backend), Railway / PlanetScale (Database) |
+| **Infraestructura** | Cloudflare Pages (Frontend), Railway (Backend), Railway / Supabase (Database) |
 | **Gestión** | Git, GitHub, GitHub Projects |
 
 ---
@@ -43,10 +43,12 @@ Plataforma web orientada a profesionales independientes, emprendedores y pequeñ
 ## 📁 Estructura del Repositorio
 
 ```text
-├── docs/                 # Documentación e informes de entregas académicas
+├── docs/                 # Documentación del proyecto en Markdown
+│   └── img/              # Diagramas, DER y capturas enlazados desde los .md
 ├── frontend/             # Código fuente de la aplicación cliente (React + TS)
 ├── backend/              # API REST y lógica de negocio (Node.js + Express)
 ├── database/             # Esquemas, migraciones y scripts de inicialización
+├── scripts/github/       # Scripts para issues y Project Board
 └── README.md
 ```
 
@@ -54,10 +56,21 @@ Plataforma web orientada a profesionales independientes, emprendedores y pequeñ
 
 ## 📋 Gestión y Metodología
 * **Metodología:** Kanban / Scrum
-* **Seguimiento:** Tablero de tareas en [GitHub Projects](https://github.com/juanpiRiv/TFI-UTN-TUPAD/projects)
+* **Seguimiento:** Tablero [Roadmap-TUPAD](https://github.com/users/juanpiRiv/projects/9) en GitHub Projects (Status: `Todo` / `In progress` / `Done` / `Blocked`, Priority: `P0`/`P1`/`P2`)
+* **Convenciones:** ver [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md)
 * **Control de versiones:** Gitflow (`main`, `develop`, `feature/*`, `fix/*`)
 
 ---
 
-## 📄 Documentación de Entregas
-* Los documentos formales de entrega se encuentran en la carpeta [`/docs`](./docs).
+## 📄 Documentación
+
+Toda la documentación se mantiene en Markdown dentro del repositorio, para poder recorrerla directamente desde GitHub.
+
+| Documento | Contenido |
+| :--- | :--- |
+| [Propuesta de proyecto](./docs/01-propuesta.md) | Primera Entrega corregida: problema, alcance del MVP, stack, arquitectura, RF/RNF/RN, roadmap, riesgos y DER inicial |
+| [Atomicidad y concurrencia](./docs/02-atomicidad-concurrencia.md) | Transacciones de BD, pagos concurrentes, numeración y emisión con ARCA, ticket WSAA, restricciones y pruebas |
+| [Backlog](./docs/BACKLOG.md) | Tareas por fase hasta la entrega final, camino crítico y Definition of Done de la Entrega 2 |
+| [Guía de contribución](./docs/CONTRIBUTING.md) | Ramas, convención de issues/PRs, labels, módulos y tablero |
+
+La versión original de la Primera Entrega se conserva como histórico en [`docs/TFI_Primera_Entrega.pdf`](./docs/TFI_Primera_Entrega.pdf).

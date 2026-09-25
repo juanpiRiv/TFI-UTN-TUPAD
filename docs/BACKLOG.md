@@ -24,7 +24,8 @@ observación, en qué fase de este backlog queda resuelta. Es la forma de
 no perder ningún punto en el camino.
 **Criterios de cierre:**
 - [ ] Cada observación del docente tiene una tarea asociada en este backlog.
-- [ ] El documento de la primera entrega queda linkeado desde acá.
+- [ ] El documento de la primera entrega queda linkeado desde acá
+      ([`01-propuesta.md`](./01-propuesta.md)).
 **Prioridad:** P0
 **Área:** Documentación
 **Dependencias:** Sin dependencia bloqueante.
@@ -34,7 +35,8 @@ no perder ningún punto en el camino.
 algunos puntos (stack, alcance). Antes de seguir, alinearlo con lo que
 realmente vamos a construir.
 **Criterios de cierre:**
-- [ ] `docs/TFI_Primera_Entrega` actualizado o con un anexo de cambios.
+- [ ] Propuesta migrada a Markdown y actualizada en
+      [`docs/01-propuesta.md`](./01-propuesta.md).
 - [ ] El stack tecnológico coincide con lo que hay en el repo.
 **Prioridad:** P1
 **Área:** Documentación
@@ -46,8 +48,8 @@ reales, con su fase, prioridad y área, para poder repartir el trabajo
 después.
 **Criterios de cierre:**
 - [ ] Todas las tareas de fases 0 a 10 están cargadas como issues.
-- [ ] El board tiene las 6 columnas definidas (Backlog, To Do, In Progress,
-      Review, Testing, Done).
+- [ ] Cada issue está en el board con Status (`Todo`, `In progress`,
+      `Done`, `Blocked`) y Priority (`P0`/`P1`/`P2`).
 **Prioridad:** P0
 **Área:** DevOps
 **Dependencias:** Sin dependencia bloqueante.
