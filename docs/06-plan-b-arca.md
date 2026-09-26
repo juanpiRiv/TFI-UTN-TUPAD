@@ -4,19 +4,19 @@ La integración con ARCA es la parte más incierta del proyecto: depende de cons
 
 ## Qué hacemos para bajar el riesgo desde ahora
 
-- **El spike de ARCA arranca ya y lo lleva una sola persona**, en paralelo con el resto del desarrollo (fase 5 del [backlog](./BACKLOG.md)). La idea es tener lo antes posible un ticket de WSAA y una primera llamada válida a WSFEv1 en homologación.
+- **El spike de ARCA arranca ya y lo lleva una sola persona**, en paralelo con el resto del desarrollo (fase 5 del [backlog](./BACKLOG.md), que no es la misma numeración que las fases del roadmap). La idea es tener lo antes posible un ticket de WSAA y una primera llamada válida a WSFEv1 en homologación.
 - **ARCA queda aislada detrás de una interfaz propia** (`ArcaClient`) con dos implementaciones: la real, que habla con los web services de homologación, y una simulada, que responde como ARCA (CAE de prueba, rechazos, timeouts). El resto del sistema no sabe con cuál está hablando. Así la facturación se puede desarrollar y probar sin depender de ARCA, y si ARCA se atrasa no frena a nadie.
 - **La factura existe sin ARCA.** El borrador, los ítems, los totales, el PDF y los pagos no dependen de tener CAE. Lo único que agrega ARCA es la autorización.
 
 ## Cuándo activamos el plan B
 
-Usamos fechas concretas del [roadmap](./01-propuesta.md#17-roadmap-del-proyecto), para no discutirlo cuando ya sea tarde:
+Usamos fechas concretas del [roadmap](./01-propuesta.md#17-roadmap-del-proyecto) de la propuesta, para no discutirlo cuando ya sea tarde:
 
 | Fecha límite | Tenemos que tener | Si no lo tenemos |
 | --- | --- | --- |
-| 12/10 (fin de fase 6) | Certificado de homologación y ticket de acceso de WSAA funcionando | Pasamos al escalón 1 |
+| 12/10 (fin de la fase 6 del roadmap) | Certificado de homologación y ticket de acceso de WSAA funcionando | Pasamos al escalón 1 |
 | 20/10 | Al menos una factura autorizada en homologación con CAE real de prueba | Pasamos al escalón 2 |
-| 25/10 (fin de fase 7) | Flujo completo desde el botón "Facturar", con manejo de errores | Pasamos al escalón 3 |
+| 25/10 (fin de la fase 7 del roadmap) | Flujo completo desde el botón "Facturar", con manejo de errores | Pasamos al escalón 3 |
 
 ## Escalones
 
