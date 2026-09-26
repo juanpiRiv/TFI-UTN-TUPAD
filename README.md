@@ -75,6 +75,8 @@ Toda la documentación está en Markdown dentro del repo, así se puede leer dir
 | [Cotización](./docs/05-cotizacion.md) | Qué cotización usamos para gestión (BCRA) y cuál exige ARCA para facturar en dólares |
 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Fechas de control y qué pasa a P1 si la integración con ARCA se atrasa |
 | [Relevamiento con usuarios](./docs/07-relevamiento.md) | Guion de entrevistas y resultados (en curso) |
+| [Contrato de la API](./docs/08-contrato-api.md) | Endpoints que espera el frontend: rutas, datos que se mandan y reciben, errores y preguntas abiertas |
+| [Frontend](./frontend/README.md) | Cómo levantar el frontend, variables, mocks, estructura, rutas, sesión y capturas |
 | [Backlog](./docs/BACKLOG.md) | Tareas por fase hasta la entrega final y camino crítico |
 | [Guía de contribución](./docs/CONTRIBUTING.md) | Ramas, convención de issues y PRs, labels, módulos y tablero |
 
@@ -90,6 +92,6 @@ Estado de lo que pidió la cátedra para esta revisión:
 | 2 | Modelo ER inicial con Organization, Client, Transaction, Invoice, InvoiceItem y Payment | [Modelo de datos](./docs/03-modelo-de-datos.md) | Hecho. El esquema de Prisma y sus migraciones están en revisión (PR #90) |
 | 3 | Reglas de factura contra cobro y pagos parciales | [Factura, cobro y pagos parciales](./docs/04-factura-cobro-y-pagos.md) | Hecho |
 | 4 | Definición de la cotización usada | [Cotización](./docs/05-cotizacion.md) | Hecho |
-| 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/` y `frontend/` | En curso: backend inicializado con registro e inicio de sesión (PR #90) |
+| 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | En curso: el backend tiene registro e inicio de sesión (PR #90). El frontend recorre todo el flujo con auth real y el resto simulado con MSW, a la espera de los endpoints del backend |
 | 6 | Spike de homologación WSAA y WSFEv1 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Pendiente: falta el certificado de homologación |
 | 7 | Qué pasa a P1 si ARCA se atrasa | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Hecho |
