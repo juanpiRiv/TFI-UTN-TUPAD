@@ -1,7 +1,9 @@
 import type { RequestHandler } from 'msw'
 import { categoryHandlers } from './categories'
 import { clientHandlers } from './clients'
+import { exchangeRateHandlers } from './exchange-rates'
 import { organizationHandlers } from './organizations'
+import { transactionHandlers } from './transactions'
 
 /**
  * Handlers for the endpoints the backend does not implement yet.
@@ -12,4 +14,6 @@ export const domainHandlers: RequestHandler[] = [
   ...organizationHandlers,
   ...clientHandlers,
   ...categoryHandlers,
+  ...transactionHandlers,
+  ...exchangeRateHandlers,
 ]

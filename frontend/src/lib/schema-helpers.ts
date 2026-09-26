@@ -9,21 +9,18 @@ export const optionalText = (max: number, message?: string) =>
     .transform((value) => (value === '' ? null : value))
 
 /**
- * Money amount typed by the user. Accepts "1500", "1500.50" or "1500,50" and returns a
- * normalized decimal string ("1500.50"). The value is never turned into a number.
+ * Normalizes a number typed by the user into a decimal string, without turning it into a
+ * JS number. "1.500,50" (es-AR) and "1500.50" both become "1500.50".
  */
-export const decimalString = (decimals: number, requiredMessage: string) =>
-  z
-    .string()
-    .trim()
-    .min(1, requiredMessage)
-    // "1.500,50" uses dots as thousands separators; "1500.50" uses the dot as decimal point.
-    .transform((value) =>
-      value.includes(',') ? value.replace(/\./g, '').replace(',', '.') : value,
-    )
-    .refine((value) => new RegExp(`^\\d+(\\.\\d{1,${decimals}})?$`).test(value), {
-      message: `Ingresá un número válido, con hasta ${decimals} decimales`,
-    })
+export function normalizeDecimal(input: string): string {
+  const value = input.trim().replace(/\s/g, '')
+  return value.includes(',') ? value.replace(/\./g, '').replace(',', '.') : value
+}
+
+/** True when `value` is a plain decimal string with up to `decimals` decimal places. */
+export function isDecimal(value: string, decimals: number): boolean {
+  return new RegExp(`^\\d+(\\.\\d{1,${decimals}})?$`).test(value)
+}
 
 /** True when a normalized decimal string is greater than zero, without float math. */
 export function isPositiveDecimal(value: string): boolean {

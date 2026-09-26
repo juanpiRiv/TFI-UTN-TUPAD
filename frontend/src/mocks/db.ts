@@ -2,6 +2,7 @@ import type { User } from '@/features/auth/schemas'
 import type { Category } from '@/features/categories/schemas'
 import type { Client } from '@/features/clients/schemas'
 import type { Organization } from '@/features/organizations/types'
+import type { StoredTransaction } from './handlers/transactions'
 
 /** Users only exist in tests: in the browser, auth is handled by the real backend. */
 export type MockUser = User & { password: string }
@@ -12,12 +13,13 @@ export type MockDb = {
   organizations: Organization[]
   clients: Client[]
   categories: Category[]
+  transactions: StoredTransaction[]
 }
 
 const STORAGE_KEY = 'tfi.mocks.db'
 
 function emptyDb(): MockDb {
-  return { lastId: 0, users: [], organizations: [], clients: [], categories: [] }
+  return { lastId: 0, users: [], organizations: [], clients: [], categories: [], transactions: [] }
 }
 
 let persist = false
