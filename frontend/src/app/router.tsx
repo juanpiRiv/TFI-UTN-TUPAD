@@ -51,6 +51,13 @@ export function createRoutes(queryClient: QueryClient): RouteObject[] {
                 })),
             },
             {
+              path: 'categorias',
+              lazy: () =>
+                import('@/features/categories/CategoriesPage').then((m) => ({
+                  Component: m.CategoriesPage,
+                })),
+            },
+            {
               path: 'organizacion',
               lazy: () =>
                 import('@/features/organizations/OrganizationPage').then((m) => ({

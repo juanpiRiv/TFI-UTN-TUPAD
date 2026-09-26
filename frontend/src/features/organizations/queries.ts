@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { authKeys } from '@/features/auth/queries'
+import { categoryKeys } from '@/features/categories/queries'
 import type { Me } from '@/features/auth/schemas'
 import * as organizationsApi from './api'
 import type { Organization } from './types'
@@ -21,7 +22,7 @@ export function useCreateOrganization() {
     onSuccess: async (organization) => {
       await syncMe(organization)
       // Creating the organization also creates its default categories.
-      await queryClient.invalidateQueries({ queryKey: ['categories'] })
+      await queryClient.invalidateQueries({ queryKey: categoryKeys.all })
     },
   })
 }

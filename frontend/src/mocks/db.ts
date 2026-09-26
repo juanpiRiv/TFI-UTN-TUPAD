@@ -1,4 +1,5 @@
 import type { User } from '@/features/auth/schemas'
+import type { Category } from '@/features/categories/schemas'
 import type { Client } from '@/features/clients/schemas'
 import type { Organization } from '@/features/organizations/types'
 
@@ -10,12 +11,13 @@ export type MockDb = {
   users: MockUser[]
   organizations: Organization[]
   clients: Client[]
+  categories: Category[]
 }
 
 const STORAGE_KEY = 'tfi.mocks.db'
 
 function emptyDb(): MockDb {
-  return { lastId: 0, users: [], organizations: [], clients: [] }
+  return { lastId: 0, users: [], organizations: [], clients: [], categories: [] }
 }
 
 let persist = false

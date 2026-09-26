@@ -3,6 +3,7 @@ import { isValidCuit } from '@/features/organizations/schemas'
 import type { Organization } from '@/features/organizations/types'
 import { API_URL } from '@/lib/api'
 import { db, nextId, nowIso, saveDb } from '../db'
+import { seedDefaultCategories } from './categories'
 import { invalidData, resolveOrganization, resolveUser, type FieldDetail } from './context'
 
 type OrganizationBody = Partial<Omit<Organization, 'id' | 'userId' | 'isActive'>>
@@ -60,6 +61,7 @@ export const organizationHandlers = [
       updatedAt: now,
     }
     db.organizations.push(organization)
+    seedDefaultCategories(organization.id)
     saveDb()
     return HttpResponse.json(organization, { status: 201 })
   }),
