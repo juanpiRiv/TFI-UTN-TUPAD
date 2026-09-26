@@ -1,0 +1,7 @@
+packages:
+  - backend
+  - frontend
+
+# Paquetes con scripts de instalacion permitidos (argon2 compila un binario nativo)
+allowBuilds:
+  argon2: true
