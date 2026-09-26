@@ -42,7 +42,13 @@ export function createRoutes(queryClient: QueryClient): RouteObject[] {
           loader: guards.requireOrganization,
           lazy: () => import('./layout/AppShell').then((m) => ({ Component: m.AppShell })),
           children: [
-            { index: true, element: <h1 className="text-xl">Dashboard</h1> },
+            {
+              index: true,
+              lazy: () =>
+                import('@/features/dashboard/DashboardPage').then((m) => ({
+                  Component: m.DashboardPage,
+                })),
+            },
             {
               path: 'movimientos',
               lazy: () =>

@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { dashboardKeys } from '@/features/dashboard/queries'
 import * as transactionsApi from './api'
 import type { TransactionFilters } from './schemas'
 
@@ -29,7 +30,7 @@ export function useCreateTransaction() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: transactionKeys.all }),
         // The dashboard totals depend on the transactions.
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: dashboardKeys.all }),
       ])
     },
   })

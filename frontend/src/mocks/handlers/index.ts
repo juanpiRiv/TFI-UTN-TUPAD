@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'msw'
 import { categoryHandlers } from './categories'
 import { clientHandlers } from './clients'
+import { dashboardHandlers } from './dashboard'
 import { exchangeRateHandlers } from './exchange-rates'
 import { organizationHandlers } from './organizations'
 import { transactionHandlers } from './transactions'
@@ -16,4 +17,5 @@ export const domainHandlers: RequestHandler[] = [
   ...categoryHandlers,
   ...transactionHandlers,
   ...exchangeRateHandlers,
+  ...dashboardHandlers,
 ]
