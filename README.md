@@ -70,7 +70,7 @@ Toda la documentación está en Markdown dentro del repo, así se puede leer dir
 | :--- | :--- |
 | [Propuesta de proyecto](./docs/01-propuesta.md) | La primera entrega corregida: problema, alcance del MVP, stack, arquitectura, requerimientos, reglas de negocio, roadmap, riesgos y DER inicial |
 | [Atomicidad y concurrencia](./docs/02-atomicidad-concurrencia.md) | Cómo evitamos datos a medias o duplicados: transacciones, pagos simultáneos, numeración con ARCA, ticket de WSAA y pruebas |
-| [Modelo de datos](./docs/03-modelo-de-datos.md) | DER corregido (en Mermaid) y diccionario de datos. El esquema de Prisma está en [`backend/prisma/schema.prisma`](./backend/prisma/schema.prisma) |
+| [Modelo de datos](./docs/03-modelo-de-datos.md) | DER corregido (en Mermaid), diccionario de datos y restricciones de la base. El esquema de Prisma vive en `backend/prisma/schema/` |
 | [Factura, cobro y pagos parciales](./docs/04-factura-cobro-y-pagos.md) | Reglas de factura contra cobro, estados, pagos parciales con ejemplos y resultado de gestión contra resultado de caja |
 | [Cotización](./docs/05-cotizacion.md) | Qué cotización usamos para gestión (BCRA) y cuál exige ARCA para facturar en dólares |
 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Fechas de control y qué pasa a P1 si la integración con ARCA se atrasa |
@@ -87,9 +87,9 @@ Estado de lo que pidió la cátedra para esta revisión:
 | # | Pedido | Dónde está | Estado |
 | :--- | :--- | :--- | :--- |
 | 1 | Relevamiento breve con usuarios reales y perfil P0 elegido | [Relevamiento](./docs/07-relevamiento.md) | En curso: guion listo, faltan las entrevistas |
-| 2 | Modelo ER inicial con Organization, Client, Transaction, Invoice, InvoiceItem y Payment | [Modelo de datos](./docs/03-modelo-de-datos.md) y [`schema.prisma`](./backend/prisma/schema.prisma) | Hecho |
+| 2 | Modelo ER inicial con Organization, Client, Transaction, Invoice, InvoiceItem y Payment | [Modelo de datos](./docs/03-modelo-de-datos.md) | Hecho. El esquema de Prisma y sus migraciones están en revisión (PR #90) |
 | 3 | Reglas de factura contra cobro y pagos parciales | [Factura, cobro y pagos parciales](./docs/04-factura-cobro-y-pagos.md) | Hecho |
 | 4 | Definición de la cotización usada | [Cotización](./docs/05-cotizacion.md) | Hecho |
-| 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/` y `frontend/` | Pendiente |
-| 6 | Spike de homologación WSAA y WSFEv1 | | Pendiente |
+| 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/` y `frontend/` | En curso: backend inicializado con registro e inicio de sesión (PR #90) |
+| 6 | Spike de homologación WSAA y WSFEv1 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Pendiente: falta el certificado de homologación |
 | 7 | Qué pasa a P1 si ARCA se atrasa | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Hecho |

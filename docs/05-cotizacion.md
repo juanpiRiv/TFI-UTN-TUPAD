@@ -10,12 +10,23 @@ Es la que se aplica a los movimientos cargados en dólares, para convertirlos a 
 - **Moneda:** solo dólar estadounidense (`USD`) en el P0.
 - **Valor:** el campo `tipoCotizacion` de la respuesta, que es la cotización en pesos que publica el BCRA para esa fecha. En la prueba técnica F4-2 vamos a confirmar con datos reales que el campo tiene el valor que esperamos, comparándolo contra lo publicado en la web del BCRA.
 - **Fecha:** la del movimiento. Si ese día no hay cotización (fin de semana, feriado, o todavía no se publicó), usamos la del último día hábil anterior que tenga dato.
-- **Se guarda una copia:** el movimiento guarda el valor usado en `exchange_rate` y el importe convertido en `amount_base`. Si más adelante cambia la cotización, los movimientos viejos no se tocan (RN-06).
+- **Se guarda una copia:** el movimiento guarda el valor usado en su propio `exchange_rate`. Si más adelante cambia la cotización, los movimientos viejos no se tocan (RN-06).
 - **Se puede corregir a mano:** si el usuario cobró a otro tipo de cambio (por ejemplo, vendió los dólares en el banco), puede escribir el valor. En ese caso la cotización se guarda con origen `MANUAL`.
 
 ### Cómo la guardamos
 
-Consultamos al BCRA una vez por día, o cuando alguien necesita una fecha que todavía no tenemos, y guardamos el resultado en `ExchangeRate` junto con la fecha y hora de la consulta (RN-13). Así no le pegamos a la API en cada movimiento, y si el BCRA no responde seguimos funcionando con la última cotización guardada. En ese caso el sistema muestra de qué fecha es el dato. Si no hay ninguna cotización guardada, el usuario la carga a mano: nunca bloqueamos el registro de un movimiento porque una API externa esté caída.
+Consultamos al BCRA una vez por día, o cuando alguien necesita una fecha que todavía no tenemos, y guardamos el resultado en `exchange_rates` con `source = 'BCRA'`, `rate_type = 'ESTADISTICAS_CAMBIARIAS'`, de `USD` a `ARS`, junto con la fecha a la que corresponde y la fecha y hora de la consulta (RN-13). Así no le pegamos a la API en cada movimiento, y si el BCRA no responde seguimos funcionando con la última cotización guardada. En ese caso el sistema muestra de qué fecha es el dato. Si no hay ninguna cotización guardada, el usuario la carga a mano: nunca bloqueamos el registro de un movimiento porque una API externa esté caída.
+
+### Por qué la oficial del BCRA y no otra
+
+Evaluamos las cotizaciones que usa la gente en la práctica:
+
+- **Dólar blue:** es la que muchos usan en la calle, pero no tiene una fuente oficial ni una API pública estable, y cada sitio publica un valor distinto. No podemos justificar un número fiscal o de gestión con eso.
+- **Mayorista de referencia (Comunicación A 3500):** es oficial y la publica el BCRA, pero es el precio entre bancos, no el que ve un monotributista cuando cobra o paga. Si en la prueba F4-2 la API de Estadísticas Cambiarias no nos sirve, es la alternativa.
+- **Banco Nación vendedor:** es la que exige ARCA para facturar en moneda extranjera (ver abajo), pero el Banco Nación no tiene una API pública oficial.
+- **Estadísticas Cambiarias del BCRA:** es oficial, pública, gratuita, no necesita autenticación y trae el histórico por fecha. Por eso la elegimos para gestión.
+
+Como el usuario puede corregir el valor a mano en cada movimiento, si cobró a otro tipo de cambio sus números igual le cierran.
 
 ## Cotización fiscal (la que exige ARCA)
 
@@ -31,7 +42,7 @@ Desde la RG 5616/2024 de ARCA, cuando una factura se emite en moneda extranjera 
 | Fuente | API del BCRA (Estadísticas Cambiarias) | Banco Nación, informado por ARCA |
 | Fecha | La del movimiento, o el último día hábil anterior | Día hábil cambiario anterior a la factura |
 | Se puede editar | Sí, queda marcada como manual | No |
-| Dónde se guarda | `Transaction.exchange_rate` | `Invoice.exchange_rate` |
+| Dónde se guarda | `transactions.exchange_rate` | `invoices.fiscal_exchange_rate` |
 | Se usa en el P0 | Sí | No, las facturas son en pesos |
 
 Los dos valores pueden diferir un poco, y está bien: uno es para la gestión interna del usuario y el otro para cumplir con ARCA.

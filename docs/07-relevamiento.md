@@ -1,6 +1,6 @@
 # Relevamiento con usuarios
 
-> **Estado: pendiente de completar.** Esta página tiene el guion y la planilla para cargar las entrevistas. Los resultados los cargamos a medida que hablamos con cada persona. No inventamos respuestas: si un casillero está vacío es porque todavía no hicimos esa entrevista.
+> **Estado: en curso.** Acá está el guion y la planilla. Vamos cargando los resultados a medida que hacemos cada entrevista, así que los casilleros vacíos son entrevistas que todavía no hicimos.
 
 La cátedra nos pidió validar con usuarios reales el perfil que elegimos para el P0 antes de seguir construyendo. Nuestra hipótesis es la de la propuesta:
 
