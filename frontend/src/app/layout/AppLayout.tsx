@@ -7,6 +7,7 @@ const navItems = [
   { to: '/movimientos', label: 'Movimientos' },
   { to: '/clientes', label: 'Clientes' },
   { to: '/categorias', label: 'Categorías' },
+  { to: '/organizacion', label: 'Mi negocio' },
 ]
 
 type AppLayoutProps = {

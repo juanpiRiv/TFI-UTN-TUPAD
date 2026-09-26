@@ -33,12 +33,24 @@ export function createRoutes(queryClient: QueryClient): RouteObject[] {
         {
           path: 'onboarding',
           loader: guards.requireOnboarding,
-          element: <h1 className="p-6 text-xl">Onboarding (próximamente)</h1>,
+          lazy: () =>
+            import('@/features/organizations/OnboardingPage').then((m) => ({
+              Component: m.OnboardingPage,
+            })),
         },
         {
           loader: guards.requireOrganization,
           lazy: () => import('./layout/AppShell').then((m) => ({ Component: m.AppShell })),
-          children: [{ index: true, element: <h1 className="text-xl">Dashboard</h1> }],
+          children: [
+            { index: true, element: <h1 className="text-xl">Dashboard</h1> },
+            {
+              path: 'organizacion',
+              lazy: () =>
+                import('@/features/organizations/OrganizationPage').then((m) => ({
+                  Component: m.OrganizationPage,
+                })),
+            },
+          ],
         },
         { path: '*', Component: NotFoundPage },
       ],
