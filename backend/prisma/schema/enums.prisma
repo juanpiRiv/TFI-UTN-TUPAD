@@ -1,0 +1,64 @@
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum Currency {
+    ARS
+    USD
+}
+
+// Condición frente al IVA (organización, cliente y receptor del comprobante)
+enum TaxCondition {
+    RESPONSABLE_INSCRIPTO
+    MONOTRIBUTO
+    EXENTO
+    CONSUMIDOR_FINAL
+}
+
+// Tipos de documento de ARCA (el código numérico se mapea en el código)
+enum DocType {
+    CUIT // 80
+    CUIL // 86
+    DNI // 96
+    PASAPORTE // 94
+    SIN_IDENTIFICAR // 99 (consumidor final)
+}
+
+// Clase C (MVP). Códigos ARCA: 11, 12, 13
+enum VoucherType {
+    FACTURA_C
+    NOTA_DEBITO_C
+    NOTA_CREDITO_C
+}
+
+// Concepto WSFEv1: 1, 2, 3
+enum InvoiceConcept {
+    PRODUCTOS
+    SERVICIOS
+    PRODUCTOS_Y_SERVICIOS
+}
+
+enum InvoiceStatus {
+    DRAFT // borrador, todavía no se envió a ARCA
+    PENDING // enviado, esperando respuesta
+    AUTHORIZED // tiene CAE
+    REJECTED // ARCA lo rechazó
+}
+
+enum BillingMethod {
+    CAE
+    CAEA
+}
+
+enum ActivityKind {
+    GOODS
+    SERVICES
+}
+
+enum MovementType {
+    INCOME
+    EXPENSE
+}
+
+enum ArcaEnvironment {
+    HOMOLOGACION
+    PRODUCCION
+}

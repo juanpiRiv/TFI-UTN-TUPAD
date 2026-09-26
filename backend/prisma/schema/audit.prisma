@@ -1,0 +1,18 @@
+model AuditLog {
+    id             Int      @id @default(autoincrement())
+    organizationId Int?     @map("organization_id")
+    userId         Int?     @map("user_id")
+    action         String   @db.VarChar(100) // p. ej. "auth.login", "invoice.authorized"
+    entity         String?  @db.VarChar(50) // p. ej. "Invoice"
+    entityId       Int?     @map("entity_id")
+    metadata       Json?
+    ipAddress      String?  @map("ip_address") @db.VarChar(45)
+    createdAt      DateTime @default(now()) @map("created_at")
+
+    organization Organization? @relation(fields: [organizationId], references: [id])
+    user         User?         @relation(fields: [userId], references: [id])
+
+    @@index([organizationId, createdAt])
+    @@index([userId])
+    @@map("audit_logs")
+}

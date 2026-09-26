@@ -1,0 +1,7 @@
+.envnode_modules/
+dist/
+.env
+*.pem
+*.key
+*.crt
+/src/generated/prisma
