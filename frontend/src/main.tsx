@@ -7,16 +7,28 @@ import { createQueryClient } from './app/query-client'
 import { createRoutes } from './app/router'
 import './index.css'
 
-const queryClient = createQueryClient()
-const router = createBrowserRouter(createRoutes(queryClient))
+async function enableMocks(): Promise<void> {
+  if (import.meta.env.VITE_USE_MOCKS !== 'true') return
+  const { startMockWorker } = await import('./mocks/browser')
+  await startMockWorker()
+}
 
-const rootElement = document.getElementById('root')
-if (!rootElement) throw new Error('No se encontro el elemento #root')
+async function bootstrap(): Promise<void> {
+  await enableMocks()
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <AppProviders queryClient={queryClient}>
-      <RouterProvider router={router} />
-    </AppProviders>
-  </StrictMode>,
-)
+  const queryClient = createQueryClient()
+  const router = createBrowserRouter(createRoutes(queryClient))
+
+  const rootElement = document.getElementById('root')
+  if (!rootElement) throw new Error('No se encontro el elemento #root')
+
+  createRoot(rootElement).render(
+    <StrictMode>
+      <AppProviders queryClient={queryClient}>
+        <RouterProvider router={router} />
+      </AppProviders>
+    </StrictMode>,
+  )
+}
+
+void bootstrap()
