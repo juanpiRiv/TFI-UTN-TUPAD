@@ -44,6 +44,13 @@ export function createRoutes(queryClient: QueryClient): RouteObject[] {
           children: [
             { index: true, element: <h1 className="text-xl">Dashboard</h1> },
             {
+              path: 'clientes',
+              lazy: () =>
+                import('@/features/clients/ClientsPage').then((m) => ({
+                  Component: m.ClientsPage,
+                })),
+            },
+            {
               path: 'organizacion',
               lazy: () =>
                 import('@/features/organizations/OrganizationPage').then((m) => ({

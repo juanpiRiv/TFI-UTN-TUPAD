@@ -1,4 +1,5 @@
 import type { RequestHandler } from 'msw'
+import { clientHandlers } from './clients'
 import { organizationHandlers } from './organizations'
 
 /**
@@ -6,4 +7,4 @@ import { organizationHandlers } from './organizations'
  * Auth is not here: in the browser it goes to the real backend (see browser.ts),
  * and tests add the handlers from auth.ts.
  */
-export const domainHandlers: RequestHandler[] = [...organizationHandlers]
+export const domainHandlers: RequestHandler[] = [...organizationHandlers, ...clientHandlers]
