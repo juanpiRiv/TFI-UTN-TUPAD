@@ -5,3 +5,7 @@ packages:
 # Paquetes con scripts de instalacion permitidos (argon2 compila un binario nativo)
 allowBuilds:
   argon2: true
+
+# msw solo copia su service worker, que ya esta versionado en frontend/public
+ignoredBuiltDependencies:
+  - msw
