@@ -1,7 +1,7 @@
-# Backlog — TFI Sistema de Gestión Financiera y Facturación Electrónica
+# Backlog: TFI Sistema de Gestión Financiera y Facturación Electrónica
 
 Backlog completo, de punta a punta, desde donde está el proyecto hoy hasta
-la entrega final. Todavía sin repartir entre los tres — primero cargamos
+la entrega final. Todavía sin repartir entre los tres, primero cargamos
 todo, después nos lo dividimos.
 
 Los códigos entre corchetes (`[F3-10]`) son solo para referencia interna
@@ -10,13 +10,13 @@ título entero). No van en el título del issue.
 
 Para cargar cada tarea como issue real, usar `scripts/github/new-issue.sh`
 (ver `docs/CONTRIBUTING.md`). El campo "Prioridad" y "Área" no tienen
-label propia todavía — de mínima ponerlos en el cuerpo del issue como acá
+label propia todavía, de mínima ponerlos en el cuerpo del issue como acá
 abajo; si más adelante queremos filtrar por eso en el board, se puede
 agregar como campo custom en el Project (no hace falta ahora).
 
 ---
 
-## Fase 0 — Cerrar correcciones de la primera entrega
+## Fase 0: Cerrar correcciones de la primera entrega
 
 ### [F0-1] Revisar la devolución del docente punto por punto
 **Descripción:** Leer la corrección completa y anotar, para cada
@@ -24,7 +24,8 @@ observación, en qué fase de este backlog queda resuelta. Es la forma de
 no perder ningún punto en el camino.
 **Criterios de cierre:**
 - [ ] Cada observación del docente tiene una tarea asociada en este backlog.
-- [ ] El documento de la primera entrega queda linkeado desde acá.
+- [ ] El documento de la primera entrega queda linkeado desde acá
+      ([`01-propuesta.md`](./01-propuesta.md)).
 **Prioridad:** P0
 **Área:** Documentación
 **Dependencias:** Sin dependencia bloqueante.
@@ -34,7 +35,8 @@ no perder ningún punto en el camino.
 algunos puntos (stack, alcance). Antes de seguir, alinearlo con lo que
 realmente vamos a construir.
 **Criterios de cierre:**
-- [ ] `docs/TFI_Primera_Entrega` actualizado o con un anexo de cambios.
+- [ ] Propuesta migrada a Markdown y actualizada en
+      [`docs/01-propuesta.md`](./01-propuesta.md).
 - [ ] El stack tecnológico coincide con lo que hay en el repo.
 **Prioridad:** P1
 **Área:** Documentación
@@ -46,15 +48,15 @@ reales, con su fase, prioridad y área, para poder repartir el trabajo
 después.
 **Criterios de cierre:**
 - [ ] Todas las tareas de fases 0 a 10 están cargadas como issues.
-- [ ] El board tiene las 6 columnas definidas (Backlog, To Do, In Progress,
-      Review, Testing, Done).
+- [ ] Cada issue está en el board con Status (`Todo`, `In progress`,
+      `Done`, `Blocked`) y Priority (`P0`/`P1`/`P2`).
 **Prioridad:** P0
 **Área:** DevOps
 **Dependencias:** Sin dependencia bloqueante.
 
 ---
 
-## Fase 1 — Validar P0 y cerrar el dominio
+## Fase 1: Validar P0 y cerrar el dominio
 
 ### [F1-1] Hacer el relevamiento con usuarios reales
 **Descripción:** Hablar con monotributistas de verdad (aunque sean
@@ -108,7 +110,7 @@ independientes.
 ### [F1-5] Diseñar cómo funcionan los pagos parciales sin duplicar ingresos
 **Descripción:** Definir el mecanismo exacto: si una factura de $10.000
 recibe dos pagos de $6.000 y $4.000, tiene que quedar un ingreso por cada
-pago —nunca uno por la factura completa— y el saldo pendiente tiene que
+pago (nunca uno por la factura completa) y el saldo pendiente tiene que
 dar $0 al final.
 **Criterios de cierre:**
 - [ ] Documento con el flujo de pago parcial paso a paso.
@@ -132,7 +134,7 @@ nombre o de CUIT después. Definir cómo se guarda esa foto histórica.
 
 ---
 
-## Fase 2 — DER, arquitectura y base de datos
+## Fase 2: DER, arquitectura y base de datos
 
 ### [F2-1] Armar el DER inicial completo
 **Descripción:** Dibujar el diagrama entidad-relación con el núcleo del
@@ -229,7 +231,7 @@ cada vez que se resetea la base.
 
 ---
 
-## Fase 3 — Vertical funcional inicial
+## Fase 3: Vertical funcional inicial
 
 Meta de la fase: **login → organización → cliente → movimiento →
 dashboard** funcionando de punta a punta.
@@ -314,7 +316,7 @@ contacto).
 
 ### [F3-8] Historial de operaciones por cliente
 **Descripción:** Pantalla donde, al entrar a un cliente, se vean sus
-movimientos y —más adelante— sus facturas y pagos.
+movimientos y (más adelante) sus facturas y pagos.
 **Criterios de cierre:**
 - [ ] Se ve una lista de movimientos asociados al cliente.
 - [ ] Se puede filtrar por fecha.
@@ -368,7 +370,7 @@ login → organización → cliente → movimiento → dashboard.
 
 ---
 
-## Fase 4 — Multimoneda y BCRA
+## Fase 4: Multimoneda y BCRA
 
 ### [F4-1] Definir qué cotización usamos para gestión
 **Descripción:** Antes de programar nada, decidir de qué fuente sacamos
@@ -440,7 +442,7 @@ período tenga sentido aunque haya ingresos en dólares y en pesos.
 
 ---
 
-## Fase 5 — Spike técnico ARCA
+## Fase 5: Spike técnico ARCA
 
 ### [F5-1] Conseguir el certificado de homologación de ARCA
 **Descripción:** Tramitar o generar el certificado y la clave privada
@@ -499,7 +501,7 @@ P1.
 
 ---
 
-## Fase 6 — Facturación completa
+## Fase 6: Facturación completa
 
 ### [F6-1] CRUD de facturas sin ARCA todavía (Invoice + InvoiceItem)
 **Descripción:** Crear una factura con uno o más ítems, calculando
@@ -625,7 +627,7 @@ todavía) para poder descargarlo o mandarlo al cliente.
 
 ---
 
-## Fase 7 — Integración ARCA completa
+## Fase 7: Integración ARCA completa
 
 ### [F7-1] Armar el servicio que arma y firma el request a WSFEv1
 **Descripción:** Encapsular en un solo módulo la construcción del
@@ -684,7 +686,7 @@ homologación para confirmar que no quedó ningún caso raro sin cubrir.
 
 ---
 
-## Fase 8 — Testing, seguridad y estabilidad
+## Fase 8: Testing, seguridad y estabilidad
 
 ### [F8-1] Escribir tests unitarios de la lógica de negocio
 **Descripción:** Cubrir con tests las funciones que calculan saldos,
@@ -777,7 +779,7 @@ facturación se puedan usar razonablemente desde una tablet o el celular.
 
 ---
 
-## Fase 9 — Deploy y QA
+## Fase 9: Deploy y QA
 
 ### [F9-1] Configurar las variables de entorno y los secretos
 **Descripción:** Centralizar en variables de entorno todo lo sensible
@@ -854,7 +856,7 @@ antes de armar la documentación final.
 
 ---
 
-## Fase 10 — Documentación y entrega final
+## Fase 10: Documentación y entrega final
 
 ### [F10-1] Escribir el README completo
 **Descripción:** Que cualquiera pueda clonar el repo y levantar el
@@ -941,7 +943,7 @@ documentos pedidos estén en `docs/`.
 
 ---
 
-## P1 — Funcionalidades que pueden postergarse
+## P1: Funcionalidades que pueden postergarse
 
 ### [P1-1] Consultar la Central de Deudores del BCRA
 **Descripción:** Traer información de riesgo crediticio de un cliente por
@@ -1007,7 +1009,7 @@ Esta es la cadena que no se puede atrasar sin atrasar todo lo demás:
 5. **El modelo de facturación que pidió el docente**: Invoice/InvoiceItem
    → estados de factura → snapshot del receptor → Payment/Transaction sin
    duplicar ingresos (F6-1, F6-2, F6-6, F6-7). No puede esperar a que
-   termine toda la Fase 6 — es lo primero que hay que mostrar en la
+   termine toda la Fase 6, es lo primero que hay que mostrar en la
    próxima entrega.
 6. **El spike de ARCA**: certificado → WSAA → ticket de acceso → primera
    llamada a WSFEv1 (F5-1 a F5-4). Es una cadena aparte del dominio, pero
@@ -1023,21 +1025,21 @@ Esta es la cadena que no se puede atrasar sin atrasar todo lo demás:
 Una vez cerrado el dominio (Fase 1) y lista la vertical inicial
 (Fase 3), hay margen real para que los tres trabajen sin pisarse:
 
-- **Persona A** — Multimoneda y BCRA (Fase 4), y después el arranque de
+- **Persona A**: Multimoneda y BCRA (Fase 4), y después el arranque de
   reportes exportables (P1-4) si da el tiempo.
-- **Persona B** — Facturación (Fase 6): el modelo de Invoice/Payment se
+- **Persona B**: Facturación (Fase 6): el modelo de Invoice/Payment se
   puede construir sin esperar a que ARCA esté resuelto, porque hasta la
   Fase 7 no hace falta la integración real.
-- **Persona C** — Spike de ARCA (Fase 5) de punta a punta. Conviene que
+- **Persona C**: Spike de ARCA (Fase 5) de punta a punta. Conviene que
   lo lleve una sola persona sin cortes, porque es la parte más incierta
   y con más ida y vuelta con documentación externa.
 
 Otros momentos para paralelizar:
 
 - El **relevamiento de usuarios** (Fase 1) se puede repartir entre los
-  tres desde el día uno — cada uno entrevista a los suyos.
+  tres desde el día uno, cada uno entrevista a los suyos.
 - En **Fase 3**, actividades (F3-5), puntos de venta (F3-6), clientes
-  (F3-7) y categorías (F3-9) no dependen entre sí — se pueden repartir en
+  (F3-7) y categorías (F3-9) no dependen entre sí, se pueden repartir en
   paralelo apenas existe Organization (F3-4).
 - En **Fase 8** (testing), cada uno puede escribir los tests del módulo
   que programó, en vez de que uno solo escriba todos.

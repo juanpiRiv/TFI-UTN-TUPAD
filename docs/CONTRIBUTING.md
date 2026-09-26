@@ -1,16 +1,16 @@
-# Guía de contribución — TFI-UTN-TUPAD
+# Guía de contribución: TFI-UTN-TUPAD
 
 Convenciones de ramas, issues y Project Board para el equipo (Rivero
 Albornoz, Rios, Riveros Valgañón). Basado en la propuesta aceptada
-(`docs/TFI_Primera_Entrega.pdf`, secciones 13-16).
+([`docs/01-propuesta.md`](./01-propuesta.md), secciones 13-16).
 
 ## Ramas
 
-- `main` — rama estable, solo código revisado.
-- `develop` — integración de todas las features.
-- `feature/<nombre>` — una rama por funcionalidad, sale de `develop` y
+- `main`: rama estable, solo código revisado.
+- `develop`: integración de todas las features.
+- `feature/<nombre>`: una rama por funcionalidad, sale de `develop` y
   vuelve a `develop` (ej: `feature/client-module`).
-- `fix/<nombre>` — correcciones puntuales sobre `develop`, o directo sobre
+- `fix/<nombre>`: correcciones puntuales sobre `develop`, o directo sobre
   `main` para un hotfix urgente.
 
 **Ojo:** el repo tiene activado "Automatically delete head branches", así
@@ -39,7 +39,7 @@ Las reales hoy (verificar con `gh label list --repo juanpiRiv/TFI-UTN-TUPAD`,
 pueden cambiar): `accessibility`, `bug`, `documentation`, `duplicate`,
 `enhancement`, `good first issue`, `help wanted`, `invalid`, `question`,
 `wontfix`. No existe `chore`, `priority:*`, `dependencies` ni
-`security-fix` — no los uses hasta que alguien los cree a propósito.
+`security-fix`, no los uses hasta que alguien los cree a propósito.
 
 | Situación | Label | `type` del título |
 | --- | --- | --- |
@@ -54,56 +54,56 @@ quien revisa, nunca quien crea el issue.
 
 ## Módulos (scope) y qué requerimientos cubren
 
-Del catálogo de requerimientos (RF-01..34) en `docs/TFI_Primera_Entrega.pdf`:
+Del catálogo de requerimientos (RF-01..34) en [`docs/01-propuesta.md`](./01-propuesta.md#13-requerimientos-funcionales):
 
 | Módulo | Cubre |
 | --- | --- |
-| `auth` | Autenticación — RF-01, RF-02, RF-03 |
-| `users` | Perfil de usuario — RF-04 |
-| `organizations` | Datos del negocio, moneda base — RF-05, RF-06 |
-| `clients` | ABM y búsqueda de clientes, historial — RF-07..RF-11 |
-| `categories` | Categorización de movimientos — RF-14 |
-| `transactions` | Ingresos/egresos, filtros — RF-12, RF-13, RF-15, RF-16, RF-17 |
-| `dashboard` | Totales del período, resultado de gestión, gráficos — RF-31..RF-34 |
-| `exchange-rates` | Cotizaciones BCRA — RF-18..RF-21 |
-| `invoices` | Facturas, totales, PDF — RF-22, RF-23, RF-27, RF-28 |
-| `arca` | Integración WSFEv1, CAE — RF-24, RF-25, RF-26 |
-| `payments` | Pagos, saldo, facturado vs. cobrado — RF-29, RF-30, RF-33 |
+| `auth` | Autenticación (RF-01, RF-02, RF-03) |
+| `users` | Perfil de usuario (RF-04) |
+| `organizations` | Datos del negocio, moneda base (RF-05, RF-06) |
+| `clients` | ABM y búsqueda de clientes, historial (RF-07..RF-11) |
+| `categories` | Categorización de movimientos (RF-14) |
+| `transactions` | Ingresos/egresos, filtros (RF-12, RF-13, RF-15, RF-16, RF-17) |
+| `dashboard` | Totales del período, resultado de gestión, gráficos (RF-31..RF-34) |
+| `exchange-rates` | Cotizaciones BCRA (RF-18..RF-21) |
+| `invoices` | Facturas, totales, PDF (RF-22, RF-23, RF-27, RF-28) |
+| `arca` | Integración WSFEv1, CAE (RF-24, RF-25, RF-26) |
+| `payments` | Pagos, saldo, facturado vs. cobrado (RF-29, RF-30, RF-33) |
 | `notifications` | WhatsApp/Kapso (evolutivo, post-MVP) | |
 | `reports` | Reportes del período | |
-| `audit` | Trazabilidad — RNF-08 | |
+| `audit` | Trazabilidad (RNF-08) | |
 
 Los requerimientos no funcionales (RNF-01..12) y las reglas de negocio
 (RN-01..14) van **dentro** del issue del módulo que restringen (como
 criterio de aceptación), no como issues aparte. Al armar el backlog inicial,
-un issue por módulo/slice de funcionalidad — no uno por cada RF suelto.
+un issue por módulo/slice de funcionalidad, no uno por cada RF suelto.
 
 ## Issues y Project Board
 
 Usar los scripts de `scripts/github/` en vez de escribir los comandos de
-`gh` a mano — ver `scripts/github/README.md` para el detalle de uso:
+`gh` a mano, ver `scripts/github/README.md` para el detalle de uso:
 
-- `new-issue.sh` — crea el issue con el título y la label correctos, y
+- `new-issue.sh`: crea el issue con el título y la label correctos, y
   busca duplicados antes de crearlo.
-- `setup-board.sh` — deja armado `scripts/github/project.env` apuntando al
+- `setup-board.sh`: deja armado `scripts/github/project.env` apuntando al
   board (ya no hace falta correrlo: el board ya existe, ver abajo).
-- `add-to-board.sh` — agrega un issue existente al board y le pone estado.
+- `add-to-board.sh`: agrega un issue existente al board y le pone estado.
 
 El board del equipo es **Roadmap-TUPAD** (`gh project view 9 --owner
 juanpiRiv`), ya linkeado al repo. Su número está guardado en
 `scripts/github/project.env`. A diferencia de lo que decía la propuesta
 original (6 columnas), el Status real tiene 4 opciones: `Todo`,
 `In progress`, `Done`, `Blocked`. El board también trae un campo nativo
-**Priority** con `P0`/`P1`/`P2` — usarlo en vez de (o además de) escribir
+**Priority** con `P0`/`P1`/`P2`, usarlo en vez de (o además de) escribir
 la prioridad solo en el cuerpo del issue.
 
 ## Vincular el PR con el issue
 
 - PR hacia `develop` (el caso normal): usar `Refs #<n>` en el body. No
-  cierra el issue — `develop` no es la rama default, así que `Closes` no
+  cierra el issue, `develop` no es la rama default, así que `Closes` no
   dispararía nada ahí; `Refs` igual deja el link visible en el issue.
 - PR hacia `main` (release desde `develop`, o un `fix/*` directo a `main`):
-  usar `Closes #<n>` (o `Fixes`/`Resolves`) — ese merge sí cierra el issue.
+  usar `Closes #<n>` (o `Fixes`/`Resolves`), ese merge sí cierra el issue.
 
 ## Requisitos para correr los scripts
 

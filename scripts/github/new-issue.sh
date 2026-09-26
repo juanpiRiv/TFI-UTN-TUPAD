@@ -46,4 +46,4 @@ fi
 
 echo "Issue creado: $URL"
 NUMBER="${URL##*/}"
-echo "Para agregarlo al board: ./scripts/github/add-to-board.sh ${NUMBER} \"To Do\""
+echo "Para agregarlo al board: ./scripts/github/add-to-board.sh ${NUMBER} \"Todo\""
