@@ -1,4 +1,6 @@
 import { setupServer } from 'msw/node'
 import { domainHandlers } from './handlers'
+import { authHandlers } from './handlers/auth'
 
-export const server = setupServer(...domainHandlers)
+// Tests have no backend, so they also simulate auth.
+export const server = setupServer(...authHandlers, ...domainHandlers)
