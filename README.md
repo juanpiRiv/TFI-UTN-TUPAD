@@ -1,7 +1,7 @@
 # Sistema Web de Gestión Financiera y Facturación Electrónica
 
-> **Trabajo Final Integrador** — Tecnicatura Universitaria en Programación  
-> **Universidad Tecnológica Nacional (UTN)** — Año 2026
+> **Trabajo Final Integrador**, Tecnicatura Universitaria en Programación  
+> **Universidad Tecnológica Nacional (UTN)**, Año 2026
 
 ---
 
@@ -64,13 +64,32 @@ Plataforma web orientada inicialmente a **monotributistas que venden productos, 
 
 ## 📄 Documentación
 
-Toda la documentación se mantiene en Markdown dentro del repositorio, para poder recorrerla directamente desde GitHub.
+Toda la documentación está en Markdown dentro del repo, así se puede leer directo desde GitHub sin descargar nada.
 
-| Documento | Contenido |
+| Documento | Qué tiene |
 | :--- | :--- |
-| [Propuesta de proyecto](./docs/01-propuesta.md) | Primera Entrega corregida: problema, alcance del MVP, stack, arquitectura, RF/RNF/RN, roadmap, riesgos y DER inicial |
-| [Atomicidad y concurrencia](./docs/02-atomicidad-concurrencia.md) | Transacciones de BD, pagos concurrentes, numeración y emisión con ARCA, ticket WSAA, restricciones y pruebas |
-| [Backlog](./docs/BACKLOG.md) | Tareas por fase hasta la entrega final, camino crítico y Definition of Done de la Entrega 2 |
-| [Guía de contribución](./docs/CONTRIBUTING.md) | Ramas, convención de issues/PRs, labels, módulos y tablero |
+| [Propuesta de proyecto](./docs/01-propuesta.md) | La primera entrega corregida: problema, alcance del MVP, stack, arquitectura, requerimientos, reglas de negocio, roadmap, riesgos y DER inicial |
+| [Atomicidad y concurrencia](./docs/02-atomicidad-concurrencia.md) | Cómo evitamos datos a medias o duplicados: transacciones, pagos simultáneos, numeración con ARCA, ticket de WSAA y pruebas |
+| [Modelo de datos](./docs/03-modelo-de-datos.md) | DER corregido (en Mermaid) y diccionario de datos. El esquema de Prisma está en [`backend/prisma/schema.prisma`](./backend/prisma/schema.prisma) |
+| [Factura, cobro y pagos parciales](./docs/04-factura-cobro-y-pagos.md) | Reglas de factura contra cobro, estados, pagos parciales con ejemplos y resultado de gestión contra resultado de caja |
+| [Cotización](./docs/05-cotizacion.md) | Qué cotización usamos para gestión (BCRA) y cuál exige ARCA para facturar en dólares |
+| [Plan B de ARCA](./docs/06-plan-b-arca.md) | Fechas de control y qué pasa a P1 si la integración con ARCA se atrasa |
+| [Relevamiento con usuarios](./docs/07-relevamiento.md) | Guion de entrevistas y resultados (en curso) |
+| [Backlog](./docs/BACKLOG.md) | Tareas por fase hasta la entrega final y camino crítico |
+| [Guía de contribución](./docs/CONTRIBUTING.md) | Ramas, convención de issues y PRs, labels, módulos y tablero |
 
-La versión original de la Primera Entrega se conserva como histórico en [`docs/TFI_Primera_Entrega.pdf`](./docs/TFI_Primera_Entrega.pdf).
+La versión original de la primera entrega queda guardada en [`docs/TFI_Primera_Entrega.pdf`](./docs/TFI_Primera_Entrega.pdf).
+
+## ✅ Segunda entrega (27/09)
+
+Estado de lo que pidió la cátedra para esta revisión:
+
+| # | Pedido | Dónde está | Estado |
+| :--- | :--- | :--- | :--- |
+| 1 | Relevamiento breve con usuarios reales y perfil P0 elegido | [Relevamiento](./docs/07-relevamiento.md) | En curso: guion listo, faltan las entrevistas |
+| 2 | Modelo ER inicial con Organization, Client, Transaction, Invoice, InvoiceItem y Payment | [Modelo de datos](./docs/03-modelo-de-datos.md) y [`schema.prisma`](./backend/prisma/schema.prisma) | Hecho |
+| 3 | Reglas de factura contra cobro y pagos parciales | [Factura, cobro y pagos parciales](./docs/04-factura-cobro-y-pagos.md) | Hecho |
+| 4 | Definición de la cotización usada | [Cotización](./docs/05-cotizacion.md) | Hecho |
+| 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/` y `frontend/` | Pendiente |
+| 6 | Spike de homologación WSAA y WSFEv1 | | Pendiente |
+| 7 | Qué pasa a P1 si ARCA se atrasa | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Hecho |
