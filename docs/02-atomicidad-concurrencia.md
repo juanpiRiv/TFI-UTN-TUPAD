@@ -1,8 +1,8 @@
 # Atomicidad y concurrencia
 
-> Decisiones de diseño para que las operaciones financieras sean **atómicas** (se hacen completas o no se hacen) y **seguras ante concurrencia** (dos pedidos simultáneos no rompen las reglas de negocio). Aplica al backend (Express + Prisma) sobre PostgreSQL.
->
-> Relacionado: [Propuesta](./01-propuesta.md) (RN-01..14, RNF-04, RNF-07, RNF-08) · [DER inicial](./img/der-inicial.png)
+En este documento dejamos cómo vamos a manejar las operaciones que tocan plata para que se hagan completas o no se hagan (atomicidad), y para que dos pedidos que llegan al mismo tiempo no rompan las reglas de negocio (concurrencia). Todavía no hay código, así que esto es el diseño que vamos a seguir al programar el backend con Express y Prisma sobre PostgreSQL.
+
+Relacionado: [Propuesta](./01-propuesta.md) (RN-01 a RN-14, RNF-04, RNF-07, RNF-08) y [Modelo de datos](./03-modelo-de-datos.md).
 
 ## Índice
 
@@ -29,7 +29,7 @@ Hay tres lugares donde un error de atomicidad o de concurrencia genera datos inc
 | Doble clic en "Facturar", o dos facturas del mismo punto de venta al mismo tiempo | ARCA rechaza por número duplicado, o se emiten dos comprobantes reales por la misma venta | RN-08, RN-09 |
 | ARCA autoriza pero la respuesta se pierde (timeout) | La factura queda como no autorizada aunque ARCA ya le asignó CAE | RN-09, RN-11 |
 
-Un monotributista trabaja solo o con muy poca gente, así que la concurrencia real es baja. Aun así, doble clic, reintentos del navegador, dos pestañas abiertas y timeouts de red pasan todos los días. Y un comprobante fiscal emitido por error no se puede borrar (RN-11).
+Un monotributista trabaja solo o con muy poca gente, así que no esperamos mucha concurrencia real. Pero el doble clic, los reintentos del navegador, tener dos pestañas abiertas o que se corte la conexión pasan todo el tiempo. Y una factura emitida por error no se puede borrar (RN-11), así que preferimos prevenirlo desde el diseño.
 
 ## 2. Criterios generales
 
@@ -137,7 +137,7 @@ Si la llamada a `FECAESolicitar` da timeout, o si la transacción del paso 2 fal
 
 ### Advertencia sobre el pooler de conexiones
 
-Si la base se sirve a través de un pooler en *transaction mode* (por ejemplo, el pooler de Supabase o PgBouncer), los **advisory locks de sesión** (`pg_advisory_lock`) no funcionan de forma confiable. Por eso se usa la variante de transacción (`pg_advisory_xact_lock`), que sí funciona detrás de un pooler en ese modo. Para las migraciones de Prisma hay que usar la conexión directa (`directUrl`).
+Si la base se sirve a través de un pooler en *transaction mode* (por ejemplo, el pooler de Supabase o PgBouncer), los **advisory locks de sesión** (`pg_advisory_lock`) no funcionan de forma confiable. Por eso se usa la variante de transacción (`pg_advisory_xact_lock`), que sí funciona detrás de un pooler en ese modo. Para las migraciones de Prisma hay que usar la conexión directa, que se configura en `backend/prisma.config.ts`.
 
 ## 5. Ticket de acceso WSAA
 
@@ -172,7 +172,7 @@ Se definen en `schema.prisma`. Las que Prisma no soporta nativamente van en una 
 
 ## 8. Impacto en el DER
 
-Cambios que surgen de este análisis sobre el [DER inicial](./img/der-inicial.png):
+Cambios que surgen de este análisis sobre el [DER inicial](./img/der-inicial.png). Ya están aplicados en el [modelo de datos](./03-modelo-de-datos.md):
 
 - **Invoice:** separar `status` en `fiscal_status` (`DRAFT`, `PENDING_AUTHORIZATION`, `AUTHORIZED`, `REJECTED`) y `commercial_status` (`PENDING`, `PARTIALLY_PAID`, `PAID`). Sumar `version`, `authorization_requested_at`, `arca_observations` y el snapshot del receptor (tipo y número de documento, condición frente al IVA).
 - **Payment:** sumar `currency`, `exchange_rate`, `payment_method` y `voided_at` (anulación lógica).

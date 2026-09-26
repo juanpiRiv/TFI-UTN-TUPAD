@@ -1,13 +1,13 @@
-# Propuesta de proyecto — Primera Entrega (versión corregida)
+# Propuesta de proyecto: Primera Entrega (versión corregida)
 
-> **Trabajo Final Integrador** — Tecnicatura Universitaria en Programación, UTN
+> **Trabajo Final Integrador**, Tecnicatura Universitaria en Programación, UTN
 > **Sistema Web de Gestión Financiera y Facturación Electrónica**
 
 | | |
 | --- | --- |
 | **Tipo de proyecto** | Aplicación web |
 | **Modalidad** | Trabajo Final Integrador |
-| **Estado** | Primera Entrega — propuesta corregida según la devolución docente |
+| **Estado** | Primera Entrega, propuesta corregida según la devolución docente |
 | **Fecha** | Agosto de 2026 (corregida en septiembre de 2026) |
 | **Repositorio** | <https://github.com/juanpiRiv/TFI-UTN-TUPAD> |
 
@@ -23,7 +23,7 @@
 4. [Objetivo general y objetivos específicos](#4-objetivo-general-y-objetivos-específicos)
 5. [Usuarios objetivo](#5-usuarios-objetivo)
 6. [Propuesta de valor](#6-propuesta-de-valor)
-7. [Alcance del proyecto — MVP](#7-alcance-del-proyecto--mvp)
+7. [Alcance del proyecto: MVP](#7-alcance-del-proyecto-mvp)
 8. [Funcionalidades fuera del MVP](#8-funcionalidades-fuera-del-mvp)
 9. [Stack tecnológico](#9-stack-tecnológico)
 10. [Arquitectura propuesta](#10-arquitectura-propuesta)
@@ -84,7 +84,7 @@ Se desarrollará una aplicación web que funcione como centro de gestión financ
 
 | Servicio | Función |
 | --- | --- |
-| ARCA | Facturación electrónica — obtención de CAE |
+| ARCA | Facturación electrónica, obtención de CAE |
 | BCRA | Información cambiaria y financiera pública |
 | Kapso / WhatsApp | Comunicación automatizada con clientes (fase evolutiva) |
 
@@ -127,7 +127,7 @@ El diferencial del producto radica en reunir dentro de una misma plataforma info
 | Egresos · Facturas | Central de Deudores | WhatsApp · Kapso |
 | Pagos · Reportes | Datos financieros | Notificaciones |
 
-## 7. Alcance del proyecto — MVP
+## 7. Alcance del proyecto: MVP
 
 El desarrollo se organizará en dos niveles: MVP (producto mínimo viable) y funcionalidades evolutivas. El MVP representa las funcionalidades necesarias para considerar el producto operativo y apto para evaluación.
 
@@ -223,6 +223,8 @@ Las entidades principales del sistema y sus relaciones se describen a continuaci
 El DER inicial suma además **Activity** (actividades del monotributista) y **Point_of_sale** (puntos de venta habilitados en ARCA), ambas dependientes de Organization.
 
 ![Modelo ER inicial](./img/der-inicial.png)
+
+> Este es el DER tal como lo presentamos en la primera entrega. La versión corregida, con el diccionario de datos, está en [Modelo de datos](./03-modelo-de-datos.md).
 
 ## 13. Requerimientos funcionales
 
@@ -339,7 +341,7 @@ Se listan los requerimientos funcionales agrupados por módulo.
 
 Todo el código, la documentación y los entregables del proyecto se centralizan en un único repositorio de GitHub, conforme a los requisitos de la asignatura: <https://github.com/juanpiRiv/TFI-UTN-TUPAD>.
 
-### GitHub Projects — Tablero Kanban
+### GitHub Projects: Tablero Kanban
 
 La planificación y el seguimiento de tareas se gestionan mediante GitHub Projects, en el tablero **Roadmap-TUPAD**. Cada funcionalidad se representa como un issue vinculado al repositorio.
 
@@ -372,16 +374,16 @@ TFI-UTN-TUPAD/
 
 | Fase | Período | Contenido |
 | --- | --- | --- |
-| **Fase 1 — Propuesta** | Hasta 30/08 | Definición del problema, alcance, stack, repositorio y documentación inicial. |
-| **Fase 2 — Base del producto** | 31/08 – 07/09 | Proyectos frontend y backend, PostgreSQL, Prisma, autenticación y organización. |
-| **Fase 3 — Gestión financiera** | 08/09 – 14/09 | Clientes, categorías, registro de ingresos y egresos. |
-| **Fase 4 — Finanzas avanzadas** | 15/09 – 21/09 | Dashboard, multimoneda, integración BCRA y gráficos. |
-| **Fase 5 — Segunda entrega** | 22/09 – 27/09 | Modelo ER, diccionario de datos, módulos y documentación de arquitectura. |
-| **Fase 6 — Facturación** | 28/09 – 12/10 | Modelo de factura, ítems, estados, generación de PDF y registro de pagos. |
-| **Fase 7 — Integración ARCA** | 13/10 – 25/10 | Certificados, WSAA, WSFEv1 en homologación, obtención de CAE y manejo de errores. |
-| **Fase 8 — Extras (opcional)** | 26/10 – 02/11 | Central de Deudores, Kapso y notificaciones por WhatsApp. |
-| **Fase 9 — QA y ajustes** | 03/11 – 09/11 | Testing, seguridad, responsive, correcciones y despliegue definitivo. |
-| **Fase 10 — Entrega final** | 10/11 – 14/11 | Informe final, README, diagramas, video y preparación de defensa. |
+| **Fase 1: Propuesta** | Hasta 30/08 | Definición del problema, alcance, stack, repositorio y documentación inicial. |
+| **Fase 2: Base del producto** | 31/08 al 07/09 | Proyectos frontend y backend, PostgreSQL, Prisma, autenticación y organización. |
+| **Fase 3: Gestión financiera** | 08/09 al 14/09 | Clientes, categorías, registro de ingresos y egresos. |
+| **Fase 4: Finanzas avanzadas** | 15/09 al 21/09 | Dashboard, multimoneda, integración BCRA y gráficos. |
+| **Fase 5: Segunda entrega** | 22/09 al 27/09 | Modelo ER, diccionario de datos, módulos y documentación de arquitectura. |
+| **Fase 6: Facturación** | 28/09 al 12/10 | Modelo de factura, ítems, estados, generación de PDF y registro de pagos. |
+| **Fase 7: Integración ARCA** | 13/10 al 25/10 | Certificados, WSAA, WSFEv1 en homologación, obtención de CAE y manejo de errores. |
+| **Fase 8: Extras (opcional)** | 26/10 al 02/11 | Central de Deudores, Kapso y notificaciones por WhatsApp. |
+| **Fase 9: QA y ajustes** | 03/11 al 09/11 | Testing, seguridad, responsive, correcciones y despliegue definitivo. |
+| **Fase 10: Entrega final** | 10/11 al 14/11 | Informe final, README, diagramas, video y preparación de defensa. |
 
 ## 18. Riesgos y mitigación
 

@@ -27,7 +27,7 @@ arma el título con el formato `<type>(<scope>): <descripcion>`.
 ./scripts/github/setup-board.sh
 ```
 Correrlo **una sola vez** para crear el Project Board del equipo. Guarda
-el número del board en `project.env` — commitealo para que todo el mundo
+el número del board en `project.env`, commitealo para que todo el mundo
 use el mismo board en vez de crear uno cada uno.
 
 ## add-to-board.sh
