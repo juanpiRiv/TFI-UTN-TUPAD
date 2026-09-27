@@ -1,6 +1,6 @@
 # Relevamiento con usuarios
 
-> **Estado: en curso.** Acá está el guion y la planilla. Vamos cargando los resultados a medida que hacemos cada entrevista, así que los casilleros vacíos son entrevistas que todavía no hicimos.
+> **Estado: en curso.** Acá están el guion, la encuesta corta y la planilla. Vamos cargando los resultados a medida que llegan las respuestas, así que los casilleros vacíos son entrevistas que todavía no hicimos.
 
 La cátedra nos pidió validar con usuarios reales el perfil que elegimos para el P0 antes de seguir construyendo. Nuestra hipótesis es la de la propuesta:
 
@@ -8,7 +8,22 @@ La cátedra nos pidió validar con usuarios reales el perfil que elegimos para e
 
 ## A quiénes entrevistamos
 
-Buscamos entre 5 y 8 monotributistas conocidos o conocidos de conocidos. Cada integrante consigue al menos dos. Tratamos de que haya de las tres variantes: solo servicios, solo productos, y las dos cosas.
+"Usuarios reales" son personas del perfil al que apunta el sistema: monotributistas. No hace falta que sean clientes ni desconocidos; alcanza con conocidos o conocidos de conocidos que sean monotributistas.
+
+Buscamos al menos 3 (idealmente 5). Cada integrante consigue uno o dos. Tratamos de que haya de las tres variantes: solo servicios, solo productos, y las dos cosas.
+
+Se puede hacer como entrevista con el guion completo o como encuesta corta por WhatsApp o formulario, con las preguntas de abajo.
+
+## Encuesta corta (5 minutos)
+
+Para mandar por WhatsApp o cargar en un formulario:
+
+1. ¿A qué te dedicás? ¿Vendés productos, prestás servicios o las dos cosas?
+2. ¿Cómo facturás hoy y cuántas facturas hacés por mes, más o menos?
+3. ¿Dónde anotás lo que cobrás y lo que gastás? (planilla, cuaderno, app, nada)
+4. ¿Te pagan facturas en partes o en dólares? ¿Cómo llevás esa cuenta?
+5. ¿Qué es lo que más tiempo te hace perder de todo esto?
+6. Si una sola app te dejara facturar, anotar cobros y gastos, y ver cuánto ganaste en el mes, ¿la usarías? ¿Qué no podría faltarle?
 
 ## Guion (15 a 20 minutos)
 
@@ -35,7 +50,7 @@ Buscamos entre 5 y 8 monotributistas conocidos o conocidos de conocidos. Cada in
 
 ## Conclusiones
 
-Esta parte la escribimos cuando tengamos al menos cinco entrevistas. Tiene que responder:
+Esta parte la escribimos cuando tengamos al menos tres respuestas. Tiene que responder:
 
 - ¿Se confirma el perfil del P0 o hay que ajustarlo?
 - ¿Qué funcionalidades del MVP aparecieron como imprescindibles y cuáles nadie mencionó?
