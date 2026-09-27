@@ -1,0 +1,14 @@
+{
+  "name": "tfi-utn-tupad",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter frontend dev",
+    "lint": "pnpm --filter frontend lint",
+    "test": "pnpm --filter frontend test",
+    "build": "pnpm --filter frontend build"
+  }
+}

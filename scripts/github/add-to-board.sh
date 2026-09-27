@@ -2,7 +2,7 @@
 # Agrega un issue existente al Project Board y le pone un Status.
 #
 # Uso: ./add-to-board.sh <numero-de-issue> "<Status>"
-# Status validos: Backlog | "To Do" | "In Progress" | Review | Testing | Done
+# Status validos: Todo | "In progress" | Done | Blocked
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=./lib.sh

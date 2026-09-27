@@ -27,7 +27,7 @@ arma el título con el formato `<type>(<scope>): <descripcion>`.
 ./scripts/github/setup-board.sh
 ```
 Correrlo **una sola vez** para crear el Project Board del equipo. Guarda
-el número del board en `project.env` — commitealo para que todo el mundo
+el número del board en `project.env`, commitealo para que todo el mundo
 use el mismo board en vez de crear uno cada uno.
 
 ## add-to-board.sh
@@ -35,5 +35,6 @@ use el mismo board en vez de crear uno cada uno.
 ```
 ./scripts/github/add-to-board.sh <numero-de-issue> "<Status>"
 ```
-`<Status>` es una de las columnas del board: `Backlog`, `To Do`,
-`In Progress`, `Review`, `Testing`, `Done`.
+`<Status>` es una de las opciones del campo Status del board:
+`Todo`, `In progress`, `Done`, `Blocked`. El script no setea Priority
+(`P0`/`P1`/`P2`); eso se hace desde el board o con `gh project item-edit`.
