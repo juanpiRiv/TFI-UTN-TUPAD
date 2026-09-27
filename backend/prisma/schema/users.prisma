@@ -1,0 +1,81 @@
+// ──────────────────────── Usuarios y organización ────────────────────────
+
+model User {
+    id           Int      @id @default(autoincrement())
+    name         String?  @db.VarChar(255)
+    email        String   @unique @db.VarChar(255)
+    passwordHash String   @map("password_hash") @db.VarChar(255)
+    createdAt    DateTime @default(now()) @map("created_at")
+    updatedAt    DateTime @updatedAt @map("updated_at")
+
+    organization        Organization?
+    passwordResetTokens PasswordResetToken[]
+    auditLogs           AuditLog[]
+
+    @@map("users")
+}
+
+model PasswordResetToken {
+    id        Int       @id @default(autoincrement())
+    userId    Int       @map("user_id")
+    tokenHash String    @unique @map("token_hash") @db.VarChar(64) // se guarda el hash, nunca el token
+    expiresAt DateTime  @map("expires_at")
+    usedAt    DateTime? @map("used_at")
+    createdAt DateTime  @default(now()) @map("created_at")
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+    @@map("password_reset_tokens")
+}
+
+model Organization {
+    id                  Int          @id @default(autoincrement())
+    userId              Int          @unique @map("user_id")
+    cuit                String       @unique @db.Char(11)
+    legalName           String       @map("legal_name") @db.VarChar(255)
+    tradeName           String?      @map("trade_name") @db.VarChar(255)
+    commercialAddress   String?      @map("commercial_address") @db.VarChar(255)
+    taxCondition        TaxCondition @map("tax_condition")
+    monotributoCategory String?      @map("monotributo_category") @db.VarChar(10)
+    activityStartDate   DateTime?    @map("activity_start_date") @db.Date
+    grossIncomeNumber   String?      @map("gross_income_number") @db.VarChar(50)
+    baseCurrency        Currency     @default(ARS) @map("base_currency")
+    isActive            Boolean      @default(true) @map("is_active")
+    createdAt           DateTime     @default(now()) @map("created_at")
+    updatedAt           DateTime     @updatedAt @map("updated_at")
+
+    user            User             @relation(fields: [userId], references: [id])
+    arcaCredentials ArcaCredential[]
+    activities      Activity[]
+    pointsOfSale    PointOfSale[]
+    clients         Client[]
+    categories      Category[]
+    invoices        Invoice[]
+    transactions    Transaction[]
+    auditLogs       AuditLog[]
+
+    @@map("organizations")
+}
+
+// Certificado y clave de ARCA, más el ticket de acceso del WSAA cacheado.
+// El ticket dura ~12 h: si se pide uno nuevo mientras el anterior sigue vigente,
+// WSAA lo rechaza. La clave privada se guarda cifrada (nunca en texto plano).
+model ArcaCredential {
+    id                  Int             @id @default(autoincrement())
+    organizationId      Int             @map("organization_id")
+    environment         ArcaEnvironment @default(HOMOLOGACION)
+    service             String          @default("wsfe") @db.VarChar(50)
+    certificate         String          @db.Text
+    privateKeyEncrypted String          @map("private_key_encrypted") @db.Text
+    token               String?         @db.Text
+    sign                String?         @db.Text
+    tokenExpiresAt      DateTime?       @map("token_expires_at")
+    createdAt           DateTime        @default(now()) @map("created_at")
+    updatedAt           DateTime        @updatedAt @map("updated_at")
+
+    organization Organization @relation(fields: [organizationId], references: [id])
+
+    @@unique([organizationId, environment, service])
+    @@map("arca_credentials")
+}

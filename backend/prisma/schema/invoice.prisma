@@ -1,0 +1,81 @@
+// ─────────────────────────── Facturación ───────────────────────────
+
+model Invoice {
+    id                  Int            @id @default(autoincrement())
+    organizationId      Int            @map("organization_id")
+    pointOfSaleId       Int            @map("point_of_sale_id")
+    clientId            Int?           @map("client_id")
+    associatedInvoiceId Int?           @map("associated_invoice_id") // para notas de crédito/débito
+    voucherType         VoucherType    @map("voucher_type")
+    voucherNumber       Int?           @map("voucher_number") // lo asigna ARCA al autorizar
+    concept             InvoiceConcept
+    issueDate           DateTime       @map("issue_date") @db.Date
+
+    // Datos del receptor copiados al emitir: el comprobante no cambia si después se edita el cliente
+    recipientDocType      DocType?      @map("recipient_doc_type")
+    recipientDocNumber    String?       @map("recipient_doc_number") @db.VarChar(20)
+    recipientName         String?       @map("recipient_name") @db.VarChar(255)
+    recipientAddress      String?       @map("recipient_address") @db.VarChar(255)
+    recipientTaxCondition TaxCondition? @map("recipient_tax_condition")
+
+    currency           Currency  @default(ARS)
+    fiscalExchangeRate Decimal   @default(1) @map("fiscal_exchange_rate") @db.Decimal(18, 6)
+    serviceFrom        DateTime? @map("service_from") @db.Date
+    serviceTo          DateTime? @map("service_to") @db.Date
+    paymentDueDate     DateTime? @map("payment_due_date") @db.Date
+    totalAmount        Decimal   @map("total_amount") @db.Decimal(18, 2)
+
+    status        InvoiceStatus @default(DRAFT)
+    cae           String?       @db.VarChar(14)
+    caeExpiration DateTime?     @map("cae_expiration") @db.Date
+    arcaResponse  Json?         @map("arca_response") // observaciones y errores devueltos por ARCA
+    createdAt     DateTime      @default(now()) @map("created_at")
+    updatedAt     DateTime      @updatedAt @map("updated_at")
+    authorizedAt  DateTime?     @map("authorized_at")
+
+    organization      Organization  @relation(fields: [organizationId], references: [id])
+    pointOfSale       PointOfSale   @relation(fields: [pointOfSaleId], references: [id])
+    client            Client?       @relation(fields: [clientId], references: [id])
+    associatedInvoice Invoice?      @relation("AssociatedInvoice", fields: [associatedInvoiceId], references: [id])
+    relatedInvoices   Invoice[]     @relation("AssociatedInvoice")
+    items             InvoiceItem[]
+    payments          Payment[]
+
+    @@unique([pointOfSaleId, voucherType, voucherNumber])
+    @@index([organizationId, issueDate])
+    @@index([clientId])
+    @@map("invoices")
+}
+
+model InvoiceItem {
+    id          Int     @id @default(autoincrement())
+    invoiceId   Int     @map("invoice_id")
+    description String  @db.VarChar(255)
+    quantity    Decimal @db.Decimal(18, 3)
+    unitPrice   Decimal @map("unit_price") @db.Decimal(18, 2)
+    subtotal    Decimal @db.Decimal(18, 2)
+
+    invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+    @@index([invoiceId])
+    @@map("invoice_items")
+}
+
+// Cobro de una factura. Cada cobro genera su transacción de ingreso.
+model Payment {
+    id           Int      @id @default(autoincrement())
+    invoiceId    Int      @map("invoice_id")
+    amount       Decimal  @db.Decimal(18, 2)
+    currency     Currency @default(ARS)
+    exchangeRate Decimal? @map("exchange_rate") @db.Decimal(18, 6) // si se cobra en otra moneda que la factura
+    paymentDate  DateTime @map("payment_date") @db.Date
+    voidedAt     DateTime? @map("voided_at") // anulado: no suma y anula su movimiento
+    createdAt    DateTime @default(now()) @map("created_at")
+    updatedAt    DateTime @updatedAt @map("updated_at")
+
+    invoice     Invoice      @relation(fields: [invoiceId], references: [id])
+    transaction Transaction?
+
+    @@index([invoiceId])
+    @@map("payments")
+}

@@ -395,12 +395,14 @@ Además de las claves y los índices únicos, van estas restricciones. Las que P
 
 ## Estado del esquema en el backend
 
-El esquema de Prisma del backend (PR #90) ya implementa casi todo lo de este documento. Lo que falta para que coincidan está en la revisión de ese PR, y se resume así:
+El esquema de Prisma del backend coincide con este documento. Lo que faltaba en la primera versión se agregó en la migración `align_schema_with_docs`:
 
-| Qué | En este documento | En el esquema actual |
-| --- | --- | --- |
-| Anulación de pagos y movimientos | `voided_at` en `payments` y `transactions` | No existe |
-| Categoría del movimiento | Obligatoria, `ON DELETE RESTRICT` | Opcional, `ON DELETE SET NULL` |
-| Borrado de un pago | `ON DELETE RESTRICT` en `transactions.payment_id` | `ON DELETE SET NULL`, deja el ingreso suelto |
-| Coherencia entre estado y CAE | Restricción `CHECK` | No existe |
-| Tipo de cambio obligatorio en moneda extranjera | Restricción `CHECK` | No existe |
+| Qué | Cómo quedó |
+| --- | --- |
+| Anulación de pagos y movimientos | `voided_at` en `payments` y `transactions` |
+| Categoría del movimiento | Obligatoria, con `ON DELETE RESTRICT` |
+| Borrado de un pago | `ON DELETE RESTRICT` en `transactions.payment_id` |
+| Coherencia entre estado y CAE | `CHECK` `invoices_cae_only_when_authorized` |
+| Tipo de cambio obligatorio en moneda extranjera | `CHECK` `transactions_exchange_rate_required` y `payments_exchange_rate_required` |
+
+El script `database/schema.sql` se genera a partir de este esquema, así que dice lo mismo.
