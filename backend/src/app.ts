@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { authRouter } from './module/auth/auth.routes.js';
-import { error } from 'node:console';
 import { errorHandler } from './middlewares/error-handler.js';
 
 
