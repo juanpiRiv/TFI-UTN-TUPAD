@@ -45,12 +45,42 @@ Plataforma web orientada inicialmente a **monotributistas que venden productos, 
 ```text
 ├── docs/                 # Documentación del proyecto en Markdown
 │   └── img/              # Diagramas, DER y capturas enlazados desde los .md
-├── frontend/             # Código fuente de la aplicación cliente (React + TS)
-├── backend/              # API REST y lógica de negocio (Node.js + Express)
-├── database/             # Esquemas, migraciones y scripts de inicialización
+├── frontend/             # Aplicación web (React + TS), con su propio README
+├── backend/              # API REST (Node.js + Express), un módulo por carpeta en src/module/
+│   └── prisma/           # Esquema de Prisma y migraciones
+├── database/
+│   └── schema.sql        # Esquema completo en SQL, generado desde las migraciones
 ├── scripts/github/       # Scripts para issues y Project Board
+├── pnpm-workspace.yaml   # Workspace de pnpm con backend y frontend
 └── README.md
 ```
+
+---
+
+## ▶️ Cómo levantar el proyecto
+
+Requisitos: Node 22.22 o superior (`nvm use` toma la versión del `.nvmrc`), pnpm 10 (`corepack enable`) y PostgreSQL. El backend trae un `docker-compose.yml` con la base lista.
+
+```bash
+# 1. Dependencias de todo el workspace (también genera el cliente de Prisma)
+pnpm install
+
+# 2. Base de datos
+cd backend
+docker compose up -d                    # Postgres en el puerto 5433
+cp .env-template .env                   # completar JWT_SECRET (openssl rand -hex 32)
+pnpm exec prisma migrate deploy         # crea las tablas
+pnpm dev                                # API en http://localhost:3000
+
+# 3. Frontend, en otra terminal y desde la raíz
+pnpm dev                                # app en http://localhost:5173
+```
+
+Si no se usa Prisma, la base también se puede crear con `psql -d <base> -f database/schema.sql`.
+
+Hoy el backend tiene registro, inicio de sesión y `/me`. El resto de los endpoints se simulan en el frontend con MSW: se prenden con `VITE_USE_MOCKS=true` en `frontend/.env.local` (ver [README del frontend](./frontend/README.md#mocks)).
+
+Controles: `pnpm lint`, `pnpm test` y `pnpm build` desde la raíz.
 
 ---
 
@@ -89,9 +119,9 @@ Estado de lo que pidió la cátedra para esta revisión:
 | # | Pedido | Dónde está | Estado |
 | :--- | :--- | :--- | :--- |
 | 1 | Relevamiento breve con usuarios reales y perfil P0 elegido | [Relevamiento](./docs/07-relevamiento.md) | En curso: guion listo, faltan las entrevistas |
-| 2 | Modelo ER inicial con Organization, Client, Transaction, Invoice, InvoiceItem y Payment | [Modelo de datos](./docs/03-modelo-de-datos.md) | Hecho. El esquema de Prisma y sus migraciones están en revisión (PR #90) |
+| 2 | Modelo ER inicial con Organization, Client, Transaction, Invoice, InvoiceItem y Payment | [Modelo de datos](./docs/03-modelo-de-datos.md), `backend/prisma/` y [`database/schema.sql`](./database/schema.sql) | Hecho. El esquema de Prisma, sus migraciones y el SQL coinciden con el documento |
 | 3 | Reglas de factura contra cobro y pagos parciales | [Factura, cobro y pagos parciales](./docs/04-factura-cobro-y-pagos.md) | Hecho |
 | 4 | Definición de la cotización usada | [Cotización](./docs/05-cotizacion.md) | Hecho |
-| 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | En curso: el backend tiene registro e inicio de sesión (PR #90). El frontend recorre todo el flujo con auth real y el resto simulado con MSW, a la espera de los endpoints del backend |
+| 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | En curso. Funciona de punta a punta en el frontend: registro e inicio de sesión contra el backend real, y organización, clientes, movimientos y dashboard simulados con MSW siguiendo el contrato de la API. En el backend están auth y el esquema; organizaciones está en desarrollo y faltan clientes, categorías, movimientos y dashboard. Capturas en el [README del frontend](./frontend/README.md#capturas) |
 | 6 | Spike de homologación WSAA y WSFEv1 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Pendiente: falta el certificado de homologación |
 | 7 | Qué pasa a P1 si ARCA se atrasa | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Hecho |
