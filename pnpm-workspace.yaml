@@ -6,6 +6,11 @@ packages:
 allowBuilds:
   argon2: true
 
-# msw solo copia su service worker, que ya esta versionado en frontend/public
+# Scripts que no hacen falta:
+# - msw solo copia su service worker, que ya esta versionado en frontend/public
+# - prisma, @prisma/engines y esbuild funcionan sin sus scripts (el cliente se genera con prisma generate)
 ignoredBuiltDependencies:
+  - '@prisma/engines'
+  - esbuild
   - msw
+  - prisma

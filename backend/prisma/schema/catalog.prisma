@@ -1,0 +1,88 @@
+model Activity {
+    id               Int          @id @default(autoincrement())
+    organizationId   Int          @map("organization_id")
+    arcaActivityCode String?      @map("arca_activity_code") @db.VarChar(20)
+    description      String       @db.VarChar(255)
+    kind             ActivityKind @map("activity_kind")
+    isPrimary        Boolean      @default(false) @map("is_primary")
+    isActive         Boolean      @default(true) @map("is_active")
+    createdAt        DateTime     @default(now()) @map("created_at")
+    updatedAt        DateTime     @updatedAt @map("updated_at")
+
+    organization Organization @relation(fields: [organizationId], references: [id])
+
+    @@index([organizationId])
+    @@map("activities")
+}
+
+model PointOfSale {
+    id             Int           @id @default(autoincrement())
+    organizationId Int           @map("organization_id")
+    number         Int
+    billingMethod  BillingMethod @default(CAE) @map("billing_method")
+    address        String?       @db.VarChar(255)
+    isActive       Boolean       @default(true) @map("is_active")
+    createdAt      DateTime      @default(now()) @map("created_at")
+    updatedAt      DateTime      @updatedAt @map("updated_at")
+
+    organization Organization @relation(fields: [organizationId], references: [id])
+    invoices     Invoice[]
+
+    @@unique([organizationId, number])
+    @@map("points_of_sale")
+}
+
+model Client {
+    id             Int           @id @default(autoincrement())
+    organizationId Int           @map("organization_id")
+    docType        DocType?      @map("doc_type")
+    docNumber      String?       @map("doc_number") @db.VarChar(20)
+    name           String        @db.VarChar(255)
+    address        String?       @db.VarChar(255)
+    taxCondition   TaxCondition? @map("tax_condition")
+    email          String?       @db.VarChar(255)
+    phone          String?       @db.VarChar(50)
+    isActive       Boolean       @default(true) @map("is_active")
+    createdAt      DateTime      @default(now()) @map("created_at")
+    updatedAt      DateTime      @updatedAt @map("updated_at")
+
+    organization Organization  @relation(fields: [organizationId], references: [id])
+    invoices     Invoice[]
+    transactions Transaction[]
+
+    @@unique([organizationId, docType, docNumber])
+    @@index([organizationId])
+    @@map("clients")
+}
+
+model Category {
+    id             Int          @id @default(autoincrement())
+    organizationId Int          @map("organization_id")
+    name           String       @db.VarChar(100)
+    type           MovementType
+    isActive       Boolean      @default(true) @map("is_active")
+    createdAt      DateTime     @default(now()) @map("created_at")
+    updatedAt      DateTime     @updatedAt @map("updated_at")
+
+    organization Organization  @relation(fields: [organizationId], references: [id])
+    transactions Transaction[]
+
+    @@unique([organizationId, name, type])
+    @@map("categories")
+}
+
+// Cotizaciones globales (BCRA): no dependen de la organización.
+model ExchangeRate {
+    id           Int      @id @default(autoincrement())
+    source       String   @db.VarChar(50) // p. ej. "BCRA"
+    rateType     String   @map("rate_type") @db.VarChar(50) // p. ej. "ESTADISTICAS_CAMBIARIAS" (docs/05-cotizacion.md)
+    fromCurrency Currency @map("from_currency")
+    toCurrency   Currency @map("to_currency")
+    value        Decimal  @db.Decimal(18, 6)
+    observedAt   DateTime @map("observed_at") @db.Date
+    createdAt    DateTime @default(now()) @map("created_at")
+    updatedAt    DateTime @updatedAt @map("updated_at")
+
+    @@unique([source, rateType, fromCurrency, toCurrency, observedAt])
+    @@map("exchange_rates")
+}

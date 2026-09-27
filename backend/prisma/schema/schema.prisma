@@ -1,0 +1,14 @@
+// Schema de Prisma — Sistema de Gestión Financiera y Facturación Electrónica
+// Prisma ORM
+// Alcance del MVP: comprobantes clase C (monotributistas).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
