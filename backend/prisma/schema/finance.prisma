@@ -4,20 +4,22 @@ model Transaction {
     id              Int          @id @default(autoincrement())
     organizationId  Int          @map("organization_id")
     paymentId       Int?         @unique @map("payment_id")
-    categoryId      Int?         @map("category_id")
+    categoryId      Int          @map("category_id")
     type            MovementType
     amount          Decimal      @db.Decimal(18, 2)
     currency        Currency     @default(ARS)
     exchangeRate    Decimal?     @map("exchange_rate") @db.Decimal(18, 6)
     transactionDate DateTime     @map("transaction_date") @db.Date
     description     String?      @db.VarChar(255)
+    voidedAt        DateTime?    @map("voided_at") // anulado: no suma en el dashboard
     createdAt       DateTime     @default(now()) @map("created_at")
     updatedAt       DateTime     @updatedAt @map("updated_at")
     clientId        Int?         @map("client_id")
 
     organization Organization @relation(fields: [organizationId], references: [id])
-    payment      Payment?     @relation(fields: [paymentId], references: [id])
-    category     Category?    @relation(fields: [categoryId], references: [id])
+    // RESTRICT: ni un pago ni una categoría se borran dejando movimientos sueltos (docs/03)
+    payment      Payment?     @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+    category     Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
     client       Client?      @relation(fields: [clientId], references: [id])
 
     @@index([organizationId, transactionDate])

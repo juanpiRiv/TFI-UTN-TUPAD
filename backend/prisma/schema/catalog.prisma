@@ -75,7 +75,7 @@ model Category {
 model ExchangeRate {
     id           Int      @id @default(autoincrement())
     source       String   @db.VarChar(50) // p. ej. "BCRA"
-    rateType     String   @map("rate_type") @db.VarChar(50) // p. ej. "OFICIAL_MAYORISTA"
+    rateType     String   @map("rate_type") @db.VarChar(50) // p. ej. "ESTADISTICAS_CAMBIARIAS" (docs/05-cotizacion.md)
     fromCurrency Currency @map("from_currency")
     toCurrency   Currency @map("to_currency")
     value        Decimal  @db.Decimal(18, 6)
