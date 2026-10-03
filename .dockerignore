@@ -1,0 +1,21 @@
+# Contexto de Docker (builds desde la raiz del monorepo)
+.git
+**/node_modules
+**/dist
+*.log
+.DS_Store
+
+# Secretos y envs locales (nunca entran a la imagen)
+**/.env
+**/.env.*
+!**/.env-template
+*.key
+*.crt
+*.pem
+*.pfx
+
+# No hacen falta para buildear las imagenes
+docs
+scripts
+*.md
+backend/docker-compose.yml
