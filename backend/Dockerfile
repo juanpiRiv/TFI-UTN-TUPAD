@@ -56,5 +56,6 @@ WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/backend ./backend
 WORKDIR /app/backend
+USER node
 EXPOSE 3000
 CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/server.js"]
