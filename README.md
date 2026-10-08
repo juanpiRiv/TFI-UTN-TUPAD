@@ -59,7 +59,7 @@ Plataforma web orientada inicialmente a **monotributistas que venden productos, 
 
 ## ▶️ Cómo levantar el proyecto
 
-Requisitos: Node 22.22 o superior (`nvm use` toma la versión del `.nvmrc`), pnpm 10 (`corepack enable`) y PostgreSQL. El backend trae un `docker-compose.yml` con la base lista.
+Requisitos: Node 22.22 o superior (`nvm use` toma la versión del `.nvmrc`), pnpm 10 (`corepack enable`) y Docker. El camino corto es `./scripts/dev.sh`, que prepara todo el entorno y levanta backend y frontend juntos (ver [`scripts/setup.sh`](./scripts/setup.sh) para el detalle). En Windows los scripts corren con Git Bash o WSL. El camino manual:
 
 ```bash
 # 1. Dependencias de todo el workspace (también genera el cliente de Prisma)
