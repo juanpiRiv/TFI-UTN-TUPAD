@@ -6,9 +6,9 @@
     "node": ">=22.22.0"
   },
   "scripts": {
-    "dev": "pnpm --filter frontend dev",
+    "dev": "pnpm --parallel --filter backend --filter frontend dev",
     "lint": "pnpm --filter frontend lint",
-    "test": "pnpm --filter frontend test",
-    "build": "pnpm --filter frontend build"
+    "test": "pnpm --parallel --filter backend --filter frontend test",
+    "build": "pnpm --filter frontend build && pnpm --filter backend build"
   }
 }
