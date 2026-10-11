@@ -8,6 +8,20 @@ La integración con ARCA es la parte más incierta del proyecto: depende de cons
 - **ARCA queda aislada detrás de una interfaz propia** (`ArcaClient`) con dos implementaciones: la real, que habla con los web services de homologación, y una simulada, que responde como ARCA (CAE de prueba, rechazos, timeouts). El resto del sistema no sabe con cuál está hablando. Así la facturación se puede desarrollar y probar sin depender de ARCA, y si ARCA se atrasa no frena a nadie.
 - **La factura existe sin ARCA.** El borrador, los ítems, los totales, el PDF y los pagos no dependen de tener CAE. Lo único que agrega ARCA es la autorización.
 
+## Librería para hablar con ARCA
+
+La idea es no armar WSAA y WSFEv1 a mano si no hace falta. Antes de decidir, le consultamos a Oscar si podemos usar una librería. La primera opción es `facturas` (versión exacta fijada, todavía es 0.x), que se prueba un día contra homologación; si no sirve, `@afipsdk/afip.js` (hay que revisar si manda el certificado a un servidor de terceros). Sea cual sea, va detrás de `ArcaClient`. Ver el issue #109.
+
+Para el spike, "primera llamada válida a WSFEv1" es consultar el último comprobante autorizado (`FECompUltimoAutorizado`) con el ticket, no solo `FEDummy`. Además, `CondicionIVAReceptorId` se manda siempre: según fuentes secundarias, ARCA rechaza las solicitudes sin ese dato desde el 01/12/2026 (a confirmar).
+
+### Registro del spike
+
+Se completa solo con lo que pasó de verdad. Si algo se bloquea, se anota el mensaje de error tal cual. Sin credenciales: nada de claves, tokens ni CUIT reales.
+
+| Fecha | Paso | Resultado | Evidencia |
+| --- | --- | --- | --- |
+|  |  |  |  |
+
 ## Cuándo activamos el plan B
 
 Usamos fechas concretas del [roadmap](./01-propuesta.md#17-roadmap-del-proyecto) de la propuesta, para no discutirlo cuando ya sea tarde:

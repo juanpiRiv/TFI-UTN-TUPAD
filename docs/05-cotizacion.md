@@ -8,8 +8,9 @@ Es la que se aplica a los movimientos cargados en dólares, para convertirlos a 
 
 - **Fuente:** API de Estadísticas Cambiarias del BCRA, que es pública y no requiere autenticación. El endpoint es `GET https://api.bcra.gob.ar/estadisticascambiarias/v1.0/Cotizaciones/USD` con los parámetros `fechadesde` y `fechahasta`.
 - **Moneda:** solo dólar estadounidense (`USD`) en el P0.
-- **Valor:** el campo `tipoCotizacion` de la respuesta, que es la cotización en pesos que publica el BCRA para esa fecha. En la prueba técnica F4-2 vamos a confirmar con datos reales que el campo tiene el valor que esperamos, comparándolo contra lo publicado en la web del BCRA.
-- **Fecha:** la del movimiento. Si ese día no hay cotización (fin de semana, feriado, o todavía no se publicó), usamos la del último día hábil anterior que tenga dato.
+- **Valor:** el campo `tipoCotizacion` de la moneda `USD`, en pesos por dólar. Ojo: no es la Comunicación A 3500 (esa es otra serie, el código `REF` del mismo endpoint) ni el vendedor del Banco Nación. El 09/10/2026 `USD` dio 1517,00 y `REF` 1515,8766. El BCRA no explica qué mide exactamente la serie `USD`: falta confirmarlo escribiendo a api@bcra.gob.ar y anotar la respuesta acá.
+- **Decimales:** los valores llegan con 8 decimales, así que se guardan como `Decimal` y no como entero ni `float`.
+- **Fecha:** la del movimiento. Si ese día no hay cotización (fin de semana, feriado, o todavía no se publicó), usamos la del último día hábil anterior que tenga dato. La API no rellena esos días (devuelve una lista vacía), así que lo resuelve nuestro cliente: pide una ventana de unos 10 días hacia atrás y toma el último registro con fecha menor o igual.
 - **Se guarda una copia:** el movimiento guarda el valor usado en su propio `exchange_rate`. Si más adelante cambia la cotización, los movimientos viejos no se tocan (RN-06).
 - **Se puede corregir a mano:** si el usuario cobró a otro tipo de cambio (por ejemplo, vendió los dólares en el banco), puede escribir el valor. En ese caso la cotización se guarda con origen `MANUAL`.
 
@@ -17,12 +18,19 @@ Es la que se aplica a los movimientos cargados en dólares, para convertirlos a 
 
 Consultamos al BCRA una vez por día, o cuando alguien necesita una fecha que todavía no tenemos, y guardamos el resultado en `exchange_rates` con `source = 'BCRA'`, `rate_type = 'ESTADISTICAS_CAMBIARIAS'`, de `USD` a `ARS`, junto con la fecha a la que corresponde y la fecha y hora de la consulta (RN-13). Así no le pegamos a la API en cada movimiento, y si el BCRA no responde seguimos funcionando con la última cotización guardada. En ese caso el sistema muestra de qué fecha es el dato. Si no hay ninguna cotización guardada, el usuario la carga a mano: nunca bloqueamos el registro de un movimiento porque una API externa esté caída.
 
+### Cosas a tener en cuenta de la API (probada el 11/10/2026)
+
+- Una fecha futura da error 400, así que se limita a hoy antes de consultar.
+- Hay que mandar `fechadesde` y `fechahasta` juntas; con una sola da 400.
+- `limit` va de 10 a 1000.
+- Si la serie `USD` falla, el orden de respaldo es: última cotización guardada, serie `REF` del mismo endpoint y, por último, carga manual.
+
 ### Por qué la oficial del BCRA y no otra
 
 Evaluamos las cotizaciones que usa la gente en la práctica:
 
 - **Dólar blue:** es la que muchos usan en la calle, pero no tiene una fuente oficial ni una API pública estable, y cada sitio publica un valor distinto. No podemos justificar un número fiscal o de gestión con eso.
-- **Mayorista de referencia (Comunicación A 3500):** es oficial y la publica el BCRA, pero es el precio entre bancos, no el que ve un monotributista cuando cobra o paga. Si en la prueba F4-2 la API de Estadísticas Cambiarias no nos sirve, es la alternativa.
+- **Mayorista de referencia (Comunicación A 3500):** es oficial y la publica el BCRA, pero es el precio entre bancos, no el que ve un monotributista cuando cobra o paga. Si la serie `USD` no nos sirve, es la alternativa: el mismo endpoint con el código `REF`.
 - **Banco Nación vendedor:** es la que exige ARCA para facturar en moneda extranjera (ver abajo), pero el Banco Nación no tiene una API pública oficial.
 - **Estadísticas Cambiarias del BCRA:** es oficial, pública, gratuita, no necesita autenticación y trae el histórico por fecha. Por eso la elegimos para gestión.
 
