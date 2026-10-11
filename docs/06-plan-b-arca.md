@@ -8,42 +8,19 @@ La integración con ARCA es la parte más incierta del proyecto: depende de cons
 - **ARCA queda aislada detrás de una interfaz propia** (`ArcaClient`) con dos implementaciones: la real, que habla con los web services de homologación, y una simulada, que responde como ARCA (CAE de prueba, rechazos, timeouts). El resto del sistema no sabe con cuál está hablando. Así la facturación se puede desarrollar y probar sin depender de ARCA, y si ARCA se atrasa no frena a nadie.
 - **La factura existe sin ARCA.** El borrador, los ítems, los totales, el PDF y los pagos no dependen de tener CAE. Lo único que agrega ARCA es la autorización.
 
-## Librería y spike
+## Librería para hablar con ARCA
 
-**Decisión propuesta** (a confirmar por el equipo después de la prueba):
+La idea es no armar WSAA y WSFEv1 a mano si no hace falta. Antes de decidir, le consultamos a Oscar si podemos usar una librería. La primera opción es `facturas` (versión exacta fijada, todavía es 0.x), que se prueba un día contra homologación; si no sirve, `@afipsdk/afip.js` (hay que revisar si manda el certificado a un servidor de terceros). Sea cual sea, va detrás de `ArcaClient`. Ver el issue #109.
 
-1. **Primera opción: `facturas`**, fijada a versión exacta (el paquete sigue en 0.x), tras una prueba contra homologación (estimada en un día, estimación propia sin validar). Es local (no pasa por un servicio de terceros) y su resultado `indeterminate` y su método `recover()` se parecen a nuestro estado PENDING y a la reconciliación.
-2. **Respaldo: `@afipsdk/afip.js`**, si `facturas` no sirve para nuestro diseño. Sin verificar: si exige un `access_token` de Afip SDK y si envía el certificado o la clave a su servidor. Hay que revisarlo antes de adoptarlo.
-3. **Script propio mínimo (WSAA + CMS + SOAP)**: solo como control, acotado y en paralelo. Sirve para separar un problema de certificado de un problema de código.
-
-Sin verificar de `facturas`: que acepte credenciales por organización, un almacén de ticket de acceso propio y `CondicionIVAReceptorId`. La prueba de un día tiene que responder esto. Sea cual sea la librería, queda detrás de `ArcaClient` y la numeración sigue calculándose bajo nuestro lock (ver [atomicidad y concurrencia](./02-atomicidad-concurrencia.md)).
-
-**Aclaraciones:**
-
-- "Primera llamada válida a WSFEv1" se entiende como un `FECompUltimoAutorizado` autenticado (con el ticket de WSAA) que devuelve el último número autorizado, no solo un `FEDummy`, que no requiere autenticación.
-- `CondicionIVAReceptorId` se envía siempre, desde ahora. Los códigos válidos se consultan con `FEParamGetCondicionIvaReceptor`. La fecha desde la cual ARCA rechaza solicitudes sin ese campo (01/12/2026) surge de fuentes secundarias y está sin verificar contra el sitio de ARCA.
+Para el spike, "primera llamada válida a WSFEv1" es consultar el último comprobante autorizado (`FECompUltimoAutorizado`) con el ticket, no solo `FEDummy`. Además, `CondicionIVAReceptorId` se manda siempre: según fuentes secundarias, ARCA rechaza las solicitudes sin ese dato desde el 01/12/2026 (a confirmar).
 
 ### Registro del spike
 
-Se completa solo con datos reales, en el momento en que ocurren. Si un paso se bloquea, se anota el mensaje de error textual.
+Se completa solo con lo que pasó de verdad. Si algo se bloquea, se anota el mensaje de error tal cual. Sin credenciales: nada de claves, tokens ni CUIT reales.
 
 | Fecha | Paso | Resultado | Evidencia |
 | --- | --- | --- | --- |
 |  |  |  |  |
-
-### Evidencia a guardar (sin credenciales)
-
-- Captura del escritorio de ARCA con el servicio de autogestión de certificados de homologación visible, con CUIT y nombre tapados, y fecha.
-- Si hay un bloqueo: texto del error, fecha y hora, pasos intentados.
-- Comandos de `openssl` usados con valores ficticios, huella SHA-256 del certificado (no el certificado ni la clave) y su fecha de vencimiento.
-- Captura de la autorización del servicio `wsfe` para el certificado, con el CUIT tapado.
-- `LoginTicketRequest` de ejemplo sin firma y respuesta de WSAA con token y sign redactados (solo longitud y `expirationTime`).
-- Prueba del caché del ticket: la segunda llamada dentro de las 12 horas no pide uno nuevo; y el error `coe.alreadyAuthenticated` provocado a propósito, anotando que el certificado queda sin ticket nuevo por unos minutos.
-- Respuestas de `FEDummy` y de `FECompUltimoAutorizado` (punto de venta, tipo de comprobante 11, número).
-- Respuestas de `FEParamGetCondicionIvaReceptor` y de `FEParamGetTiposCbte`.
-- Pedido y respuesta de `FECAESolicitar` para Factura C, con el CAE parcialmente redactado, y un rechazo provocado a propósito (por ejemplo número fuera de secuencia) para el manejo de errores.
-- Versión y fecha del manual de WSFEv1 usado (las fuentes secundarias no coinciden en la numeración).
-- Ningún secreto en git: `.env.example` sin valores, clave privada cifrada y registros con token y sign redactados.
 
 ## Cuándo activamos el plan B
 

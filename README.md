@@ -108,22 +108,20 @@ Toda la documentación está en Markdown dentro del repo, así se puede leer dir
 | [Contrato de la API](./docs/08-contrato-api.md) | Endpoints que espera el frontend: rutas, datos que se mandan y reciben, errores y preguntas abiertas |
 | [Frontend](./frontend/README.md) | Cómo levantar el frontend, variables, mocks, estructura, rutas, sesión y capturas |
 | [Backlog](./docs/BACKLOG.md) | Tareas por fase hasta la entrega final y camino crítico |
-| [Plan de la entrega 3](./docs/09-plan-entrega-3.md) | Qué corregir de la devolución del docente y qué construir para la tercera entrega, con el estado de partida y las decisiones pendientes |
-| [Guía del equipo](./docs/10-guia-del-equipo.md) | Setup, issues, ramas y PRs paso a paso para los tres integrantes |
 | [Guía de contribución](./docs/CONTRIBUTING.md) | Ramas, convención de issues y PRs, labels, módulos y tablero |
 
 La versión original de la primera entrega queda guardada en [`docs/TFI_Primera_Entrega.pdf`](./docs/TFI_Primera_Entrega.pdf).
 
 ## ✅ Segunda entrega (27/09)
 
-La entrega ya recibió la devolución del docente. Lo que falta (ajustes de modelo, relevamiento, ARCA y el recorrido vertical sin mocks) está en el [plan de la entrega 3](./docs/09-plan-entrega-3.md). Estado de lo que pidió la cátedra para esta revisión:
+Estado de lo que pidió la cátedra para esta revisión:
 
 | # | Pedido | Dónde está | Estado |
 | :--- | :--- | :--- | :--- |
-| 1 | Relevamiento breve con usuarios reales y perfil P0 elegido | [Relevamiento](./docs/07-relevamiento.md) | En curso (responsables en el [plan de la entrega 3](./docs/09-plan-entrega-3.md)): guion y encuesta corta listos para monotributistas del perfil P0. Faltan las respuestas |
+| 1 | Relevamiento breve con usuarios reales y perfil P0 elegido | [Relevamiento](./docs/07-relevamiento.md) | En curso: guion y encuesta corta listos para monotributistas del perfil P0. Faltan las respuestas |
 | 2 | Modelo ER inicial con Organization, Client, Transaction, Invoice, InvoiceItem y Payment | [Modelo de datos](./docs/03-modelo-de-datos.md), `backend/prisma/` y [`database/schema.sql`](./database/schema.sql) | Hecho. El esquema de Prisma, sus migraciones y el SQL coinciden con el documento |
 | 3 | Reglas de factura contra cobro y pagos parciales | [Factura, cobro y pagos parciales](./docs/04-factura-cobro-y-pagos.md) | Hecho |
 | 4 | Definición de la cotización usada | [Cotización](./docs/05-cotizacion.md) | Hecho |
-| 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | En curso. Funciona de punta a punta en el frontend: registro e inicio de sesión contra el backend real, y organización, clientes, movimientos y dashboard simulados con MSW siguiendo el contrato de la API. En el backend real, en `main`, hay auth (registro, inicio de sesión y `/me`) y el esquema de Prisma; organizaciones está en la rama `feature/organizations`, sin mergear. Siguen en mocks clientes, categorías, movimientos y dashboard, y la organización mientras no se mergee esa rama. Capturas en el [README del frontend](./frontend/README.md#capturas) |
+| 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | En curso. Funciona de punta a punta en el frontend: registro e inicio de sesión contra el backend real, y organización, clientes, movimientos y dashboard simulados con MSW siguiendo el contrato de la API. En el backend están auth y el esquema; organizaciones está en una rama sin mergear y faltan clientes, categorías, movimientos y dashboard. Capturas en el [README del frontend](./frontend/README.md#capturas) |
 | 6 | Spike de homologación WSAA y WSFEv1 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Pendiente: falta el certificado de homologación |
 | 7 | Qué pasa a P1 si ARCA se atrasa | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Hecho |
