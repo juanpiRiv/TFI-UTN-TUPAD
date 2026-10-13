@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
 import { Prisma } from "../../generated/prisma/client.js";
+import { getUsdExchangeRate } from "../exchange-rates/exchange-rates.service.js";
 import type {
   CreateTransactionInput,
   ListTransactionsQuery,
@@ -93,11 +94,24 @@ export async function createTransaction(
 ) {
   const org = await getOrganizationByUserId(userId);
 
-  // RN-05: Si la moneda difiere de la moneda base, exchangeRate es obligatorio y mayor a cero.
+  // RN-05: Si la moneda difiere de la moneda base, exchangeRate es obligatorio o se infiere de la cotización oficial del BCRA.
   // Si coincide con la moneda base, se guarda null.
   const needsExchangeRate = data.currency !== org.baseCurrency;
-  if (needsExchangeRate && !data.exchangeRate) {
-    throw new AppError(400, "Exchange rate is required for this currency");
+  let resolvedExchangeRate: Prisma.Decimal | null = null;
+
+  if (needsExchangeRate) {
+    if (data.exchangeRate) {
+      resolvedExchangeRate = new Prisma.Decimal(data.exchangeRate);
+    } else if (data.currency === "USD" && org.baseCurrency === "ARS") {
+      try {
+        const rateDto = await getUsdExchangeRate(data.transactionDate);
+        resolvedExchangeRate = new Prisma.Decimal(rateDto.value);
+      } catch {
+        throw new AppError(400, "Exchange rate is required for this currency");
+      }
+    } else {
+      throw new AppError(400, "Exchange rate is required for this currency");
+    }
   }
 
   // Validar categoría: activa y del mismo tipo que el movimiento
@@ -138,10 +152,7 @@ export async function createTransaction(
       type: data.type,
       amount: new Prisma.Decimal(data.amount),
       currency: data.currency,
-      exchangeRate:
-        needsExchangeRate && data.exchangeRate
-          ? new Prisma.Decimal(data.exchangeRate)
-          : null,
+      exchangeRate: resolvedExchangeRate,
       transactionDate: new Date(`${data.transactionDate}T00:00:00.000Z`),
       description: data.description ?? null,
     },

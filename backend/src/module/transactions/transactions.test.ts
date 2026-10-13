@@ -1,8 +1,33 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createTransactionSchema,
   listTransactionsQuerySchema,
 } from "./transactions.schemas.js";
+import { createTransaction } from "./transactions.service.js";
+import { prisma } from "../../lib/prisma.js";
+import { getUsdExchangeRate } from "../exchange-rates/exchange-rates.service.js";
+import { Prisma } from "../../generated/prisma/client.js";
+
+vi.mock("../../lib/prisma.js", () => ({
+  prisma: {
+    organization: {
+      findUnique: vi.fn(),
+    },
+    category: {
+      findFirst: vi.fn(),
+    },
+    client: {
+      findFirst: vi.fn(),
+    },
+    transaction: {
+      create: vi.fn(),
+    },
+  },
+}));
+
+vi.mock("../exchange-rates/exchange-rates.service.js", () => ({
+  getUsdExchangeRate: vi.fn(),
+}));
 
 describe("Transactions Schemas", () => {
   describe("createTransactionSchema", () => {
@@ -174,6 +199,128 @@ describe("Transactions Schemas", () => {
     it("rejects categoryId exceeding int32 bounds", () => {
       const result = listTransactionsQuerySchema.safeParse({ categoryId: 3000000000 });
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe("createTransaction service - cotizaciones y multimoneda (Issue #37)", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+        id: 1,
+        baseCurrency: "ARS",
+      } as any);
+
+      vi.mocked(prisma.category.findFirst).mockResolvedValue({
+        id: 1,
+        organizationId: 1,
+        name: "Honorarios",
+        type: "INCOME",
+        isActive: true,
+      } as any);
+
+      (prisma.transaction.create as any).mockImplementation(async ({ data }: any) => ({
+        id: 10,
+        organizationId: data.organizationId,
+        categoryId: data.categoryId,
+        clientId: data.clientId,
+        type: data.type,
+        amount: data.amount,
+        currency: data.currency,
+        exchangeRate: data.exchangeRate,
+        transactionDate: data.transactionDate,
+        description: data.description,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isVoided: false,
+        voidedAt: null,
+        voidReason: null,
+        category: { id: 1, name: "Honorarios", type: "INCOME" },
+        client: null,
+      }));
+    });
+
+    it("guarda el tipo de cambio ingresado/editado a mano por el usuario (sobreescritura)", async () => {
+      const input = {
+        type: "INCOME" as const,
+        amount: "100.00",
+        currency: "USD" as const,
+        exchangeRate: "1550.000000", // usuario ingresó valor propio
+        categoryId: 1,
+        transactionDate: "2026-10-13",
+        description: null,
+      };
+
+      const result = await createTransaction(1, input);
+
+      expect(result.currency).toBe("USD");
+      expect(result.exchangeRate).toBe("1550");
+      expect(getUsdExchangeRate).not.toHaveBeenCalled();
+      expect(prisma.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            currency: "USD",
+            exchangeRate: new Prisma.Decimal("1550.000000"),
+          }),
+        }),
+      );
+    });
+
+    it("trae y guarda automáticamente la cotización del BCRA si no se envía exchangeRate", async () => {
+      vi.mocked(getUsdExchangeRate).mockResolvedValueOnce({
+        date: "2026-10-13",
+        observedAt: "2026-10-13",
+        value: "1512.500000",
+        source: "BCRA",
+        rateType: "ESTADISTICAS_CAMBIARIAS",
+      });
+
+      const input = {
+        type: "INCOME" as const,
+        amount: "250.00",
+        currency: "USD" as const,
+        categoryId: 1,
+        transactionDate: "2026-10-13",
+        description: null,
+      };
+
+      const result = await createTransaction(1, input);
+
+      expect(getUsdExchangeRate).toHaveBeenCalledWith("2026-10-13");
+      expect(result.currency).toBe("USD");
+      expect(result.exchangeRate).toBe("1512.5");
+      expect(prisma.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            currency: "USD",
+            exchangeRate: new Prisma.Decimal("1512.500000"),
+          }),
+        }),
+      );
+    });
+
+    it("guarda exchangeRate como null si el movimiento es en la moneda base (ARS)", async () => {
+      const input = {
+        type: "INCOME" as const,
+        amount: "50000.00",
+        currency: "ARS" as const,
+        categoryId: 1,
+        transactionDate: "2026-10-13",
+        description: null,
+      };
+
+      const result = await createTransaction(1, input);
+
+      expect(result.currency).toBe("ARS");
+      expect(result.exchangeRate).toBeNull();
+      expect(getUsdExchangeRate).not.toHaveBeenCalled();
+      expect(prisma.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            currency: "ARS",
+            exchangeRate: null,
+          }),
+        }),
+      );
     });
   });
 });
