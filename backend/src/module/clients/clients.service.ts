@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
+import { isValidCuit } from "../../lib/cuit.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import type {
   CreateClientInput,
@@ -91,6 +92,12 @@ export async function createClient(
     });
 
     if (existing) {
+      if (!existing.isActive) {
+        throw new AppError(
+          409,
+          "El cliente con este documento ya existe pero está inactivo (reactivarlo)",
+        );
+      }
       throw new AppError(409, "Client document already registered");
     }
   }
@@ -146,6 +153,13 @@ export async function updateClient(
       ? data.docNumber ? data.docNumber.trim() : null
       : existing.docNumber;
 
+  if (
+    (targetDocType === "CUIT" || targetDocType === "CUIL") &&
+    (!targetDocNumber || !isValidCuit(targetDocNumber))
+  ) {
+    throw new AppError(400, "CUIT/CUIL inválido");
+  }
+
   if (targetDocType && targetDocNumber) {
     const duplicate = await prisma.client.findFirst({
       where: {
@@ -157,6 +171,12 @@ export async function updateClient(
     });
 
     if (duplicate) {
+      if (!duplicate.isActive) {
+        throw new AppError(
+          409,
+          "El cliente con este documento ya existe pero está inactivo (reactivarlo)",
+        );
+      }
       throw new AppError(409, "Client document already registered");
     }
   }

@@ -40,7 +40,7 @@ export async function getById(req: Request, res: Response) {
   }
 
   const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id <= 0) {
+  if (!Number.isInteger(id) || id <= 0 || id > 2147483647) {
     throw new AppError(400, "Invalid client ID");
   }
 
@@ -82,7 +82,7 @@ export async function update(req: Request, res: Response) {
   }
 
   const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id <= 0) {
+  if (!Number.isInteger(id) || id <= 0 || id > 2147483647) {
     throw new AppError(400, "Invalid client ID");
   }
 

@@ -1,43 +1,57 @@
 import { z } from "zod";
 import { DocType, TaxCondition } from "../../generated/prisma/client.js";
+import { isValidCuit } from "../../lib/cuit.js";
 
-export const createClientSchema = z.object({
-  name: z
-    .string({ required_error: "Name is required" })
-    .trim()
-    .min(1, "Name is required")
-    .max(255, "Name is too long"),
-  docType: z.nativeEnum(DocType).nullable().optional(),
-  docNumber: z
-    .string()
-    .trim()
-    .max(20, "Document number cannot exceed 20 characters")
-    .nullable()
-    .optional()
-    .transform((val) => (val === "" ? null : val)),
-  taxCondition: z.nativeEnum(TaxCondition).nullable().optional(),
-  email: z
-    .string()
-    .trim()
-    .max(255, "Email is too long")
-    .email("Invalid email")
-    .toLowerCase()
-    .nullable()
-    .optional()
-    .or(z.literal("").transform(() => null)),
-  phone: z
-    .string()
-    .trim()
-    .max(50, "Phone cannot exceed 50 characters")
-    .nullable()
-    .optional(),
-  address: z
-    .string()
-    .trim()
-    .max(255, "Address cannot exceed 255 characters")
-    .nullable()
-    .optional(),
-});
+export const createClientSchema = z
+  .object({
+    name: z
+      .string({ error: "Name is required" })
+      .trim()
+      .min(1, "Name is required")
+      .max(255, "Name is too long"),
+    docType: z.nativeEnum(DocType).nullable().optional(),
+    docNumber: z
+      .string()
+      .trim()
+      .max(20, "Document number cannot exceed 20 characters")
+      .nullable()
+      .optional()
+      .transform((val) => (val === "" ? null : val)),
+    taxCondition: z.nativeEnum(TaxCondition).nullable().optional(),
+    email: z
+      .string()
+      .trim()
+      .max(255, "Email is too long")
+      .email("Invalid email")
+      .toLowerCase()
+      .nullable()
+      .optional()
+      .or(z.literal("").transform(() => null)),
+    phone: z
+      .string()
+      .trim()
+      .max(50, "Phone cannot exceed 50 characters")
+      .nullable()
+      .optional(),
+    address: z
+      .string()
+      .trim()
+      .max(255, "Address cannot exceed 255 characters")
+      .nullable()
+      .optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (
+      (v.docType === "CUIT" || v.docType === "CUIL") &&
+      (!v.docNumber || !isValidCuit(v.docNumber))
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["docNumber"],
+        message: "CUIT/CUIL inválido",
+      });
+    }
+  });
 
 export const updateClientSchema = z.object({
   name: z
