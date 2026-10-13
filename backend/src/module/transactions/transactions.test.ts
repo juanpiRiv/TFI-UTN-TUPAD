@@ -99,8 +99,36 @@ describe("Transactions Schemas", () => {
     });
   });
 
-  describe("listTransactionsQuerySchema", () => {
-    it("parses valid filters", () => {
+  describe("listTransactionsQuerySchema (Filtros e historial - Issue #32)", () => {
+    it("parses valid date range filters (from, to)", () => {
+      const query = {
+        from: "2026-10-01",
+        to: "2026-10-31",
+      };
+
+      const result = listTransactionsQuerySchema.safeParse(query);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.from).toBe("2026-10-01");
+        expect(result.data.to).toBe("2026-10-31");
+      }
+    });
+
+    it("parses combined filters (type + categoryId)", () => {
+      const query = {
+        type: "EXPENSE",
+        categoryId: "4",
+      };
+
+      const result = listTransactionsQuerySchema.safeParse(query);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.type).toBe("EXPENSE");
+        expect(result.data.categoryId).toBe(4);
+      }
+    });
+
+    it("parses combined filters with dates, type, category and client", () => {
       const query = {
         from: "2026-10-01",
         to: "2026-10-31",
@@ -113,13 +141,38 @@ describe("Transactions Schemas", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.from).toBe("2026-10-01");
+        expect(result.data.to).toBe("2026-10-31");
+        expect(result.data.type).toBe("INCOME");
         expect(result.data.categoryId).toBe(1);
         expect(result.data.clientId).toBe(2);
       }
     });
 
-    it("rejects invalid date filter", () => {
+    it("rejects invalid date format in from", () => {
       const result = listTransactionsQuerySchema.safeParse({ from: "invalid-date" });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects invalid date format in to", () => {
+      const result = listTransactionsQuerySchema.safeParse({ to: "13/10/2026" });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects invalid movement type", () => {
+      const result = listTransactionsQuerySchema.safeParse({ type: "INVALID_TYPE" });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects non-positive categoryId", () => {
+      const result = listTransactionsQuerySchema.safeParse({ categoryId: "0" });
+      expect(result.success).toBe(false);
+
+      const negativeResult = listTransactionsQuerySchema.safeParse({ categoryId: "-5" });
+      expect(negativeResult.success).toBe(false);
+    });
+
+    it("rejects categoryId exceeding int32 bounds", () => {
+      const result = listTransactionsQuerySchema.safeParse({ categoryId: 3000000000 });
       expect(result.success).toBe(false);
     });
   });
