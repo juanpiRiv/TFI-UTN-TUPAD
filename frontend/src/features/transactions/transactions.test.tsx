@@ -107,3 +107,73 @@ describe('createTransactionSchema', () => {
     )
   })
 })
+
+describe('transaction filters and history (Issue #32)', () => {
+  beforeEach(() => {
+    const user = seedUser()
+    const org = seedOrganization(user.id)
+    loginAs(user.id)
+
+    const now = '2026-10-13'
+    db.transactions.push(
+      {
+        id: 101,
+        organizationId: org.id,
+        paymentId: null,
+        categoryId: 9, // Ventas (INCOME)
+        clientId: null,
+        type: 'INCOME',
+        amount: '10000.00',
+        currency: 'ARS',
+        exchangeRate: null,
+        transactionDate: now,
+        description: 'Venta de productos',
+        voidedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 102,
+        organizationId: org.id,
+        paymentId: null,
+        categoryId: 11, // Alquiler (EXPENSE)
+        clientId: null,
+        type: 'EXPENSE',
+        amount: '5000.00',
+        currency: 'ARS',
+        exchangeRate: null,
+        transactionDate: now,
+        description: 'Pago de alquiler mensual',
+        voidedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      },
+    )
+  })
+
+  it('filters movements by type in the table', async () => {
+    const view = renderApp('/movimientos')
+
+    // Initial state: both movements are visible
+    expect(await screen.findByText('Venta de productos')).toBeInTheDocument()
+    expect(screen.getByText('Pago de alquiler mensual')).toBeInTheDocument()
+
+    // Filter by type: Egresos
+    await view.user.selectOptions(screen.getByLabelText('Tipo'), 'Egresos')
+    await vi.waitFor(() => expect(screen.queryByText('Venta de productos')).not.toBeInTheDocument())
+    expect(screen.getByText('Pago de alquiler mensual')).toBeInTheDocument()
+
+    // Filter by type: Ingresos
+    await view.user.selectOptions(screen.getByLabelText('Tipo'), 'Ingresos')
+    await vi.waitFor(() => expect(screen.queryByText('Pago de alquiler mensual')).not.toBeInTheDocument())
+    expect(screen.getByText('Venta de productos')).toBeInTheDocument()
+
+    // Reset filter
+    await view.user.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    await vi.waitFor(() => {
+      expect(screen.getByText('Pago de alquiler mensual')).toBeInTheDocument()
+      expect(screen.getByText('Venta de productos')).toBeInTheDocument()
+    })
+  })
+})
+
