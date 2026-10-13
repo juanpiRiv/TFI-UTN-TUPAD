@@ -3,7 +3,7 @@ import {
   createTransactionSchema,
   listTransactionsQuerySchema,
 } from "./transactions.schemas.js";
-import { createTransaction } from "./transactions.service.js";
+import { createTransaction, listTransactions } from "./transactions.service.js";
 import { prisma } from "../../lib/prisma.js";
 import { getUsdExchangeRate } from "../exchange-rates/exchange-rates.service.js";
 import { Prisma } from "../../generated/prisma/client.js";
@@ -21,6 +21,7 @@ vi.mock("../../lib/prisma.js", () => ({
     },
     transaction: {
       create: vi.fn(),
+      findMany: vi.fn(),
     },
   },
 }));
@@ -321,6 +322,82 @@ describe("Transactions Schemas", () => {
           }),
         }),
       );
+    });
+
+    it("RN-06: confirmar que modificar la cotización actual no toca movimientos viejos", async () => {
+      // 1. Movimiento histórico de ayer con cotización 1450.00 ARS
+      const oldTransaction = {
+        id: 1,
+        organizationId: 1,
+        categoryId: 1,
+        clientId: null,
+        type: "INCOME" as const,
+        amount: new Prisma.Decimal("100.00"),
+        currency: "USD" as const,
+        exchangeRate: new Prisma.Decimal("1450.000000"), // copia histórica fija
+        transactionDate: new Date("2026-10-12T00:00:00.000Z"),
+        description: "Cobro cliente ayer",
+        createdAt: new Date("2026-10-12T10:00:00.000Z"),
+        updatedAt: new Date("2026-10-12T10:00:00.000Z"),
+        isVoided: false,
+        voidedAt: null,
+        voidReason: null,
+        category: { id: 1, name: "Honorarios", type: "INCOME" },
+        client: null,
+      };
+
+      // 2. Hoy la cotización del BCRA sube a 1512.50 ARS y se registra un movimiento hoy
+      vi.mocked(getUsdExchangeRate).mockResolvedValueOnce({
+        date: "2026-10-13",
+        observedAt: "2026-10-13",
+        value: "1512.500000",
+        source: "BCRA",
+        rateType: "ESTADISTICAS_CAMBIARIAS",
+      });
+
+      const todayInput = {
+        type: "INCOME" as const,
+        amount: "100.00",
+        currency: "USD" as const,
+        categoryId: 1,
+        transactionDate: "2026-10-13",
+        description: null,
+      };
+
+      const todayTransaction = await createTransaction(1, todayInput);
+
+      // El movimiento de hoy guarda la cotización actual (1512.5)
+      expect(todayTransaction.exchangeRate).toBe("1512.5");
+
+      // 3. Al listar los movimientos, el movimiento viejo conserva inmutable su cotización histórica de 1450 (RN-06)
+      vi.mocked(prisma.transaction.findMany).mockResolvedValueOnce([
+        {
+          id: 10,
+          organizationId: 1,
+          categoryId: 1,
+          clientId: null,
+          type: "INCOME" as const,
+          amount: new Prisma.Decimal("100.00"),
+          currency: "USD" as const,
+          exchangeRate: new Prisma.Decimal("1512.500000"),
+          transactionDate: new Date("2026-10-13T00:00:00.000Z"),
+          description: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isVoided: false,
+          voidedAt: null,
+          voidReason: null,
+          category: { id: 1, name: "Honorarios", type: "INCOME" },
+          client: null,
+        },
+        oldTransaction,
+      ] as any);
+
+      const listResult = await listTransactions(1, {});
+
+      expect(listResult).toHaveLength(2);
+      expect(listResult[0]?.exchangeRate).toBe("1512.5"); // Movimiento de hoy con cotización actual
+      expect(listResult[1]?.exchangeRate).toBe("1450");   // Movimiento histórico de ayer inalterado (RN-06)
     });
   });
 });
