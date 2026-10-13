@@ -268,4 +268,69 @@ describe("getDashboardSummary service", () => {
       total: "100000.00",
     });
   });
+
+  it("convierte y suma movimientos multimoneda con distintas cotizaciones históricas sin sobreescribirlas (Issue #39)", async () => {
+    // Escenario con montos idénticos (50 USD) para contrastar directamente el efecto de la cotización:
+    // 1. Ingreso 50 USD con cotización histórica sugerida BCRA (1512.50) -> 75.625,00 ARS
+    // 2. Ingreso 50 USD con cotización histórica personalizada/manual (1500.00) -> 75.000,00 ARS
+    //    Total categoría "Cobro de facturas" = 150.625,00 ARS
+    // 3. Ingreso 10.000,00 ARS en moneda base local
+    //    Total general de ingresos = 160.625,00 ARS
+    // 4. Egreso 5.000,00 ARS en servicios
+    // Resultado neto esperado = 155.625,00 ARS
+    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
+      {
+        id: 1,
+        type: "INCOME",
+        amount: new Prisma.Decimal("50.00"),
+        currency: "USD",
+        exchangeRate: new Prisma.Decimal("1512.500000"),
+        categoryId: 10,
+        category: { id: 10, name: "Cobro de facturas", type: "INCOME" },
+      },
+      {
+        id: 2,
+        type: "INCOME",
+        amount: new Prisma.Decimal("50.00"),
+        currency: "USD",
+        exchangeRate: new Prisma.Decimal("1500.000000"),
+        categoryId: 10,
+        category: { id: 10, name: "Cobro de facturas", type: "INCOME" },
+      },
+      {
+        id: 3,
+        type: "INCOME",
+        amount: new Prisma.Decimal("10000.00"),
+        currency: "ARS",
+        exchangeRate: null,
+        categoryId: 11,
+        category: { id: 11, name: "Otros Ingresos", type: "INCOME" },
+      },
+      {
+        id: 4,
+        type: "EXPENSE",
+        amount: new Prisma.Decimal("5000.00"),
+        currency: "ARS",
+        exchangeRate: null,
+        categoryId: 20,
+        category: { id: 20, name: "Servicios", type: "EXPENSE" },
+      },
+    ] as any);
+
+    const summary = await getDashboardSummary(1, {
+      from: "2026-09-01",
+      to: "2026-09-30",
+    });
+
+    expect(summary.currency).toBe("ARS");
+    expect(summary.income).toBe("160625.00");
+    expect(summary.expense).toBe("5000.00");
+    expect(summary.net).toBe("155625.00");
+    expect(summary.transactionCount).toBe(4);
+
+    const cobroCat = summary.byCategory.find((c) => c.name === "Cobro de facturas");
+    expect(cobroCat).toBeDefined();
+    expect(cobroCat?.total).toBe("150625.00");
+  });
 });
+
