@@ -3,6 +3,11 @@ import argon2 from "argon2";
 import { prisma } from "../src/lib/prisma.js";
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    console.error("El seed no se puede ejecutar en producción");
+    process.exit(1);
+  }
+
   console.log("🌱 Iniciando seed de la base de datos...");
 
   // 1. Usuario de prueba para login
@@ -27,7 +32,7 @@ async function main() {
     update: {},
     create: {
       userId: user.id,
-      cuit: "20381234567",
+      cuit: "20381234569",
       legalName: "Juan Perez Servicios Informáticos",
       tradeName: "JP Tech Solutions",
       commercialAddress: "Av. Corrientes 1234, CABA",
@@ -108,7 +113,7 @@ async function main() {
     {
       name: "Acme Corp SRL",
       docType: "CUIT" as const,
-      docNumber: "30712345678",
+      docNumber: "30712345671",
       taxCondition: "RESPONSABLE_INSCRIPTO" as const,
       address: "Av. Libertador 4500, CABA",
       email: "facturacion@acme.com",
@@ -117,7 +122,7 @@ async function main() {
     {
       name: "Estudio Contable García & Asoc.",
       docType: "CUIT" as const,
-      docNumber: "27289876543",
+      docNumber: "27289876540",
       taxCondition: "MONOTRIBUTO" as const,
       address: "San Martín 650, Rosario",
       email: "contacto@garcia.com",
