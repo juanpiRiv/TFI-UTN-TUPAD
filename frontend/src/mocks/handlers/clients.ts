@@ -25,6 +25,53 @@ function duplicatedDocument(organizationId: number, body: ClientBody, exceptId?:
   )
 }
 
+export const DEFAULT_CLIENTS: { id?: number; name: string; docType: Client['docType']; docNumber: string | null; taxCondition: Client['taxCondition']; address: string | null; email: string | null; phone: string | null }[] = [
+  {
+    id: 1,
+    name: 'Acme Corp SRL',
+    docType: 'CUIT',
+    docNumber: '30712345678',
+    taxCondition: 'RESPONSABLE_INSCRIPTO',
+    address: 'Av. Libertador 4500, CABA',
+    email: 'facturacion@acme.com',
+    phone: '+54 11 4444-5555',
+  },
+  {
+    id: 2,
+    name: 'Estudio Contable García & Asoc.',
+    docType: 'CUIT',
+    docNumber: '27289876543',
+    taxCondition: 'MONOTRIBUTO',
+    address: 'San Martín 650, Rosario',
+    email: 'contacto@garcia.com',
+    phone: '+54 341 555-6666',
+  },
+  {
+    id: 3,
+    name: 'Consumidor Final (Ventas Mostrador)',
+    docType: 'SIN_IDENTIFICAR',
+    docNumber: '0',
+    taxCondition: 'CONSUMIDOR_FINAL',
+    address: null,
+    email: null,
+    phone: null,
+  },
+]
+
+export function seedDefaultClients(organizationId: number): void {
+  const now = nowIso()
+  for (const client of DEFAULT_CLIENTS) {
+    db.clients.push({
+      id: client.id ?? nextId(),
+      organizationId,
+      ...client,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    })
+  }
+}
+
 export const clientHandlers = [
   http.get(`${API_URL}/api/clients`, ({ request }) => {
     const organization = resolveOrganization(request)
