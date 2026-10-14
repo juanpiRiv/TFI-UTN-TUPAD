@@ -268,6 +268,16 @@ export async function getInvoicePayments(userId: number, invoiceId: number) {
       status: true,
       voucherType: true,
       voucherNumber: true,
+      issueDate: true,
+      recipientName: true,
+      concept: true,
+      cae: true,
+      client: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       payments: {
         where: { voidedAt: null },
         orderBy: { paymentDate: "asc" },
@@ -319,16 +329,81 @@ export async function getInvoicePayments(userId: number, invoiceId: number) {
     ? "PAID"
     : "PARTIALLY_PAID";
 
+  const issueDateStr =
+    invoice.issueDate instanceof Date
+      ? invoice.issueDate.toISOString().slice(0, 10)
+      : String(invoice.issueDate).slice(0, 10);
+
   return {
     invoiceId: invoice.id,
     voucherType: invoice.voucherType,
     voucherNumber: invoice.voucherNumber,
     status: invoice.status,
     currency: invoice.currency,
+    issueDate: issueDateStr,
+    concept: invoice.concept,
+    cae: invoice.cae,
+    recipientName: invoice.recipientName ?? invoice.client?.name ?? "Consumidor Final",
+    client: invoice.client,
     totalAmount: totalAmount.toFixed(2),
     totalPaid: totalPaid.toFixed(2),
     pendingBalance: pendingBalance.toFixed(2),
     commercialStatus,
     payments: formattedPayments,
   };
+}
+
+/**
+ * Lista todas las facturas de la organización con su estado comercial y saldos calculados.
+ */
+export async function listInvoices(userId: number) {
+  const org = await getOrganizationByUserId(userId);
+
+  const invoices = await prisma.invoice.findMany({
+    where: { organizationId: org.id },
+    orderBy: { issueDate: "desc" },
+    include: {
+      client: { select: { id: true, name: true } },
+      payments: {
+        where: { voidedAt: null },
+        select: { amount: true },
+      },
+    },
+  });
+
+  return invoices.map((inv) => {
+    const totalAmount = new Prisma.Decimal(inv.totalAmount);
+    const totalPaid = inv.payments.reduce(
+      (sum, p) => sum.plus(p.amount),
+      new Prisma.Decimal("0.00"),
+    );
+    const pendingBalance = totalAmount.minus(totalPaid);
+    const commercialStatus = totalPaid.equals(0)
+      ? "PENDING"
+      : pendingBalance.equals(0)
+      ? "PAID"
+      : "PARTIALLY_PAID";
+
+    const issueDateStr =
+      inv.issueDate instanceof Date
+        ? inv.issueDate.toISOString().slice(0, 10)
+        : String(inv.issueDate).slice(0, 10);
+
+    return {
+      id: inv.id,
+      voucherType: inv.voucherType,
+      voucherNumber: inv.voucherNumber,
+      concept: inv.concept,
+      issueDate: issueDateStr,
+      recipientName: inv.recipientName ?? inv.client?.name ?? "Consumidor Final",
+      currency: inv.currency,
+      totalAmount: totalAmount.toFixed(2),
+      totalPaid: totalPaid.toFixed(2),
+      pendingBalance: pendingBalance.toFixed(2),
+      status: inv.status,
+      commercialStatus,
+      cae: inv.cae,
+      client: inv.client,
+    };
+  });
 }

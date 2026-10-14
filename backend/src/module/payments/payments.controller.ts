@@ -69,3 +69,17 @@ export async function listPayments(req: Request, res: Response) {
 
   res.json(summary);
 }
+
+/**
+ * GET /api/invoices
+ * Lista todas las facturas de la organización con sus saldos y estados comerciales.
+ */
+export async function listInvoices(req: Request, res: Response) {
+  if (!req.userId) {
+    throw new AppError(401, "Unauthorized");
+  }
+
+  const invoices = await paymentsService.listInvoices(req.userId);
+  res.json(invoices);
+}
+

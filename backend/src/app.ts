@@ -26,7 +26,7 @@ app.use("/api/clients", clientsRouter);
 app.use("/api/transactions", transactionsRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/exchange-rates", exchangeRatesRouter);
-app.use("/api/invoices/:invoiceId/payments", paymentsRouter);
+app.use("/api/invoices", paymentsRouter);
 
 
 app.use((_req, res) => {
