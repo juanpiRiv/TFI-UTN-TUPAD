@@ -12,6 +12,12 @@ vi.mock("../../lib/prisma.js", () => ({
     transaction: {
       findMany: vi.fn(),
     },
+    invoice: {
+      findMany: vi.fn(),
+    },
+    payment: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -83,9 +89,11 @@ describe("getDashboardSummary service", () => {
       id: 1,
       baseCurrency: "ARS",
     } as any);
+    vi.mocked(prisma.invoice.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
   });
 
-  it("devuelve valores en cero y lista vacía cuando no hay movimientos", async () => {
+  it("devuelve valores en cero y lista vacía cuando no hay movimientos ni facturas", async () => {
     vi.mocked(prisma.transaction.findMany).mockResolvedValue([]);
 
     const summary = await getDashboardSummary(1, {
@@ -101,6 +109,10 @@ describe("getDashboardSummary service", () => {
       expense: "0.00",
       net: "0.00",
       transactionCount: 0,
+      invoiced: "0.00",
+      collected: "0.00",
+      difference: "0.00",
+      managementResult: "0.00",
       byCategory: [],
     });
   });
@@ -332,5 +344,97 @@ describe("getDashboardSummary service", () => {
     expect(cobroCat).toBeDefined();
     expect(cobroCat?.total).toBe("150625.00");
   });
+
+  it("distingue lo facturado de lo efectivamente cobrado en el período a partir de datos reales (Issue #53 / RF-33)", async () => {
+    // Escenario de Lucía (docs/04-factura-cobro-y-pagos.md):
+    // - Factura C autorizada de $100.000 emitida el 10/09
+    // - Pago real de $40.000 cobrado el 15/09 (con su Transaction de ingreso en caja)
+    // - Egreso manual de $15.000 en software el 20/09
+    // Resultados esperados:
+    // - Facturado = $ 100.000,00
+    // - Cobrado = $ 40.000,00
+    // - Diferencia (pendiente de cobro) = $ 60.000,00
+    // - Resultado de caja = $ 25.000,00 (40.000 - 15.000)
+    // - Resultado de gestión = $ 85.000,00 (100.000 - 15.000)
+    vi.mocked(prisma.invoice.findMany).mockResolvedValue([
+      {
+        totalAmount: new Prisma.Decimal("100000.00"),
+        currency: "ARS",
+        fiscalExchangeRate: new Prisma.Decimal("1.00"),
+      },
+    ] as any);
+
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([
+      {
+        amount: new Prisma.Decimal("40000.00"),
+        currency: "ARS",
+        exchangeRate: null,
+      },
+    ] as any);
+
+    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
+      {
+        id: 1,
+        paymentId: 10, // Proviene del pago de la factura
+        type: "INCOME",
+        amount: new Prisma.Decimal("40000.00"),
+        currency: "ARS",
+        exchangeRate: null,
+        categoryId: 10,
+        category: { id: 10, name: "Cobro de facturas", type: "INCOME" },
+      },
+      {
+        id: 2,
+        paymentId: null,
+        type: "EXPENSE",
+        amount: new Prisma.Decimal("15000.00"),
+        currency: "ARS",
+        exchangeRate: null,
+        categoryId: 20,
+        category: { id: 20, name: "Software", type: "EXPENSE" },
+      },
+    ] as any);
+
+    const summary = await getDashboardSummary(1, {
+      from: "2026-09-01",
+      to: "2026-09-30",
+    });
+
+    // Criterio 1: El dashboard muestra ambos números por separado
+    expect(summary.invoiced).toBe("100000.00");
+    expect(summary.collected).toBe("40000.00");
+
+    // Criterio 2: La diferencia surge de datos reales
+    expect(summary.difference).toBe("60000.00");
+
+    // Resultado de caja vs Resultado de gestión
+    expect(summary.income).toBe("40000.00");
+    expect(summary.expense).toBe("15000.00");
+    expect(summary.net).toBe("25000.00");
+    expect(summary.managementResult).toBe("85000.00");
+  });
+
+  it("convierte facturas en USD con tipo de cambio fiscal al calcular lo facturado", async () => {
+    vi.mocked(prisma.invoice.findMany).mockResolvedValue([
+      {
+        totalAmount: new Prisma.Decimal("100.00"),
+        currency: "USD",
+        fiscalExchangeRate: new Prisma.Decimal("1400.000000"), // 100 * 1400 = 140000 ARS
+      },
+    ] as any);
+
+    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.transaction.findMany).mockResolvedValue([]);
+
+    const summary = await getDashboardSummary(1, {
+      from: "2026-09-01",
+      to: "2026-09-30",
+    });
+
+    expect(summary.invoiced).toBe("140000.00");
+    expect(summary.collected).toBe("0.00");
+    expect(summary.difference).toBe("140000.00");
+  });
 });
+
 

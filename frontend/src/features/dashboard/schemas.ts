@@ -16,6 +16,14 @@ export type DashboardSummary = {
   expense: string
   net: string
   transactionCount: number
+  /** Total facturado en el período (facturas autorizadas) en moneda base (RF-33 / Issue #53). */
+  invoiced: string
+  /** Total efectivamente cobrado de facturas en el período en moneda base (RF-33 / Issue #53). */
+  collected: string
+  /** Diferencia entre facturado y cobrado (saldo pendiente del período). */
+  difference?: string
+  /** Resultado de gestión económica (facturado + ingresos manuales - egresos). */
+  managementResult?: string
   byCategory: {
     categoryId: number
     name: string
