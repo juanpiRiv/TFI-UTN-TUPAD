@@ -70,11 +70,14 @@ cd backend
 docker compose up -d                    # Postgres en el puerto 5433
 cp .env-template .env                   # completar JWT_SECRET (openssl rand -hex 32)
 pnpm exec prisma migrate deploy         # crea las tablas
+pnpm db:seed                            # carga datos de prueba iniciales (opcional)
 pnpm dev                                # API en http://localhost:3000
 
 # 3. Frontend, en otra terminal y desde la raíz
 pnpm dev                                # app en http://localhost:5173
 ```
+
+El seed crea un usuario de prueba (`demo@monotributo.com` / `Password123!`), una organización monotributista, punto de venta, actividad económica, clientes y categorías. También se puede ejecutar desde la raíz con `pnpm db:seed`.
 
 Si no se usa Prisma, la base también se puede crear con `psql -d <base> -f database/schema.sql`.
 
