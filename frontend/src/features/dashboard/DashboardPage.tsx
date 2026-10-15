@@ -124,7 +124,7 @@ export function DashboardPage() {
                 hint="Pagos registrados imputados a facturas"
               />
               <TotalCard
-                label="Pendiente de cobro"
+                label="Facturado menos cobrado en el período"
                 amount={
                   summary.data.difference ??
                   String(
@@ -136,7 +136,7 @@ export function DashboardPage() {
                 currency={summary.data.currency}
                 tone="pending"
                 testId="total-difference"
-                hint="Diferencia a cobrar de lo facturado en el período"
+                hint="Facturación fiscal menos cobros registrados en el período"
               />
             </div>
           </div>
@@ -160,7 +160,7 @@ export function DashboardPage() {
                 hint="Gastos y pagos del período"
               />
               <TotalCard
-                label="Resultado Neto de Caja"
+                label="Resultado de caja"
                 amount={summary.data.net}
                 currency={summary.data.currency}
                 tone="net"

@@ -32,7 +32,7 @@ export async function getDashboardSummary(
 ) {
   const org = await getOrganizationByUserId(userId);
 
-  const [transactions, invoices, payments] = await Promise.all([
+  const [transactions, invoices] = await Promise.all([
     prisma.transaction.findMany({
       where: {
         organizationId: org.id,
@@ -63,27 +63,11 @@ export async function getDashboardSummary(
         fiscalExchangeRate: true,
       },
     }),
-    prisma.payment.findMany({
-      where: {
-        invoice: {
-          organizationId: org.id,
-        },
-        voidedAt: null,
-        paymentDate: {
-          gte: new Date(`${query.from}T00:00:00.000Z`),
-          lte: new Date(`${query.to}T00:00:00.000Z`),
-        },
-      },
-      select: {
-        amount: true,
-        currency: true,
-        exchangeRate: true,
-      },
-    }),
   ]);
 
   let income = new Prisma.Decimal(0);
   let manualIncome = new Prisma.Decimal(0);
+  let collected = new Prisma.Decimal(0);
   let expense = new Prisma.Decimal(0);
   const categoryMap = new Map<
     number,
@@ -108,7 +92,9 @@ export async function getDashboardSummary(
 
     if (tx.type === "INCOME") {
       income = income.plus(converted);
-      if (!tx.paymentId) {
+      if (tx.paymentId != null) {
+        collected = collected.plus(converted);
+      } else {
         manualIncome = manualIncome.plus(converted);
       }
     } else if (tx.type === "EXPENSE") {
@@ -136,16 +122,6 @@ export async function getDashboardSummary(
         ? inv.totalAmount
         : inv.totalAmount.mul(inv.fiscalExchangeRate).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
     invoiced = invoiced.plus(converted);
-  }
-
-  // Cobrado en el período (pagos no anulados en la moneda base)
-  let collected = new Prisma.Decimal(0);
-  for (const p of payments) {
-    const converted =
-      p.currency === org.baseCurrency || !p.exchangeRate
-        ? p.amount
-        : p.amount.mul(p.exchangeRate).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
-    collected = collected.plus(converted);
   }
 
   const net = income.minus(expense);

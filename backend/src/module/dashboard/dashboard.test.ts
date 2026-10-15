@@ -15,9 +15,6 @@ vi.mock("../../lib/prisma.js", () => ({
     invoice: {
       findMany: vi.fn(),
     },
-    payment: {
-      findMany: vi.fn(),
-    },
   },
 }));
 
@@ -90,7 +87,6 @@ describe("getDashboardSummary service", () => {
       baseCurrency: "ARS",
     } as any);
     vi.mocked(prisma.invoice.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
   });
 
   it("devuelve valores en cero y lista vacía cuando no hay movimientos ni facturas", async () => {
@@ -345,16 +341,15 @@ describe("getDashboardSummary service", () => {
     expect(cobroCat?.total).toBe("150625.00");
   });
 
-<<<<<<< HEAD
   it("distingue lo facturado de lo efectivamente cobrado en el período a partir de datos reales (Issue #53 / RF-33)", async () => {
     // Escenario de Lucía (docs/04-factura-cobro-y-pagos.md):
     // - Factura C autorizada de $100.000 emitida el 10/09
-    // - Pago real de $40.000 cobrado el 15/09 (con su Transaction de ingreso en caja)
+    // - Pago real de $40.000 cobrado el 15/09 (con su Transaction de ingreso en caja con paymentId = 10)
     // - Egreso manual de $15.000 en software el 20/09
     // Resultados esperados:
     // - Facturado = $ 100.000,00
-    // - Cobrado = $ 40.000,00
-    // - Diferencia (pendiente de cobro) = $ 60.000,00
+    // - Cobrado = $ 40.000,00 (calculado a partir de Transaction con paymentId != null)
+    // - Diferencia (facturado menos cobrado en el período) = $ 60.000,00
     // - Resultado de caja = $ 25.000,00 (40.000 - 15.000)
     // - Resultado de gestión = $ 85.000,00 (100.000 - 15.000)
     vi.mocked(prisma.invoice.findMany).mockResolvedValue([
@@ -362,14 +357,6 @@ describe("getDashboardSummary service", () => {
         totalAmount: new Prisma.Decimal("100000.00"),
         currency: "ARS",
         fiscalExchangeRate: new Prisma.Decimal("1.00"),
-      },
-    ] as any);
-
-    vi.mocked(prisma.payment.findMany).mockResolvedValue([
-      {
-        amount: new Prisma.Decimal("40000.00"),
-        currency: "ARS",
-        exchangeRate: null,
       },
     ] as any);
 
@@ -424,7 +411,6 @@ describe("getDashboardSummary service", () => {
       },
     ] as any);
 
-    vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
     vi.mocked(prisma.transaction.findMany).mockResolvedValue([]);
 
     const summary = await getDashboardSummary(1, {
@@ -435,6 +421,44 @@ describe("getDashboardSummary service", () => {
     expect(summary.invoiced).toBe("140000.00");
     expect(summary.collected).toBe("0.00");
     expect(summary.difference).toBe("140000.00");
+  });
+
+  it("calcula 'collected' directamente desde los movimientos vinculados a pagos (paymentId != null) evitando divergencias por adopción (Issue #53 P1)", async () => {
+    // Escenario de adopción de movimiento:
+    // Un movimiento manual existente de ingreso con su propio cambio/fecha es adoptado por un cobro de factura.
+    // 'collected' e 'income' provienen de la misma fuente única de verdad (Transaction), sin riesgo de drift.
+    vi.mocked(prisma.invoice.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
+      {
+        id: 101,
+        paymentId: 55, // Movimiento adoptado por el pago 55
+        type: "INCOME",
+        amount: new Prisma.Decimal("100.00"),
+        currency: "USD",
+        exchangeRate: new Prisma.Decimal("1500.000000"), // 150.000 ARS
+        categoryId: 10,
+        category: { id: 10, name: "Cobros", type: "INCOME" },
+      },
+      {
+        id: 102,
+        paymentId: null, // Ingreso manual no vinculado a factura
+        type: "INCOME",
+        amount: new Prisma.Decimal("50000.00"),
+        currency: "ARS",
+        exchangeRate: null,
+        categoryId: 10,
+        category: { id: 10, name: "Ventas", type: "INCOME" },
+      },
+    ] as any);
+
+    const summary = await getDashboardSummary(1, {
+      from: "2026-09-01",
+      to: "2026-09-30",
+    });
+
+    expect(summary.collected).toBe("150000.00");
+    expect(summary.income).toBe("200000.00");
+    expect(summary.managementResult).toBe("50000.00"); // manualIncome (50.000) + invoiced (0) - expense (0)
   });
 
   it("lanza un error si un movimiento en moneda extranjera no tiene exchangeRate (RN-05)", async () => {

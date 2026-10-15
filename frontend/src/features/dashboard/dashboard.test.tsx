@@ -119,10 +119,12 @@ describe('dashboard', () => {
     expect(plain(screen.getByTestId('total-invoiced').textContent)).toBe('$ 100.000,00')
     expect(plain(screen.getByTestId('total-collected').textContent)).toBe('$ 40.000,00')
 
-    // Criterio 2: La diferencia surge de datos reales y se muestra en pantalla
+    // Criterio 2: La diferencia surge de datos reales y se muestra en pantalla con la etiqueta adecuada
+    expect(screen.getByText('Facturado menos cobrado en el período')).toBeInTheDocument()
     expect(plain(screen.getByTestId('total-difference').textContent)).toBe('$ 60.000,00')
 
     // Y el resultado de caja sigue presente de forma clara e independiente
+    expect(screen.getByText('Resultado de caja')).toBeInTheDocument()
     expect(plain(screen.getByTestId('total-income').textContent)).toBe('$ 40.000,00')
     expect(plain(screen.getByTestId('total-expense').textContent)).toBe('$ 15.000,00')
     expect(plain(screen.getByTestId('total-net').textContent)).toBe('$ 25.000,00')
