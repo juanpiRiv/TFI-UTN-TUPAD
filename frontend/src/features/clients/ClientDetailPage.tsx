@@ -62,6 +62,27 @@ const columns: Column<Transaction>[] = [
 export function ClientDetailPage() {
   const { id } = useParams<{ id: string }>()
   const clientId = Number(id)
+
+  if (!Number.isInteger(clientId) || clientId <= 0) {
+    return (
+      <div className="py-6">
+        <div className="mb-2">
+          <Link
+            to="/clientes"
+            className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 underline"
+          >
+            ← Volver a clientes
+          </Link>
+        </div>
+        <ErrorState message="Cliente inválido" />
+      </div>
+    )
+  }
+
+  return <ClientDetailContent clientId={clientId} />
+}
+
+function ClientDetailContent({ clientId }: { clientId: number }) {
   const [params, setParams] = useSearchParams()
 
   const from = params.get('from') || ''
@@ -186,7 +207,7 @@ export function ClientDetailPage() {
             Historial de movimientos
           </h2>
           <Link to={`/movimientos?clientId=${currentClient.id}`}>
-            <Button variant="secondary">Cargar nuevo movimiento para este cliente</Button>
+            <Button variant="secondary">Ver movimientos</Button>
           </Link>
         </div>
 
