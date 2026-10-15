@@ -48,6 +48,8 @@ El saldo pendiente (RF-30) es el total menos la suma de los pagos no anulados.
 7. Una factura autorizada no se modifica ni se anula dentro del sistema. Si tiene un error, el camino legal es una nota de crédito. Las notas de crédito quedan para P1 (ver [plan B](./06-plan-b-arca.md)), así que en el P0 el sistema solo muestra el aviso.
 8. Al crear la factura se copian los datos del receptor (nombre, documento, condición frente al IVA). Si después se edita o se da de baja el cliente, las facturas viejas siguen mostrando los datos con los que se emitieron.
 9. El total lo calcula siempre el backend sumando los ítems. Lo que manda el frontend como total se ignora.
+10. La moneda del pago debe coincidir exactamente con la moneda de la factura (en el P0 todas las facturas se emiten en ARS). Si difieren, se rechaza la operación con código 422.
+11. La fecha del pago (`paymentDate`) no puede ser una fecha futura ni anterior a la fecha de emisión (`issueDate`) de la factura.
 
 ## Ejemplo con pagos parciales
 
