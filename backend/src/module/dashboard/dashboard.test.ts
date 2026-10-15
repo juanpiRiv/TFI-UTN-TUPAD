@@ -332,5 +332,26 @@ describe("getDashboardSummary service", () => {
     expect(cobroCat).toBeDefined();
     expect(cobroCat?.total).toBe("150625.00");
   });
+
+  it("lanza un error si un movimiento en moneda extranjera no tiene exchangeRate (RN-05)", async () => {
+    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
+      {
+        id: 99,
+        type: "INCOME",
+        amount: new Prisma.Decimal("100.00"),
+        currency: "USD",
+        exchangeRate: null,
+        categoryId: 10,
+        category: { id: 10, name: "Ventas", type: "INCOME" },
+      },
+    ] as any);
+
+    await expect(
+      getDashboardSummary(1, {
+        from: "2026-09-01",
+        to: "2026-09-30",
+      }),
+    ).rejects.toThrow("Transaction 99 in USD is missing exchangeRate");
+  });
 });
 

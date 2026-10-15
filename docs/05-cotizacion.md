@@ -13,6 +13,7 @@ Es la que se aplica a los movimientos cargados en dólares, para convertirlos a 
 - **Fecha:** la del movimiento. Si ese día no hay cotización (fin de semana, feriado, o todavía no se publicó), usamos la del último día hábil anterior que tenga dato. La API no rellena esos días (devuelve una lista vacía), así que lo resuelve nuestro cliente: pide una ventana de unos 10 días hacia atrás y toma el último registro con fecha menor o igual.
 - **Se guarda una copia:** el movimiento guarda el valor usado en su propio `exchange_rate`. Si más adelante cambia la cotización, los movimientos viejos no se tocan (RN-06).
 - **Se puede corregir a mano:** si el usuario cobró a otro tipo de cambio (por ejemplo, vendió los dólares en el banco), puede escribir el valor. En ese caso la cotización se guarda con origen `MANUAL`.
+- **Criterio de conversión y redondeo en agregaciones (Dashboard):** cada movimiento en moneda extranjera se convierte individualmente a la moneda base multiplicando `amount * exchangeRate` y redondeando el resultado a 2 decimales con `ROUND_HALF_UP` antes de acumularlo en los totales y subtotales por categoría. Esto asegura que la conversión sea consistente con el valor monetario equivalente de cada movimiento individual en centavos (evitando discordancias si se consulta el movimiento por separado), aunque pueda diferir por algún centavo respecto a redondear la suma total al final.
 
 ### Cómo la guardamos
 
