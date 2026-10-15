@@ -2,6 +2,7 @@ import { screen } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { API_URL } from '@/lib/api'
+import { todayIso } from '@/lib/format'
 import { server } from '@/mocks/node'
 import { loginAs, seedOrganization, seedUser } from '@/test/fixtures'
 import { renderApp } from '@/test/render'
@@ -147,5 +148,38 @@ describe('pantalla de pagos de una factura (Issue #52)', () => {
     expect(await screen.findByText('Cobrada')).toBeInTheDocument()
     expect(screen.getByText('Factura totalmente saldada')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Registrar nuevo cobro' })).not.toBeInTheDocument()
+  })
+
+  it('oculta el formulario de cobro y muestra advertencia informativa si la factura no está autorizada (P2)', async () => {
+    server.use(
+      http.get(`${API_URL}/api/invoices/1`, () => {
+        return HttpResponse.json({
+          ...mockInvoiceDetail,
+          status: 'DRAFT',
+        })
+      }),
+    )
+
+    renderApp('/facturas/1')
+
+    expect(await screen.findByText('Factura no disponible para cobro')).toBeInTheDocument()
+    expect(
+      screen.getByText(/Solo se pueden registrar cobros sobre facturas autorizadas por AFIP\/ARCA/i),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Registrar nuevo cobro' })).not.toBeInTheDocument()
+  })
+
+  it('delimita la fecha de cobro con max=hoy y min=fecha de emisión (P2)', async () => {
+    server.use(
+      http.get(`${API_URL}/api/invoices/1`, () => {
+        return HttpResponse.json(mockInvoiceDetail)
+      }),
+    )
+
+    renderApp('/facturas/1')
+
+    const dateInput = await screen.findByLabelText(/Fecha de cobro/i)
+    expect(dateInput).toHaveAttribute('max', todayIso())
+    expect(dateInput).toHaveAttribute('min', '2026-10-01')
   })
 })

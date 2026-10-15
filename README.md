@@ -70,17 +70,22 @@ cd backend
 docker compose up -d                    # Postgres en el puerto 5433
 cp .env-template .env                   # completar JWT_SECRET (openssl rand -hex 32)
 pnpm exec prisma migrate deploy         # crea las tablas
+pnpm db:seed                            # carga datos de prueba iniciales (opcional)
 pnpm dev                                # API en http://localhost:3000
 
 # 3. Frontend, en otra terminal y desde la raíz
 pnpm dev                                # app en http://localhost:5173
 ```
 
+El seed crea un usuario de prueba (`demo@monotributo.com` / `Password123!`), una organización monotributista, punto de venta, actividad económica, clientes y categorías. También se puede ejecutar desde la raíz con `pnpm db:seed`.
+
 Si no se usa Prisma, la base también se puede crear con `psql -d <base> -f database/schema.sql`.
 
 Hoy el backend tiene registro, inicio de sesión y `/me`. El resto de los endpoints se simulan en el frontend con MSW: se prenden con `VITE_USE_MOCKS=true` en `frontend/.env.local` (ver [README del frontend](./frontend/README.md#mocks)).
 
 Controles: `pnpm lint`, `pnpm test` y `pnpm build` desde la raíz.
+
+*Testing de integración:* Los tests unitarios corren automáticamente con `pnpm test` (mockeando base de datos). Los tests de integración que prueban concurrencia real y bloqueos pesimistas (`SELECT ... FOR UPDATE` en `payments` y RN-06 en `transactions`) requieren PostgreSQL local (`docker compose up -d`) y se ejecutan con `pnpm --filter backend test:integration` (o `pnpm test` en backend con la base activa). Si la base no está levantada, `pnpm test` saltea las suites de integración automáticamente para no fallar.
 
 ---
 

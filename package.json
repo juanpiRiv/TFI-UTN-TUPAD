@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "pnpm --parallel --filter backend --filter frontend dev",
+    "db:seed": "pnpm --filter backend db:seed",
     "lint": "pnpm --filter frontend lint",
     "test": "pnpm --parallel --filter backend --filter frontend test",
     "build": "pnpm --filter frontend build && pnpm --filter backend build"

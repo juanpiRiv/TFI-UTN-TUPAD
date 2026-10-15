@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
 import { Prisma } from "../../generated/prisma/client.js";
-import { getUsdExchangeRate } from "../exchange-rates/exchange-rates.service.js";
+import { resolveExchangeRate } from "../exchange-rates/exchange-rates.service.js";
 import { getOrganizationByUserId } from "../transactions/transactions.service.js";
 import type { CreatePaymentInput } from "./payments.schemas.js";
 
@@ -10,11 +10,13 @@ import type { CreatePaymentInput } from "./payments.schemas.js";
  * Reglas de negocio y consistencia (F1-5, F6-7, RN-03, RN-04, RN-05, RN-10, RNF-07):
  * 1. Bloqueo pesimista de la factura mediante SELECT ... FOR UPDATE dentro de prisma.$transaction.
  * 2. Validación de estado fiscal: solo facturas AUTHORIZED admiten cobro.
- * 3. Comparación estricta de importes como Decimales (Prisma.Decimal), jamás números flotantes de JS.
- * 4. La suma de pagos no anulados más el nuevo pago no puede exceder el totalAmount de la factura.
- * 5. Crea exactamente un Payment y un Transaction de tipo INCOME asociado (1:1 vía @unique payment_id).
- *    (O adopta un Transaction manual preexistente si se especifica adoptTransactionId, #98).
- * 6. Registra el AuditLog de la operación dentro de la misma transacción.
+ * 3. La moneda del pago debe coincidir estrictamente con la moneda de la factura (en P0 todas en ARS).
+ * 4. La fecha de pago no puede ser futura ni anterior a la fecha de emisión de la factura.
+ * 5. Comparación estricta de importes como Decimales (Prisma.Decimal), jamás números flotantes de JS.
+ * 6. La suma de pagos no anulados más el nuevo pago no puede exceder el totalAmount de la factura.
+ * 7. Crea exactamente un Payment y un Transaction de tipo INCOME asociado (1:1 vía @unique payment_id).
+ *    (O adopta un Transaction manual preexistente con SELECT ... FOR UPDATE para evitar carreras, #98).
+ * 8. Registra el AuditLog de la operación dentro de la misma transacción.
  */
 export async function registerPayment(
   userId: number,
@@ -28,24 +30,14 @@ export async function registerPayment(
     throw new AppError(400, "El importe debe ser mayor a cero");
   }
 
-  // RN-05: Tipo de cambio si la moneda difiere de la moneda base
-  const needsExchangeRate = data.currency !== org.baseCurrency;
-  let resolvedExchangeRate: Prisma.Decimal | null = null;
-
-  if (needsExchangeRate) {
-    if (data.exchangeRate) {
-      resolvedExchangeRate = new Prisma.Decimal(data.exchangeRate);
-    } else if (data.currency === "USD" && org.baseCurrency === "ARS") {
-      try {
-        const rateDto = await getUsdExchangeRate(data.paymentDate);
-        resolvedExchangeRate = new Prisma.Decimal(rateDto.value);
-      } catch {
-        throw new AppError(400, "Exchange rate is required for this currency");
-      }
-    } else {
-      throw new AppError(400, "Exchange rate is required for this currency");
-    }
-  }
+  // RN-05: Tipo de cambio si la moneda del movimiento difiere de la moneda base
+  const resolvedRate = await resolveExchangeRate(
+    data.currency,
+    org.baseCurrency,
+    data.paymentDate,
+    data.exchangeRate,
+  );
+  const resolvedExchangeRate = resolvedRate ? resolvedRate.value : null;
 
   return await prisma.$transaction(async (tx) => {
     // 1. Bloqueo pesimista: Otro pago simultáneo sobre la misma factura espera aquí hasta el commit
@@ -59,9 +51,10 @@ export async function registerPayment(
         currency: string;
         voucher_number: number | null;
         voucher_type: string;
+        issue_date: Date;
       }>
     >`
-      SELECT id, organization_id, total_amount, status, client_id, currency, voucher_number, voucher_type
+      SELECT id, organization_id, total_amount, status, client_id, currency, voucher_number, voucher_type, issue_date
       FROM invoices
       WHERE id = ${invoiceId} AND organization_id = ${org.id}
       FOR UPDATE
@@ -75,6 +68,32 @@ export async function registerPayment(
 
     if (invoice.status !== "AUTHORIZED") {
       throw new AppError(422, "Solo se pueden registrar pagos sobre facturas autorizadas");
+    }
+
+    // P0: Exigir que la moneda del pago sea idéntica a la moneda de la factura
+    if (data.currency !== invoice.currency) {
+      throw new AppError(
+        422,
+        `La moneda del pago (${data.currency}) debe coincidir con la moneda de la factura (${invoice.currency})`,
+      );
+    }
+
+    // P1: Validar rango de fecha de pago (no futura, no anterior a la emisión de la factura)
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (data.paymentDate > todayStr) {
+      throw new AppError(422, "La fecha de pago no puede ser futura");
+    }
+
+    const issueDateStr =
+      invoice.issue_date instanceof Date
+        ? invoice.issue_date.toISOString().slice(0, 10)
+        : String(invoice.issue_date).slice(0, 10);
+
+    if (data.paymentDate < issueDateStr) {
+      throw new AppError(
+        422,
+        `La fecha de pago (${data.paymentDate}) no puede ser anterior a la fecha de emisión de la factura (${issueDateStr})`,
+      );
     }
 
     // 2. Sumamos lo ya cobrado con pagos no anulados (con la fila bloqueada)
@@ -103,25 +122,16 @@ export async function registerPayment(
     const newPendingBalance = currentPending.minus(amountDecimal);
     const commercialStatus = newPendingBalance.equals(0) ? "PAID" : "PARTIALLY_PAID";
 
-    // 3. Garantizar que exista la categoría oficial "Cobro de facturas"
-    let cobroCategory = await tx.category.findFirst({
-      where: {
-        organizationId: org.id,
-        name: "Cobro de facturas",
-        type: "INCOME",
-      },
-    });
+    // 3. Garantizar que exista la categoría oficial "Cobro de facturas" de forma atómica (evita carreras P2002)
+    const catRows = await tx.$queryRaw<Array<{ id: number }>>`
+      INSERT INTO categories (organization_id, name, type, is_active, created_at, updated_at)
+      VALUES (${org.id}, 'Cobro de facturas', 'INCOME'::"MovementType", true, NOW(), NOW())
+      ON CONFLICT (organization_id, name, type) DO UPDATE SET is_active = true
+      RETURNING id
+    `;
+    const cobroCategoryId = catRows[0]!.id;
 
-    if (!cobroCategory) {
-      cobroCategory = await tx.category.create({
-        data: {
-          organizationId: org.id,
-          name: "Cobro de facturas",
-          type: "INCOME",
-          isActive: true,
-        },
-      });
-    }
+    const paymentDateUtc = new Date(`${data.paymentDate}T00:00:00.000Z`);
 
     // 4. Crear Payment
     const payment = await tx.payment.create({
@@ -130,44 +140,69 @@ export async function registerPayment(
         amount: amountDecimal,
         currency: data.currency,
         exchangeRate: resolvedExchangeRate,
-        paymentDate: new Date(data.paymentDate),
+        paymentDate: paymentDateUtc,
       },
     });
 
     // 5. Crear o adoptar el movimiento de ingreso (Transaction)
     let transaction;
     if (data.adoptTransactionId) {
-      const adoptTx = await tx.transaction.findFirst({
-        where: {
-          id: data.adoptTransactionId,
-          organizationId: org.id,
-          voidedAt: null,
-        },
-      });
+      // P1: Bloqueo pesimista del movimiento para evitar que dos pagos concurrentes lo adopten a la vez
+      const adoptTxs = await tx.$queryRaw<
+        Array<{
+          id: number;
+          organization_id: number;
+          payment_id: number | null;
+          type: string;
+          amount: Prisma.Decimal;
+          currency: string;
+          client_id: number | null;
+        }>
+      >`
+        SELECT id, organization_id, payment_id, type, amount, currency, client_id
+        FROM transactions
+        WHERE id = ${data.adoptTransactionId} AND organization_id = ${org.id} AND voided_at IS NULL
+        FOR UPDATE
+      `;
 
-      if (!adoptTx) {
+      if (!adoptTxs || adoptTxs.length === 0) {
         throw new AppError(404, "Movimiento manual a adoptar no encontrado");
       }
-      if (adoptTx.paymentId !== null) {
+      const adoptTx = adoptTxs[0]!;
+      if (adoptTx.payment_id !== null) {
         throw new AppError(422, "El movimiento ya se encuentra vinculado a otro pago");
       }
       if (adoptTx.type !== "INCOME") {
         throw new AppError(422, "Solo se pueden adoptar movimientos de tipo ingreso");
       }
-      if (!adoptTx.amount.equals(amountDecimal)) {
+      const adoptAmount = new Prisma.Decimal(adoptTx.amount);
+      if (!adoptAmount.equals(amountDecimal)) {
         throw new AppError(422, "El importe del movimiento a adoptar no coincide con el importe del pago");
       }
       if (adoptTx.currency !== data.currency) {
         throw new AppError(422, "La moneda del movimiento a adoptar no coincide con la moneda del pago");
       }
 
-      transaction = await tx.transaction.update({
-        where: { id: adoptTx.id },
+      const updateResult = await tx.transaction.updateMany({
+        where: {
+          id: adoptTx.id,
+          organizationId: org.id,
+          paymentId: null,
+          voidedAt: null,
+        },
         data: {
           paymentId: payment.id,
-          categoryId: cobroCategory.id,
-          clientId: invoice.client_id ?? adoptTx.clientId,
+          categoryId: cobroCategoryId,
+          clientId: invoice.client_id ?? adoptTx.client_id,
         },
+      });
+
+      if (updateResult.count === 0) {
+        throw new AppError(422, "El movimiento ya se encuentra vinculado a otro pago");
+      }
+
+      transaction = await tx.transaction.findUniqueOrThrow({
+        where: { id: adoptTx.id },
       });
     } else {
       const voucherText = invoice.voucher_number
@@ -179,12 +214,12 @@ export async function registerPayment(
         data: {
           organizationId: org.id,
           paymentId: payment.id,
-          categoryId: cobroCategory.id,
+          categoryId: cobroCategoryId,
           type: "INCOME",
           amount: amountDecimal,
           currency: data.currency,
           exchangeRate: resolvedExchangeRate,
-          transactionDate: new Date(data.paymentDate),
+          transactionDate: paymentDateUtc,
           description: desc,
           clientId: invoice.client_id,
         },
@@ -353,57 +388,3 @@ export async function getInvoicePayments(userId: number, invoiceId: number) {
   };
 }
 
-/**
- * Lista todas las facturas de la organización con su estado comercial y saldos calculados.
- */
-export async function listInvoices(userId: number) {
-  const org = await getOrganizationByUserId(userId);
-
-  const invoices = await prisma.invoice.findMany({
-    where: { organizationId: org.id },
-    orderBy: { issueDate: "desc" },
-    include: {
-      client: { select: { id: true, name: true } },
-      payments: {
-        where: { voidedAt: null },
-        select: { amount: true },
-      },
-    },
-  });
-
-  return invoices.map((inv) => {
-    const totalAmount = new Prisma.Decimal(inv.totalAmount);
-    const totalPaid = inv.payments.reduce(
-      (sum, p) => sum.plus(p.amount),
-      new Prisma.Decimal("0.00"),
-    );
-    const pendingBalance = totalAmount.minus(totalPaid);
-    const commercialStatus = totalPaid.equals(0)
-      ? "PENDING"
-      : pendingBalance.equals(0)
-      ? "PAID"
-      : "PARTIALLY_PAID";
-
-    const issueDateStr =
-      inv.issueDate instanceof Date
-        ? inv.issueDate.toISOString().slice(0, 10)
-        : String(inv.issueDate).slice(0, 10);
-
-    return {
-      id: inv.id,
-      voucherType: inv.voucherType,
-      voucherNumber: inv.voucherNumber,
-      concept: inv.concept,
-      issueDate: issueDateStr,
-      recipientName: inv.recipientName ?? inv.client?.name ?? "Consumidor Final",
-      currency: inv.currency,
-      totalAmount: totalAmount.toFixed(2),
-      totalPaid: totalPaid.toFixed(2),
-      pendingBalance: pendingBalance.toFixed(2),
-      status: inv.status,
-      commercialStatus,
-      cae: inv.cae,
-      client: inv.client,
-    };
-  });
-}

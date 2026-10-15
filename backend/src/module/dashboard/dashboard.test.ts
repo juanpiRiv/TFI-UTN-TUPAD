@@ -345,6 +345,7 @@ describe("getDashboardSummary service", () => {
     expect(cobroCat?.total).toBe("150625.00");
   });
 
+<<<<<<< HEAD
   it("distingue lo facturado de lo efectivamente cobrado en el período a partir de datos reales (Issue #53 / RF-33)", async () => {
     // Escenario de Lucía (docs/04-factura-cobro-y-pagos.md):
     // - Factura C autorizada de $100.000 emitida el 10/09
@@ -434,6 +435,27 @@ describe("getDashboardSummary service", () => {
     expect(summary.invoiced).toBe("140000.00");
     expect(summary.collected).toBe("0.00");
     expect(summary.difference).toBe("140000.00");
+  });
+
+  it("lanza un error si un movimiento en moneda extranjera no tiene exchangeRate (RN-05)", async () => {
+    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
+      {
+        id: 99,
+        type: "INCOME",
+        amount: new Prisma.Decimal("100.00"),
+        currency: "USD",
+        exchangeRate: null,
+        categoryId: 10,
+        category: { id: 10, name: "Ventas", type: "INCOME" },
+      },
+    ] as any);
+
+    await expect(
+      getDashboardSummary(1, {
+        from: "2026-09-01",
+        to: "2026-09-30",
+      }),
+    ).rejects.toThrow("Transaction 99 in USD is missing exchangeRate");
   });
 });
 

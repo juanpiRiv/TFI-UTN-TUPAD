@@ -165,7 +165,16 @@ export function InvoiceDetailPage() {
       </div>
 
       {/* Formulario integrado de pago (Criterio F6-8) */}
-      {invoice.commercialStatus === 'PAID' || Number(invoice.pendingBalance) <= 0 ? (
+      {invoice.status !== 'AUTHORIZED' ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-5 text-center">
+          <p className="text-base font-semibold text-amber-900">
+            Factura no disponible para cobro
+          </p>
+          <p className="mt-1 text-xs text-amber-700">
+            Solo se pueden registrar cobros sobre facturas autorizadas por AFIP/ARCA (estado actual: {invoice.status}).
+          </p>
+        </div>
+      ) : invoice.commercialStatus === 'PAID' || Number(invoice.pendingBalance) <= 0 ? (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-5 text-center">
           <p className="text-base font-semibold text-emerald-900">
             Factura totalmente saldada
@@ -179,6 +188,7 @@ export function InvoiceDetailPage() {
           invoiceId={invoice.invoiceId}
           pendingBalance={invoice.pendingBalance}
           currency={invoice.currency}
+          issueDate={invoice.issueDate}
         />
       )}
 

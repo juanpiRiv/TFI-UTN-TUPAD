@@ -140,5 +140,27 @@ describe('client detail and history', () => {
     expect(
       await screen.findByText('Todavía no hay movimientos asociados a este cliente'),
     ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ver movimientos' })).toBeInTheDocument()
+  })
+
+  it('muestra mensaje de error inmediatamente para id de cliente alfanumérico (/clientes/abc)', async () => {
+    let transactionCalled = false
+    server.use(
+      http.get(`${API_URL}/api/transactions`, () => {
+        transactionCalled = true
+        return HttpResponse.json([])
+      }),
+    )
+
+    renderApp('/clientes/abc')
+
+    expect(await screen.findByText('Cliente inválido')).toBeInTheDocument()
+    expect(transactionCalled).toBe(false)
+  })
+
+  it('muestra mensaje de error inmediatamente para id menor o igual a cero (/clientes/0)', async () => {
+    renderApp('/clientes/0')
+
+    expect(await screen.findByText('Cliente inválido')).toBeInTheDocument()
   })
 })
