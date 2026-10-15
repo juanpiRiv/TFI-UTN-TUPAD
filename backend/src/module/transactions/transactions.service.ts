@@ -116,39 +116,64 @@ export async function createTransaction(
     throw new AppError(400, "Category type must match transaction type");
   }
 
-  // Validar cliente: si se envía, debe pertenecer a la organización
+  // Validar cliente: si se envía, debe pertenecer a la organización y estar activo
   if (data.clientId) {
     const client = await prisma.client.findFirst({
       where: {
         id: data.clientId,
         organizationId: org.id,
+        isActive: true,
       },
     });
 
     if (!client) {
-      throw new AppError(400, "Client not found");
+      throw new AppError(400, "Client not found or inactive");
     }
   }
 
-  const created = await prisma.transaction.create({
-    data: {
-      organizationId: org.id,
-      categoryId: data.categoryId,
-      clientId: data.clientId ?? null,
-      type: data.type,
-      amount: new Prisma.Decimal(data.amount),
-      currency: data.currency,
-      exchangeRate:
-        needsExchangeRate && data.exchangeRate
-          ? new Prisma.Decimal(data.exchangeRate)
-          : null,
-      transactionDate: new Date(`${data.transactionDate}T00:00:00.000Z`),
-      description: data.description ?? null,
-    },
-    include: {
-      category: { select: { id: true, name: true, type: true } },
-      client: { select: { id: true, name: true } },
-    },
+  const created = await prisma.$transaction(async (tx) => {
+    const newTx = await tx.transaction.create({
+      data: {
+        organizationId: org.id,
+        categoryId: data.categoryId,
+        clientId: data.clientId ?? null,
+        type: data.type,
+        amount: new Prisma.Decimal(data.amount),
+        currency: data.currency,
+        exchangeRate:
+          needsExchangeRate && data.exchangeRate
+            ? new Prisma.Decimal(data.exchangeRate)
+            : null,
+        transactionDate: new Date(`${data.transactionDate}T00:00:00.000Z`),
+        description: data.description ?? null,
+      },
+      include: {
+        category: { select: { id: true, name: true, type: true } },
+        client: { select: { id: true, name: true } },
+      },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        organizationId: org.id,
+        userId,
+        action: "transaction.created",
+        entity: "Transaction",
+        entityId: newTx.id,
+        metadata: {
+          type: data.type,
+          amount: data.amount,
+          currency: data.currency,
+          exchangeRate:
+            needsExchangeRate && data.exchangeRate ? data.exchangeRate : null,
+          categoryId: data.categoryId,
+          clientId: data.clientId ?? null,
+          transactionDate: data.transactionDate,
+        },
+      },
+    });
+
+    return newTx;
   });
 
   return formatTransaction(created);
@@ -182,8 +207,11 @@ export async function listTransactions(
     }
   }
 
+  const take = query.limit ?? 50;
+
   const transactions = await prisma.transaction.findMany({
     where,
+    take,
     orderBy: [{ transactionDate: "desc" }, { id: "desc" }],
     include: {
       category: { select: { id: true, name: true, type: true } },

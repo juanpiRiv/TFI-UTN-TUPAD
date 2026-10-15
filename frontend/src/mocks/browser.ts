@@ -6,9 +6,8 @@ import { transactionHandlers } from './handlers/transactions'
 import { dashboardHandlers } from './handlers/dashboard'
 
 // In the browser, transactions and dashboard are handled by the real backend on localhost:3000.
-const browserHandlers = domainHandlers.filter(
-  (h) => !transactionHandlers.includes(h) && !dashboardHandlers.includes(h),
-)
+const excluded = new Set<unknown>([...transactionHandlers, ...dashboardHandlers])
+const browserHandlers = domainHandlers.filter((h) => !excluded.has(h))
 
 export const worker = setupWorker(meOverlayHandler, ...browserHandlers)
 
