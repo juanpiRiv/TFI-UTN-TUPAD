@@ -5,9 +5,34 @@ import type { ExchangeRateDto } from "./exchange-rates.schemas.js";
 
 const BCRA_BASE_URL = "https://api.bcra.gob.ar/estadisticascambiarias/v1.0/Cotizaciones";
 const SOURCE_BCRA = "BCRA";
-const RATE_TYPE_ESTADISTICAS = "ESTADISTICAS_CAMBIARIAS";
-const RATE_TYPE_REF = "COM_A_3500";
-const REQUEST_TIMEOUT_MS = 10000;
+export const RATE_TYPE_ESTADISTICAS = "ESTADISTICAS_CAMBIARIAS";
+export const RATE_TYPE_REF = "COM_A_3500";
+const REQUEST_TIMEOUT_MS = 4000; // Timeout reducido a 4s para no demorar requests del usuario
+const NEGATIVE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos de espera para intentos vacíos o fallidos
+const MAX_LOOKBACK_DAYS = 30; // Límite de antigüedad para el fallback en DB
+
+// Caché en memoria para evitar reintentar consultas al BCRA que devolvieron vacío o fallaron en feriados/días sin publicación
+const emptyAttempts = new Map<string, number>();
+
+function isNegativeCached(currencyCode: "USD" | "REF", targetDateStr: string): boolean {
+  const key = `${currencyCode}:${targetDateStr}`;
+  const expiresAt = emptyAttempts.get(key);
+  if (!expiresAt) return false;
+  if (Date.now() > expiresAt) {
+    emptyAttempts.delete(key);
+    return false;
+  }
+  return true;
+}
+
+function setNegativeCache(currencyCode: "USD" | "REF", targetDateStr: string): void {
+  const key = `${currencyCode}:${targetDateStr}`;
+  emptyAttempts.set(key, Date.now() + NEGATIVE_CACHE_TTL_MS);
+}
+
+export function clearNegativeCache(): void {
+  emptyAttempts.clear();
+}
 
 interface BcraDetalle {
   codigoMoneda: string;
@@ -38,6 +63,19 @@ function subDays(d: Date, days: number): Date {
 
 function parseUtcDate(dateStr: string): Date {
   return new Date(`${dateStr}T00:00:00.000Z`);
+}
+
+/**
+ * Obtiene la fecha actual en la zona horaria de Argentina (UTC-3),
+ * evitando desfasajes entre las 21:00 y las 24:00 respecto a UTC.
+ */
+function getArgentinaTodayStr(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 function getPrecedingFriday(date: Date): Date {
@@ -73,13 +111,15 @@ async function fetchFromBcra(
 }
 
 /**
- * Persiste las cotizaciones obtenidas del BCRA en la base de datos (cache).
+ * Persiste las cotizaciones obtenidas del BCRA en la base de datos (cache)
+ * en un único lote transaccional usando prisma.$transaction.
  */
 async function persistRates(
   items: BcraItem[],
   currencyCode: "USD" | "REF",
   rateType: string,
 ): Promise<void> {
+  const ops = [];
   for (const item of items) {
     const detail = item.detalle.find((d) => d.codigoMoneda === currencyCode) ?? item.detalle[0];
     if (!detail || typeof detail.tipoCotizacion !== "number" || isNaN(detail.tipoCotizacion)) {
@@ -89,28 +129,34 @@ async function persistRates(
     const observedAt = parseUtcDate(item.fecha);
     const value = new Prisma.Decimal(detail.tipoCotizacion.toFixed(6));
 
-    await prisma.exchangeRate.upsert({
-      where: {
-        source_rateType_fromCurrency_toCurrency_observedAt: {
+    ops.push(
+      prisma.exchangeRate.upsert({
+        where: {
+          source_rateType_fromCurrency_toCurrency_observedAt: {
+            source: SOURCE_BCRA,
+            rateType,
+            fromCurrency: "USD",
+            toCurrency: "ARS",
+            observedAt,
+          },
+        },
+        create: {
           source: SOURCE_BCRA,
           rateType,
           fromCurrency: "USD",
           toCurrency: "ARS",
+          value,
           observedAt,
         },
-      },
-      create: {
-        source: SOURCE_BCRA,
-        rateType,
-        fromCurrency: "USD",
-        toCurrency: "ARS",
-        value,
-        observedAt,
-      },
-      update: {
-        value,
-      },
-    });
+        update: {
+          value,
+        },
+      }),
+    );
+  }
+
+  if (ops.length > 0) {
+    await prisma.$transaction(ops);
   }
 }
 
@@ -144,29 +190,83 @@ function extractMatchingRate(
 }
 
 /**
+ * Busca en DB la cotización para una fecha específica,
+ * priorizando siempre la cotización de gestión (Estadísticas Cambiarias) antes de la de referencia (REF).
+ */
+async function findCachedRateForDate(observedAt: Date) {
+  const estMatch = await prisma.exchangeRate.findFirst({
+    where: {
+      source: SOURCE_BCRA,
+      rateType: RATE_TYPE_ESTADISTICAS,
+      fromCurrency: "USD",
+      toCurrency: "ARS",
+      observedAt,
+    },
+  });
+  if (estMatch) return estMatch;
+
+  return prisma.exchangeRate.findFirst({
+    where: {
+      source: SOURCE_BCRA,
+      rateType: RATE_TYPE_REF,
+      fromCurrency: "USD",
+      toCurrency: "ARS",
+      observedAt,
+    },
+  });
+}
+
+/**
+ * Busca la cotización más reciente en DB menor o igual a targetDate,
+ * con límite de antigüedad (minObservedAt) y priorizando Estadísticas Cambiarias.
+ */
+async function findLatestCachedRate(targetDate: Date, minObservedAt: Date) {
+  const latestEst = await prisma.exchangeRate.findFirst({
+    where: {
+      source: SOURCE_BCRA,
+      rateType: RATE_TYPE_ESTADISTICAS,
+      fromCurrency: "USD",
+      toCurrency: "ARS",
+      observedAt: {
+        lte: targetDate,
+        gte: minObservedAt,
+      },
+    },
+    orderBy: { observedAt: "desc" },
+  });
+  if (latestEst) return latestEst;
+
+  return prisma.exchangeRate.findFirst({
+    where: {
+      source: SOURCE_BCRA,
+      rateType: RATE_TYPE_REF,
+      fromCurrency: "USD",
+      toCurrency: "ARS",
+      observedAt: {
+        lte: targetDate,
+        gte: minObservedAt,
+      },
+    },
+    orderBy: { observedAt: "desc" },
+  });
+}
+
+/**
  * Obtiene la cotización del dólar (USD a ARS) para la fecha solicitada.
  * Aplica estrategia de caché en base de datos, consulta al BCRA con ventana histórica de 10 días,
- * resolución del último día hábil anterior o igual a la fecha, y fallback ordenado.
+ * resolución del último día hábil anterior o igual a la fecha, caché negativo para no saturar en feriados,
+ * y fallback ordenado con límite de antigüedad.
  */
 export async function getUsdExchangeRate(requestedDateStr: string): Promise<ExchangeRateDto> {
   const requestedDate = parseUtcDate(requestedDateStr);
-  const now = new Date();
-  const todayStr = formatDate(now);
+  const todayStr = getArgentinaTodayStr();
 
-  // El BCRA rechaza fechas futuras con 400. Si piden fecha futura, se acota a hoy.
+  // El BCRA rechaza fechas futuras con 400. Si piden fecha futura, se acota a hoy (en horario argentino).
   const targetDateStr = requestedDateStr > todayStr ? todayStr : requestedDateStr;
   const targetDate = parseUtcDate(targetDateStr);
 
-  // 1. Revisar si ya tenemos la cotización en DB para esa fecha exacta
-  const exactMatch = await prisma.exchangeRate.findFirst({
-    where: {
-      source: SOURCE_BCRA,
-      fromCurrency: "USD",
-      toCurrency: "ARS",
-      observedAt: targetDate,
-    },
-  });
-
+  // 1. Revisar si ya tenemos la cotización en DB para esa fecha exacta (priorizando Estadísticas Cambiarias)
+  const exactMatch = await findCachedRateForDate(targetDate);
   if (exactMatch) {
     return {
       date: requestedDateStr,
@@ -180,15 +280,7 @@ export async function getUsdExchangeRate(requestedDateStr: string): Promise<Exch
   // 2. Si la fecha solicitada es fin de semana (sábado o domingo), verificar si ya tenemos el viernes hábil previo
   const precedingFriday = getPrecedingFriday(targetDate);
   if (precedingFriday.getTime() !== targetDate.getTime()) {
-    const fridayMatch = await prisma.exchangeRate.findFirst({
-      where: {
-        source: SOURCE_BCRA,
-        fromCurrency: "USD",
-        toCurrency: "ARS",
-        observedAt: precedingFriday,
-      },
-    });
-
+    const fridayMatch = await findCachedRateForDate(precedingFriday);
     if (fridayMatch) {
       return {
         date: requestedDateStr,
@@ -204,51 +296,54 @@ export async function getUsdExchangeRate(requestedDateStr: string): Promise<Exch
   const hastaStr = targetDateStr;
   const desdeStr = formatDate(subDays(targetDate, 10));
 
-  try {
-    const bcraResults = await fetchFromBcra("USD", desdeStr, hastaStr);
-    if (bcraResults.length > 0) {
-      await persistRates(bcraResults, "USD", RATE_TYPE_ESTADISTICAS);
-      const matched = extractMatchingRate(
-        bcraResults,
-        "USD",
-        targetDateStr,
-        requestedDateStr,
-        RATE_TYPE_ESTADISTICAS,
-      );
-      if (matched) return matched;
+  if (!isNegativeCached("USD", targetDateStr)) {
+    try {
+      const bcraResults = await fetchFromBcra("USD", desdeStr, hastaStr);
+      if (bcraResults.length > 0) {
+        await persistRates(bcraResults, "USD", RATE_TYPE_ESTADISTICAS);
+        const matched = extractMatchingRate(
+          bcraResults,
+          "USD",
+          targetDateStr,
+          requestedDateStr,
+          RATE_TYPE_ESTADISTICAS,
+        );
+        if (matched) return matched;
+      } else {
+        setNegativeCache("USD", targetDateStr);
+      }
+    } catch (error) {
+      setNegativeCache("USD", targetDateStr);
+      console.warn("Fallo al consultar la serie USD de la API del BCRA:", (error as Error).message);
     }
-  } catch (error) {
-    console.warn("Fallo al consultar la serie USD de la API del BCRA:", (error as Error).message);
   }
 
   // 4. Fallback a la serie de respaldo REF (Comunicación A 3500)
-  try {
-    const refResults = await fetchFromBcra("REF", desdeStr, hastaStr);
-    if (refResults.length > 0) {
-      await persistRates(refResults, "REF", RATE_TYPE_REF);
-      const matched = extractMatchingRate(
-        refResults,
-        "REF",
-        targetDateStr,
-        requestedDateStr,
-        RATE_TYPE_REF,
-      );
-      if (matched) return matched;
+  if (!isNegativeCached("REF", targetDateStr)) {
+    try {
+      const refResults = await fetchFromBcra("REF", desdeStr, hastaStr);
+      if (refResults.length > 0) {
+        await persistRates(refResults, "REF", RATE_TYPE_REF);
+        const matched = extractMatchingRate(
+          refResults,
+          "REF",
+          targetDateStr,
+          requestedDateStr,
+          RATE_TYPE_REF,
+        );
+        if (matched) return matched;
+      } else {
+        setNegativeCache("REF", targetDateStr);
+      }
+    } catch (error) {
+      setNegativeCache("REF", targetDateStr);
+      console.warn("Fallo al consultar la serie de respaldo REF de la API del BCRA:", (error as Error).message);
     }
-  } catch (error) {
-    console.warn("Fallo al consultar la serie de respaldo REF de la API del BCRA:", (error as Error).message);
   }
 
-  // 5. Fallback a la última cotización guardada en base de datos
-  const latestCached = await prisma.exchangeRate.findFirst({
-    where: {
-      source: SOURCE_BCRA,
-      fromCurrency: "USD",
-      toCurrency: "ARS",
-      observedAt: { lte: targetDate },
-    },
-    orderBy: { observedAt: "desc" },
-  });
+  // 5. Fallback a la última cotización guardada en base de datos con límite de antigüedad (30 días)
+  const minObservedAt = subDays(targetDate, MAX_LOOKBACK_DAYS);
+  const latestCached = await findLatestCachedRate(targetDate, minObservedAt);
 
   if (latestCached) {
     return {
@@ -260,7 +355,7 @@ export async function getUsdExchangeRate(requestedDateStr: string): Promise<Exch
     };
   }
 
-  // 6. Si la base de datos está vacía y la API del BCRA no responde, informar sin voltear la app
+  // 6. Si la base de datos no tiene cotizaciones recientes y la API del BCRA no responde, informar sin voltear la app
   throw new AppError(
     503,
     "La cotización del BCRA no se encuentra disponible temporalmente. Por favor ingrese el valor manualmente.",
