@@ -17,6 +17,7 @@ type PaymentFormProps = {
   invoiceId: number
   pendingBalance: string
   currency: Currency
+  issueDate?: string
   onSuccess?: () => void
 }
 
@@ -24,6 +25,7 @@ export function PaymentForm({
   invoiceId,
   pendingBalance,
   currency,
+  issueDate,
   onSuccess,
 }: PaymentFormProps) {
   const [formError, setFormError] = useState<string | null>(null)
@@ -67,6 +69,15 @@ export function PaymentForm({
       setError('amount', {
         type: 'manual',
         message: `El importe no puede superar el saldo pendiente de ${formatMoney(pendingBalance, currency)}`,
+      })
+      return
+    }
+
+    // Validación de fecha no anterior a la emisión
+    if (issueDate && values.paymentDate < issueDate) {
+      setError('paymentDate', {
+        type: 'manual',
+        message: `La fecha de cobro no puede ser anterior a la fecha de emisión (${issueDate})`,
       })
       return
     }
@@ -139,6 +150,8 @@ export function PaymentForm({
             id="paymentDate"
             label="Fecha de cobro *"
             type="date"
+            max={todayIso()}
+            min={issueDate}
             error={errors.paymentDate?.message}
             {...register('paymentDate')}
           />

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { todayIso } from '@/lib/format'
 
 export const paymentItemSchema = z.object({
   id: z.number(),
@@ -76,7 +77,8 @@ export const createPaymentFormSchema = z.object({
   paymentDate: z
     .string()
     .min(1, 'La fecha es obligatoria')
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)'),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)')
+    .refine((val) => val <= todayIso(), 'La fecha de cobro no puede ser futura'),
   currency: z.enum(['ARS', 'USD']),
   exchangeRate: z.string().optional(),
   description: z.string().max(255).optional(),
