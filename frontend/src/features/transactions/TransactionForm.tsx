@@ -26,6 +26,7 @@ type TransactionFormProps = {
   baseCurrency: Currency
   categories: Category[]
   clients: Client[]
+  defaultClientId?: number
   onSubmit: (values: TransactionInput) => Promise<unknown>
   onDone: () => void
 }
@@ -34,6 +35,7 @@ export function TransactionForm({
   baseCurrency,
   categories,
   clients,
+  defaultClientId,
   onSubmit,
   onDone,
 }: TransactionFormProps) {
@@ -58,7 +60,7 @@ export function TransactionForm({
       currency: baseCurrency,
       exchangeRate: '',
       categoryId: '',
-      clientId: '',
+      clientId: defaultClientId ? String(defaultClientId) : '',
       transactionDate: todayIso(),
       description: '',
     },

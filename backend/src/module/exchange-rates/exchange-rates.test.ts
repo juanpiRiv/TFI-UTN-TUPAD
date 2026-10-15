@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
 import jwt from "jsonwebtoken";
 import { getUsdExchangeRateQuerySchema } from "./exchange-rates.schemas.js";
-import { getUsdExchangeRate } from "./exchange-rates.service.js";
+import { getUsdExchangeRate, clearNegativeCache } from "./exchange-rates.service.js";
 import { prisma } from "../../lib/prisma.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import { app } from "../../app.js";
@@ -24,6 +24,7 @@ vi.mock("../../lib/prisma.js", () => ({
       findFirst: vi.fn(),
       upsert: vi.fn(),
     },
+    $transaction: vi.fn((ops) => Promise.all(ops)),
   },
 }));
 
@@ -31,6 +32,7 @@ describe("exchange-rates module", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.restoreAllMocks();
+    clearNegativeCache();
   });
 
   describe("getUsdExchangeRateQuerySchema", () => {
@@ -56,9 +58,51 @@ describe("exchange-rates module", () => {
         expect(result.success).toBe(false);
       }
     });
+
+    it("rechaza fechas inexistentes en el calendario (ej: 2026-02-31)", () => {
+      const result = getUsdExchangeRateQuerySchema.safeParse({ date: "2026-02-31" });
+      expect(result.success).toBe(false);
+    });
   });
 
   describe("getUsdExchangeRate service", () => {
+    it("prioriza la serie ESTADISTICAS_CAMBIARIAS sobre COM_A_3500 en la caché", async () => {
+      (vi.mocked(prisma.exchangeRate.findFirst) as any).mockImplementation(async (args: any) => {
+        if (args?.where?.rateType === "ESTADISTICAS_CAMBIARIAS") {
+          return {
+            id: 1,
+            source: "BCRA",
+            rateType: "ESTADISTICAS_CAMBIARIAS",
+            fromCurrency: "USD",
+            toCurrency: "ARS",
+            value: new Prisma.Decimal("1520.000000"),
+            observedAt: new Date("2026-10-13T00:00:00.000Z"),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        }
+        if (args?.where?.rateType === "COM_A_3500") {
+          return {
+            id: 2,
+            source: "BCRA",
+            rateType: "COM_A_3500",
+            fromCurrency: "USD",
+            toCurrency: "ARS",
+            value: new Prisma.Decimal("1510.000000"),
+            observedAt: new Date("2026-10-13T00:00:00.000Z"),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        }
+        return null;
+      });
+
+      const result = await getUsdExchangeRate("2026-10-13");
+
+      expect(result.rateType).toBe("ESTADISTICAS_CAMBIARIAS");
+      expect(result.value).toBe("1520.000000");
+    });
+
     it("retorna la cotización cacheada en DB si existe coincidencia exacta", async () => {
       vi.mocked(prisma.exchangeRate.findFirst).mockResolvedValueOnce({
         id: 1,
@@ -86,10 +130,8 @@ describe("exchange-rates module", () => {
       expect(globalFetch).not.toHaveBeenCalled();
     });
 
-    it("consulta la API del BCRA, persiste en DB y resuelve la cotización si no estaba en cache", async () => {
-      // 1. findFirst exact -> null
-      vi.mocked(prisma.exchangeRate.findFirst).mockResolvedValueOnce(null);
-      // 2. upsert exitoso
+    it("consulta la API del BCRA, persiste en DB en una sola transacción y resuelve la cotización", async () => {
+      vi.mocked(prisma.exchangeRate.findFirst).mockResolvedValue(null);
       vi.mocked(prisma.exchangeRate.upsert).mockResolvedValue({} as any);
 
       const fakeBcraResponse = {
@@ -138,16 +180,13 @@ describe("exchange-rates module", () => {
       });
 
       expect(prisma.exchangeRate.upsert).toHaveBeenCalledTimes(2);
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     });
 
     it("resuelve el último día hábil anterior si se consulta un fin de semana", async () => {
-      // 1. findFirst exact -> null
-      vi.mocked(prisma.exchangeRate.findFirst).mockResolvedValueOnce(null);
-      // 2. findFirst cached past -> null
-      vi.mocked(prisma.exchangeRate.findFirst).mockResolvedValueOnce(null);
+      vi.mocked(prisma.exchangeRate.findFirst).mockResolvedValue(null);
       vi.mocked(prisma.exchangeRate.upsert).mockResolvedValue({} as any);
 
-      // El domingo 11/10/2026 no hay cotización, la última hábil es el viernes 09/10/2026
       const fakeBcraResponse = {
         status: 200,
         results: [
@@ -184,16 +223,14 @@ describe("exchange-rates module", () => {
     });
 
     it("aplica fallback a la serie REF si la serie USD falla", async () => {
-      vi.mocked(prisma.exchangeRate.findFirst).mockResolvedValueOnce(null);
+      vi.mocked(prisma.exchangeRate.findFirst).mockResolvedValue(null);
       vi.mocked(prisma.exchangeRate.upsert).mockResolvedValue({} as any);
 
-      // USD falla con error 500
       const fetchSpy = vi.spyOn(globalThis, "fetch");
       fetchSpy.mockResolvedValueOnce(
         new Response("Internal Server Error", { status: 500 }),
       );
 
-      // REF responde OK
       const fakeRefResponse = {
         status: 200,
         results: [
@@ -228,24 +265,64 @@ describe("exchange-rates module", () => {
       });
     });
 
-    it("aplica fallback al último registro en DB si tanto USD como REF fallan", async () => {
-      // 1. exactMatch -> null
-      vi.mocked(prisma.exchangeRate.findFirst).mockResolvedValueOnce(null);
+    it("aplica negative caching si una fecha vuelve vacía para no saturar al BCRA", async () => {
+      (vi.mocked(prisma.exchangeRate.findFirst) as any).mockImplementation(async (args: any) => {
+        // En fallback de DB simulamos que hay cotización de ayer
+        if (args?.where?.observedAt?.lte) {
+          return {
+            id: 10,
+            source: "BCRA",
+            rateType: "ESTADISTICAS_CAMBIARIAS",
+            fromCurrency: "USD",
+            toCurrency: "ARS",
+            value: new Prisma.Decimal("1500.000000"),
+            observedAt: new Date("2026-10-12T00:00:00.000Z"),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        }
+        return null;
+      });
 
-      // USD y REF fallan a nivel red
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+      // Primera vez: USD devuelve array vacío, REF devuelve array vacío
+      fetchSpy.mockImplementation(
+        async () =>
+          new Response(JSON.stringify({ status: 200, results: [] }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+      );
+
+      const result1 = await getUsdExchangeRate("2026-10-13");
+      expect(result1.value).toBe("1500.000000");
+      expect(fetchSpy).toHaveBeenCalledTimes(2); // 1 USD + 1 REF
+
+      // Segunda vez inmediata para la misma fecha: el negative cache debe evitar los fetch
+      fetchSpy.mockClear();
+      const result2 = await getUsdExchangeRate("2026-10-13");
+      expect(result2.value).toBe("1500.000000");
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("aplica fallback al último registro en DB si tanto USD como REF fallan y está dentro de los 30 días", async () => {
       vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Network connection error"));
 
-      // Fallback en DB tiene el registro del día anterior
-      vi.mocked(prisma.exchangeRate.findFirst).mockResolvedValueOnce({
-        id: 2,
-        source: "BCRA",
-        rateType: "ESTADISTICAS_CAMBIARIAS",
-        fromCurrency: "USD",
-        toCurrency: "ARS",
-        value: new Prisma.Decimal("1510.000000"),
-        observedAt: new Date("2026-10-12T00:00:00.000Z"),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      (vi.mocked(prisma.exchangeRate.findFirst) as any).mockImplementation(async (args: any) => {
+        if (args?.where?.observedAt?.lte) {
+          return {
+            id: 2,
+            source: "BCRA",
+            rateType: "ESTADISTICAS_CAMBIARIAS",
+            fromCurrency: "USD",
+            toCurrency: "ARS",
+            value: new Prisma.Decimal("1510.000000"),
+            observedAt: new Date("2026-10-12T00:00:00.000Z"),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        }
+        return null;
       });
 
       const result = await getUsdExchangeRate("2026-10-13");
@@ -259,13 +336,25 @@ describe("exchange-rates module", () => {
       });
     });
 
-    it("lanza error 503 controlado si la API falla y no hay ninguna cotización en DB", async () => {
+    it("descarta cotizaciones cacheadas en DB con más de 30 días de antigüedad y lanza 503", async () => {
       vi.mocked(prisma.exchangeRate.findFirst).mockResolvedValue(null);
       vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Connection refused"));
 
       await expect(getUsdExchangeRate("2026-10-13")).rejects.toMatchObject({
         statusCode: 503,
       });
+
+      // Verifica que findFirst haya incluido el filtro gte para el límite de antigüedad
+      expect(prisma.exchangeRate.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            observedAt: expect.objectContaining({
+              gte: expect.any(Date),
+              lte: expect.any(Date),
+            }),
+          }),
+        }),
+      );
     });
   });
 
@@ -321,4 +410,3 @@ describe("exchange-rates module", () => {
     });
   });
 });
-
