@@ -5,11 +5,10 @@ import {
 } from "./transactions.schemas.js";
 import { createTransaction, listTransactions } from "./transactions.service.js";
 import { prisma } from "../../lib/prisma.js";
-import { getUsdExchangeRate } from "../exchange-rates/exchange-rates.service.js";
 import { Prisma } from "../../generated/prisma/client.js";
 
-vi.mock("../../lib/prisma.js", () => ({
-  prisma: {
+vi.mock("../../lib/prisma.js", () => {
+  const mockPrisma: any = {
     organization: {
       findUnique: vi.fn(),
     },
@@ -22,13 +21,19 @@ vi.mock("../../lib/prisma.js", () => ({
     transaction: {
       create: vi.fn(),
       findMany: vi.fn(),
+      update: vi.fn(),
     },
-  },
-}));
+    auditLog: {
+      create: vi.fn(),
+    },
+    $transaction: vi.fn(async (cb: any) =>
+      typeof cb === "function" ? cb(mockPrisma) : Promise.all(cb),
+    ),
+  };
+  return { prisma: mockPrisma };
+});
 
-vi.mock("../exchange-rates/exchange-rates.service.js", () => ({
-  getUsdExchangeRate: vi.fn(),
-}));
+import { exchangeRatesService } from "../exchange-rates/exchange-rates.service.js";
 
 describe("Transactions Schemas", () => {
   describe("createTransactionSchema", () => {
@@ -206,6 +211,8 @@ describe("Transactions Schemas", () => {
   describe("createTransaction service - cotizaciones y multimoneda (Issue #37)", () => {
     beforeEach(() => {
       vi.clearAllMocks();
+      vi.restoreAllMocks();
+      vi.spyOn(exchangeRatesService, "getUsdExchangeRate");
       vi.mocked(prisma.organization.findUnique).mockResolvedValue({
         id: 1,
         baseCurrency: "ARS",
@@ -217,24 +224,25 @@ describe("Transactions Schemas", () => {
         name: "Honorarios",
         type: "INCOME",
         isActive: true,
-      } as any);
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
       (prisma.transaction.create as any).mockImplementation(async ({ data }: any) => ({
         id: 10,
         organizationId: data.organizationId,
+        paymentId: null,
         categoryId: data.categoryId,
-        clientId: data.clientId,
+        clientId: data.clientId ?? null,
         type: data.type,
         amount: data.amount,
         currency: data.currency,
-        exchangeRate: data.exchangeRate,
+        exchangeRate: data.exchangeRate ?? null,
         transactionDate: data.transactionDate,
-        description: data.description,
+        description: data.description ?? null,
+        voidedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        isVoided: false,
-        voidedAt: null,
-        voidReason: null,
         category: { id: 1, name: "Honorarios", type: "INCOME" },
         client: null,
       }));
@@ -255,7 +263,7 @@ describe("Transactions Schemas", () => {
 
       expect(result.currency).toBe("USD");
       expect(result.exchangeRate).toBe("1550");
-      expect(getUsdExchangeRate).not.toHaveBeenCalled();
+      expect(exchangeRatesService.getUsdExchangeRate).not.toHaveBeenCalled();
       expect(prisma.transaction.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -267,7 +275,7 @@ describe("Transactions Schemas", () => {
     });
 
     it("trae y guarda automáticamente la cotización del BCRA si no se envía exchangeRate", async () => {
-      vi.mocked(getUsdExchangeRate).mockResolvedValueOnce({
+      vi.mocked(exchangeRatesService.getUsdExchangeRate).mockResolvedValueOnce({
         date: "2026-10-13",
         observedAt: "2026-10-13",
         value: "1512.500000",
@@ -286,7 +294,7 @@ describe("Transactions Schemas", () => {
 
       const result = await createTransaction(1, input);
 
-      expect(getUsdExchangeRate).toHaveBeenCalledWith("2026-10-13");
+      expect(exchangeRatesService.getUsdExchangeRate).toHaveBeenCalledWith("2026-10-13");
       expect(result.currency).toBe("USD");
       expect(result.exchangeRate).toBe("1512.5");
       expect(prisma.transaction.create).toHaveBeenCalledWith(
@@ -313,7 +321,7 @@ describe("Transactions Schemas", () => {
 
       expect(result.currency).toBe("ARS");
       expect(result.exchangeRate).toBeNull();
-      expect(getUsdExchangeRate).not.toHaveBeenCalled();
+      expect(exchangeRatesService.getUsdExchangeRate).not.toHaveBeenCalled();
       expect(prisma.transaction.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -324,30 +332,29 @@ describe("Transactions Schemas", () => {
       );
     });
 
-    it("RN-06: confirmar que modificar la cotización actual no toca movimientos viejos", async () => {
-      // 1. Movimiento histórico de ayer con cotización 1450.00 ARS
+    it("RN-06: crear o listar movimientos nunca modifica ni re-resuelve cotizaciones de movimientos existentes", async () => {
+      // 1. Movimiento histórico con cotización fija 1450.00 ARS (sin campos inventados como isVoided o voidReason)
       const oldTransaction = {
         id: 1,
         organizationId: 1,
+        paymentId: null,
         categoryId: 1,
         clientId: null,
         type: "INCOME" as const,
         amount: new Prisma.Decimal("100.00"),
         currency: "USD" as const,
-        exchangeRate: new Prisma.Decimal("1450.000000"), // copia histórica fija
+        exchangeRate: new Prisma.Decimal("1450.000000"), // copia histórica inmutable
         transactionDate: new Date("2026-10-12T00:00:00.000Z"),
         description: "Cobro cliente ayer",
+        voidedAt: null,
         createdAt: new Date("2026-10-12T10:00:00.000Z"),
         updatedAt: new Date("2026-10-12T10:00:00.000Z"),
-        isVoided: false,
-        voidedAt: null,
-        voidReason: null,
         category: { id: 1, name: "Honorarios", type: "INCOME" },
         client: null,
       };
 
-      // 2. Hoy la cotización del BCRA sube a 1512.50 ARS y se registra un movimiento hoy
-      vi.mocked(getUsdExchangeRate).mockResolvedValueOnce({
+      // 2. Mock de cotización del BCRA que hoy sube a 1512.50
+      vi.mocked(exchangeRatesService.getUsdExchangeRate).mockResolvedValueOnce({
         date: "2026-10-13",
         observedAt: "2026-10-13",
         value: "1512.500000",
@@ -365,15 +372,17 @@ describe("Transactions Schemas", () => {
       };
 
       const todayTransaction = await createTransaction(1, todayInput);
-
-      // El movimiento de hoy guarda la cotización actual (1512.5)
       expect(todayTransaction.exchangeRate).toBe("1512.5");
 
-      // 3. Al listar los movimientos, el movimiento viejo conserva inmutable su cotización histórica de 1450 (RN-06)
-      vi.mocked(prisma.transaction.findMany).mockResolvedValueOnce([
+      // Verificación clave (a) de RN-06: NUNCA se invoca prisma.transaction.update
+      expect(prisma.transaction.update).not.toHaveBeenCalled();
+
+      // 3. Mock para listTransactions devolviendo transacciones
+      (prisma.transaction.findMany as any).mockResolvedValueOnce([
         {
           id: 10,
           organizationId: 1,
+          paymentId: null,
           categoryId: 1,
           clientId: null,
           type: "INCOME" as const,
@@ -382,22 +391,160 @@ describe("Transactions Schemas", () => {
           exchangeRate: new Prisma.Decimal("1512.500000"),
           transactionDate: new Date("2026-10-13T00:00:00.000Z"),
           description: null,
+          voidedAt: null,
           createdAt: new Date(),
           updatedAt: new Date(),
-          isVoided: false,
-          voidedAt: null,
-          voidReason: null,
           category: { id: 1, name: "Honorarios", type: "INCOME" },
           client: null,
         },
         oldTransaction,
-      ] as any);
+      ]);
 
       const listResult = await listTransactions(1, {});
 
+      // Verificación clave (b) de RN-06: listar NUNCA re-resuelve cotizaciones (getUsdExchangeRate no se vuelve a llamar)
+      expect(exchangeRatesService.getUsdExchangeRate).toHaveBeenCalledTimes(1); // Sólo para createTransaction inicial
+      expect(prisma.transaction.update).not.toHaveBeenCalled();
+
       expect(listResult).toHaveLength(2);
-      expect(listResult[0]?.exchangeRate).toBe("1512.5"); // Movimiento de hoy con cotización actual
-      expect(listResult[1]?.exchangeRate).toBe("1450");   // Movimiento histórico de ayer inalterado (RN-06)
+      expect(listResult[0]?.exchangeRate).toBe("1512.5");
+      expect(listResult[1]?.exchangeRate).toBe("1450");
+    });
+
+    it("rechaza con 400 si la cotización oficial disponible tiene más de 5 días hábiles de antigüedad (P1)", async () => {
+      // Movimiento del 14/10/2026 pero la cotización devuelta es del 25/09/2026 (> 5 días hábiles)
+      vi.mocked(exchangeRatesService.getUsdExchangeRate).mockResolvedValueOnce({
+        date: "2026-10-14",
+        observedAt: "2026-09-25",
+        value: "1450.000000",
+        source: "BCRA",
+        rateType: "ESTADISTICAS_CAMBIARIAS",
+      });
+
+      const input = {
+        type: "INCOME" as const,
+        amount: "100.00",
+        currency: "USD" as const,
+        categoryId: 1,
+        transactionDate: "2026-10-14",
+        description: null,
+      };
+
+      await expect(createTransaction(1, input)).rejects.toMatchObject({
+        statusCode: 400,
+        message: expect.stringContaining("más de 5 días hábiles de antigüedad"),
+      });
+    });
+
+    it("registra en AuditLog si el tipo de cambio fue manual o del BCRA con trazabilidad completa (P1)", async () => {
+      vi.mocked(exchangeRatesService.getUsdExchangeRate).mockResolvedValueOnce({
+        date: "2026-10-13",
+        observedAt: "2026-10-13",
+        value: "1512.500000",
+        source: "BCRA",
+        rateType: "ESTADISTICAS_CAMBIARIAS",
+      });
+
+      const input = {
+        type: "INCOME" as const,
+        amount: "200.00",
+        currency: "USD" as const,
+        categoryId: 1,
+        transactionDate: "2026-10-13",
+        description: null,
+      };
+
+      await createTransaction(1, input);
+
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            action: "transaction.created",
+            metadata: expect.objectContaining({
+              exchangeRateSource: "BCRA",
+              observedAt: "2026-10-13",
+              exchangeRate: "1512.5",
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("propaga el error 503 del servicio cuando el BCRA está caído (P2)", async () => {
+      const { AppError } = await import("../../lib/error.js");
+      vi.mocked(exchangeRatesService.getUsdExchangeRate).mockRejectedValueOnce(
+        new AppError(
+          503,
+          "La cotización del BCRA no se encuentra disponible temporalmente. Por favor ingrese el valor manualmente.",
+        ),
+      );
+
+      const input = {
+        type: "INCOME" as const,
+        amount: "100.00",
+        currency: "USD" as const,
+        categoryId: 1,
+        transactionDate: "2026-10-13",
+        description: null,
+      };
+
+      await expect(createTransaction(1, input)).rejects.toMatchObject({
+        statusCode: 503,
+        message: expect.stringContaining("La cotización del BCRA no se encuentra disponible"),
+      });
+    });
+
+    it("valida categoría y cliente ANTES de consultar el tipo de cambio al BCRA (P2)", async () => {
+      vi.mocked(prisma.category.findFirst).mockResolvedValueOnce(null); // Categoría no existe
+
+      const input = {
+        type: "INCOME" as const,
+        amount: "100.00",
+        currency: "USD" as const,
+        categoryId: 999,
+        transactionDate: "2026-10-13",
+        description: null,
+      };
+
+      await expect(createTransaction(1, input)).rejects.toMatchObject({
+        statusCode: 400,
+        message: "Category not found or inactive",
+      });
+
+      // No debe haber llamado a la API del BCRA porque la categoría falló primero
+      expect(exchangeRatesService.getUsdExchangeRate).not.toHaveBeenCalled();
+    });
+
+    it("rechaza tipo de cambio manual fuera de rango razonable (P2)", async () => {
+      const inputOutLower = {
+        type: "INCOME" as const,
+        amount: "100.00",
+        currency: "USD" as const,
+        exchangeRate: "0.500000", // menor a 1
+        categoryId: 1,
+        transactionDate: "2026-10-13",
+        description: null,
+      };
+
+      await expect(createTransaction(1, inputOutLower)).rejects.toMatchObject({
+        statusCode: 400,
+        message: expect.stringContaining("rango razonable"),
+      });
+
+      const inputOutUpper = {
+        type: "INCOME" as const,
+        amount: "100.00",
+        currency: "USD" as const,
+        exchangeRate: "200000.000000", // mayor a 100000
+        categoryId: 1,
+        transactionDate: "2026-10-13",
+        description: null,
+      };
+
+      await expect(createTransaction(1, inputOutUpper)).rejects.toMatchObject({
+        statusCode: 400,
+        message: expect.stringContaining("rango razonable"),
+      });
     });
   });
 });

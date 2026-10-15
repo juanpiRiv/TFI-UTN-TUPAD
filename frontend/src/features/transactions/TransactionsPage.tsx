@@ -194,6 +194,7 @@ export function TransactionsPage() {
             baseCurrency={organization.baseCurrency}
             categories={categories.data ?? []}
             clients={(clients.data ?? []).filter((client) => client.isActive)}
+            defaultClientId={filters.clientId}
             onSubmit={createTransaction.mutateAsync}
             onDone={() => setCreating(false)}
           />
