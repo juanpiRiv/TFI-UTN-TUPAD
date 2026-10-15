@@ -5,7 +5,8 @@ import { meOverlayHandler } from './handlers/me-overlay'
 import { transactionHandlers } from './handlers/transactions'
 
 // In the browser, transactions are handled by the real backend on localhost:3000.
-const browserHandlers = domainHandlers.filter((h) => !transactionHandlers.includes(h))
+const excluded = new Set<unknown>(transactionHandlers)
+const browserHandlers = domainHandlers.filter((h) => !excluded.has(h))
 
 export const worker = setupWorker(meOverlayHandler, ...browserHandlers)
 
