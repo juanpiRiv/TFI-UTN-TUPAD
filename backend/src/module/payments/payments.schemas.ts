@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { isoDate } from "../../lib/date.js";
+
+const positiveDecimal2 = /^\d{1,12}(\.\d{1,2})?$/;
+const positiveDecimal6 = /^\d{1,10}(\.\d{1,6})?$/;
 
 /**
  * Esquema de validación para registrar un pago contra una factura.
@@ -6,24 +10,38 @@ import { z } from "zod";
  */
 export const createPaymentSchema = z.object({
   amount: z
-    .string()
-    .regex(/^\d+(\.\d{1,2})?$/, "El importe debe ser un número positivo con hasta 2 decimales")
-    .refine((val) => Number(val) > 0, "El importe debe ser mayor a cero"),
-  paymentDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha de pago debe tener formato YYYY-MM-DD"),
+    .string({ error: "El importe es requerido" })
+    .trim()
+    .refine((val) => positiveDecimal2.test(val) && Number(val) > 0, {
+      message: "El importe debe ser mayor a cero y con hasta 2 decimales",
+    }),
+  paymentDate: isoDate,
   currency: z.enum(["ARS", "USD"]).default("ARS"),
   exchangeRate: z
     .string()
-    .regex(/^\d+(\.\d{1,6})?$/, "El tipo de cambio debe tener hasta 6 decimales")
+    .trim()
+    .refine((val) => positiveDecimal6.test(val) && Number(val) > 0, {
+      message: "El tipo de cambio debe ser mayor a cero y con hasta 6 decimales",
+    })
+    .optional()
+    .nullable()
+    .or(z.literal("").transform(() => null)),
+  description: z.string().trim().max(255).optional().nullable(),
+  adoptTransactionId: z.coerce
+    .number()
+    .int("El ID de movimiento debe ser un entero")
+    .positive("El ID de movimiento debe ser un entero positivo")
+    .max(2147483647, "ID de movimiento fuera de rango")
     .optional()
     .nullable(),
-  description: z.string().max(255).optional().nullable(),
-  adoptTransactionId: z.number().int().positive().optional().nullable(),
 });
 
 export const invoiceIdParamSchema = z.object({
-  invoiceId: z.coerce.number().int().positive("El ID de factura debe ser un entero positivo"),
+  invoiceId: z.coerce
+    .number({ error: "El ID de factura debe ser un número" })
+    .int("El ID de factura debe ser un entero")
+    .positive("El ID de factura debe ser un entero positivo")
+    .max(2147483647, "ID de factura fuera de rango"),
 });
 
 export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
