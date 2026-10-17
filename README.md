@@ -85,6 +85,8 @@ Hoy el backend tiene registro, inicio de sesión y `/me`. El resto de los endpoi
 
 Controles: `pnpm lint`, `pnpm test` y `pnpm build` desde la raíz.
 
+*Testing de integración:* Los tests unitarios corren automáticamente con `pnpm test` (mockeando base de datos). Los tests de integración que prueban concurrencia real y bloqueos pesimistas (`SELECT ... FOR UPDATE` en `payments` y RN-06 en `transactions`) requieren PostgreSQL local (`docker compose up -d`) y se ejecutan con `pnpm --filter backend test:integration` (o `pnpm test` en backend con la base activa). Si la base no está levantada, `pnpm test` saltea las suites de integración automáticamente para no fallar.
+
 ---
 
 ## 📋 Gestión y Metodología
