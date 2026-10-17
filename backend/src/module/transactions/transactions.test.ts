@@ -165,7 +165,7 @@ describe("Transactions Module", () => {
     });
   });
 
-  describe("listTransactionsQuerySchema (Filtros e historial - Issue #32)", () => {
+  describe("listTransactionsQuerySchema", () => {
     it("parses valid date range filters (from, to)", () => {
       const query = {
         from: "2026-10-01",
@@ -280,7 +280,7 @@ describe("Transactions Module", () => {
     });
   });
 
-  describe("Transactions Service (Filtros e historial - Issue #32)", () => {
+  describe("Transactions Service", () => {
     const mockOrg = {
       id: 1,
       baseCurrency: "ARS",
@@ -462,6 +462,19 @@ describe("Transactions Module", () => {
       expect(prisma.transaction.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 50,
+        }),
+      );
+    });
+
+    it("applies custom limit (take) when listing transactions", async () => {
+      vi.mocked(prisma.organization.findUnique).mockResolvedValue(mockOrg as any);
+      vi.mocked(prisma.transaction.findMany).mockResolvedValue([]);
+
+      await listTransactions(1, { limit: 20 });
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 20,
         }),
       );
     });
