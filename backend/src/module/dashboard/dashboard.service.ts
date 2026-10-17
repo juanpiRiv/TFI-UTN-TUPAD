@@ -54,12 +54,21 @@ export async function getDashboardSummary(
     number,
     { categoryId: number; name: string; type: string; total: Prisma.Decimal }
   >();
-
   for (const tx of transactions) {
-    const converted =
-      tx.currency === org.baseCurrency || !tx.exchangeRate
-        ? tx.amount
-        : tx.amount.mul(tx.exchangeRate).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    let converted: Prisma.Decimal;
+    if (tx.currency === org.baseCurrency) {
+      converted = tx.amount;
+    } else {
+      if (!tx.exchangeRate) {
+        throw new AppError(
+          500,
+          `Transaction ${tx.id} in ${tx.currency} is missing exchangeRate`,
+        );
+      }
+      converted = tx.amount
+        .mul(tx.exchangeRate)
+        .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    }
 
     if (tx.type === "INCOME") {
       income = income.plus(converted);
