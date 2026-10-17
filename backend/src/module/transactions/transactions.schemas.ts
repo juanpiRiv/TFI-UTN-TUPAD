@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { MovementType, Currency } from "../../generated/prisma/client.js";
+import { isoDate } from "../../lib/date.js";
 
-const positiveDecimal2 = /^\d+(\.\d{1,2})?$/;
-const positiveDecimal6 = /^\d+(\.\d{1,6})?$/;
+const positiveDecimal2 = /^\d{1,16}(\.\d{1,2})?$/;
+const positiveDecimal6 = /^\d{1,12}(\.\d{1,6})?$/;
 
 export const createTransactionSchema = z.object({
   type: z.nativeEnum(MovementType, { error: "El tipo de movimiento es requerido (INCOME o EXPENSE)" }),
@@ -34,9 +35,7 @@ export const createTransactionSchema = z.object({
     .max(2147483647, "ID de cliente fuera de rango")
     .nullable()
     .optional(),
-  transactionDate: z
-    .string({ error: "La fecha es requerida" })
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha inválido, esperado YYYY-MM-DD"),
+  transactionDate: isoDate,
   description: z
     .string()
     .trim()
@@ -46,13 +45,27 @@ export const createTransactionSchema = z.object({
     .transform((val) => (val === "" ? null : val)),
 });
 
-export const listTransactionsQuerySchema = z.object({
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato 'from' inválido (esperado YYYY-MM-DD)").optional(),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato 'to' inválido (esperado YYYY-MM-DD)").optional(),
-  type: z.nativeEnum(MovementType).optional(),
-  categoryId: z.coerce.number().int().positive().max(2147483647).optional(),
-  clientId: z.coerce.number().int().positive().max(2147483647).optional(),
-});
+export const listTransactionsQuerySchema = z
+  .object({
+    from: isoDate.optional(),
+    to: isoDate.optional(),
+    type: z.nativeEnum(MovementType).optional(),
+    categoryId: z.coerce.number().int().positive().max(2147483647).optional(),
+    clientId: z.coerce.number().int().positive().max(2147483647).optional(),
+    limit: z.coerce.number().int().positive().max(100).default(50).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.from && data.to) {
+        return data.from <= data.to;
+      }
+      return true;
+    },
+    {
+      message: "'from' no puede ser posterior a 'to'",
+      path: ["from"],
+    },
+  );
 
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
 export type ListTransactionsQuery = z.infer<typeof listTransactionsQuerySchema>;
