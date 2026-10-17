@@ -165,36 +165,8 @@ describe("Transactions Module", () => {
     });
   });
 
-  describe("listTransactionsQuerySchema (Filtros e historial - Issue #32)", () => {
-    it("parses valid date range filters (from, to)", () => {
-      const query = {
-        from: "2026-10-01",
-        to: "2026-10-31",
-      };
-
-      const result = listTransactionsQuerySchema.safeParse(query);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.from).toBe("2026-10-01");
-        expect(result.data.to).toBe("2026-10-31");
-      }
-    });
-
-    it("parses combined filters (type + categoryId)", () => {
-      const query = {
-        type: "EXPENSE",
-        categoryId: "4",
-      };
-
-      const result = listTransactionsQuerySchema.safeParse(query);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.type).toBe("EXPENSE");
-        expect(result.data.categoryId).toBe(4);
-      }
-    });
-
-    it("parses combined filters with dates, type, category, client, and default limit 50", () => {
+  describe("listTransactionsQuerySchema", () => {
+    it("parses valid filters with default limit", () => {
       const query = {
         from: "2026-10-01",
         to: "2026-10-31",
@@ -280,7 +252,7 @@ describe("Transactions Module", () => {
     });
   });
 
-  describe("Transactions Service (Filtros e historial - Issue #32)", () => {
+  describe("Transactions Service", () => {
     const mockOrg = {
       id: 1,
       baseCurrency: "ARS",
@@ -462,6 +434,19 @@ describe("Transactions Module", () => {
       expect(prisma.transaction.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 50,
+        }),
+      );
+    });
+
+    it("applies custom limit (take) when listing transactions", async () => {
+      vi.mocked(prisma.organization.findUnique).mockResolvedValue(mockOrg as any);
+      vi.mocked(prisma.transaction.findMany).mockResolvedValue([]);
+
+      await listTransactions(1, { limit: 20 });
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 20,
         }),
       );
     });
