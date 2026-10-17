@@ -47,6 +47,10 @@ export const dashboardHandlers = [
       expense: centsToDecimal(expense),
       net: centsToDecimal(income - expense),
       transactionCount: transactions.length,
+      invoiced: '0.00',
+      collected: '0.00',
+      difference: '0.00',
+      managementResult: centsToDecimal(income - expense),
       byCategory: [...byCategory.entries()]
         .map(([categoryId, total]) => {
           const category = db.categories.find((candidate) => candidate.id === categoryId)

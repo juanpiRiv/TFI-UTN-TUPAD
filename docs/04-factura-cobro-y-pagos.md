@@ -75,15 +75,23 @@ Si el 04/10 se da cuenta de que el pago del 03/10 lo cargó dos veces, no puede,
 
 En la propuesta hablamos de "resultado de gestión o de caja". Son dos números distintos y el dashboard muestra los dos:
 
-- **Resultado de caja** del período = ingresos cobrados menos egresos. Suma todos los movimientos no anulados del período: los que vienen de pagos y los cargados a mano. Responde a la pregunta "¿cuánta plata me quedó?".
-- **Resultado de gestión** del período = lo facturado (facturas autorizadas, por fecha de emisión) más los ingresos cargados a mano que no vienen de un pago, menos los egresos. Responde a "¿cuánto vendí y cuánto gasté?", aunque todavía no haya cobrado todo.
+- **Resultado de caja** del período = ingresos cobrados menos egresos. Suma todos los movimientos no anulados del período: los que vienen de cobros de facturas y los cargados a mano. Responde a la pregunta "¿cuánta plata me quedó en caja?".
+- **Resultado de gestión** del período = lo facturado (facturas autorizadas, por fecha de emisión) más los ingresos cargados a mano que no vienen de un pago, menos los egresos. Responde a "¿cuánto vendí y cuánto gasté económicamente?", aunque todavía no se haya cobrado todo.
 
 En el ejemplo de Lucía, si en septiembre gastó $15.000 en software:
 
 - Resultado de caja de septiembre: $40.000 menos $15.000 = $25.000.
 - Resultado de gestión de septiembre: $100.000 menos $15.000 = $85.000.
 
-La diferencia entre los dos ($60.000) es justamente lo que le deben, y el dashboard lo muestra como "pendiente de cobro" (RF-33).
+### Facturación vs. Cobranza del período (RF-33)
+
+El panel muestra de forma separada:
+1. **Total Facturado**: comprobantes autorizados emitidos dentro del período seleccionado.
+2. **Total Cobrado**: cobranzas de facturas ingresadas a la caja en el período. Para garantizar una única fuente de verdad y evitar discrepancias (por ejemplo, si un pago adoptó un movimiento preexistente con fecha propia), se calcula directamente sumando los movimientos de ingreso con `payment_id IS NOT NULL`.
+3. **Facturado menos cobrado en el período**: diferencia neta entre ambos valores (`invoiced - collected`).
+
+> [!NOTE]
+> Esta diferencia mide el desfasaje entre emisión y cobranza dentro de la ventana de tiempo consultada. Por ejemplo, en octubre Lucía factura $0 y cobra $60.000 de la factura de septiembre: la diferencia de octubre es -$60.000, reflejando fielmente que en ese mes las cobranzas superaron la facturación. No debe confundirse con la deuda histórica total de clientes ("saldo por cobrar"), la cual es la sumatoria del saldo pendiente (`pendingBalance`) de todas las facturas autorizadas abiertas y se administra en el módulo de facturación.
 
 ## Concepto de la factura
 
