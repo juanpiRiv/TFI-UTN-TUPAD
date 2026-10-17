@@ -361,3 +361,110 @@ export async function getUsdExchangeRate(requestedDateStr: string): Promise<Exch
     "La cotización del BCRA no se encuentra disponible temporalmente. Por favor ingrese el valor manualmente.",
   );
 }
+
+export interface ResolvedExchangeRate {
+  value: Prisma.Decimal;
+  source: "BCRA" | "MANUAL";
+  observedAt?: string;
+  rateType?: string;
+}
+
+/**
+ * Cuenta la cantidad de días hábiles transcurridos entre dos fechas YYYY-MM-DD (excluye fines de semana).
+ */
+export function countBusinessDays(fromStr: string, toStr: string): number {
+  if (fromStr >= toStr) return 0;
+  const cur = new Date(`${fromStr}T00:00:00.000Z`);
+  const end = new Date(`${toStr}T00:00:00.000Z`);
+  let count = 0;
+  while (cur < end) {
+    cur.setUTCDate(cur.getUTCDate() + 1);
+    const day = cur.getUTCDay();
+    if (day !== 0 && day !== 6) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * Valida que el tipo de cambio manual se encuentre dentro de un rango razonable (P2).
+ */
+function validateExchangeRateBounds(currency: string, baseCurrency: string, rate: Prisma.Decimal): void {
+  if (currency === "USD" && baseCurrency === "ARS") {
+    if (rate.lt(1) || rate.gt(100000)) {
+      throw new AppError(400, "El tipo de cambio para USD/ARS debe estar en un rango razonable (entre 1 y 100000)");
+    }
+    return;
+  }
+
+  if (rate.lt("0.0001") || rate.gt("10000000")) {
+    throw new AppError(400, "Tipo de cambio fuera de los límites permitidos");
+  }
+}
+
+export const exchangeRatesService = {
+  getUsdExchangeRate,
+  resolveExchangeRate,
+};
+
+/**
+ * Resuelve el tipo de cambio para un movimiento o pago (función compartida - Issue #37):
+ * - Si currency === baseCurrency -> retorna null.
+ * - Si se envía manualRate -> valida cotas y retorna MANUAL.
+ * - Si es USD con base ARS y sin manualRate -> consulta BCRA, verifica que no tenga más de 5 días hábiles
+ *   de antigüedad respecto a la fecha del movimiento y propaga 503 si el servicio no está disponible.
+ * - En cualquier otro caso sin tipo de cambio -> lanza 400.
+ */
+export async function resolveExchangeRate(
+  currency: string,
+  baseCurrency: string,
+  transactionDate: string,
+  manualRate?: string | null,
+): Promise<ResolvedExchangeRate | null> {
+  if (currency === baseCurrency) {
+    return null;
+  }
+
+  if (manualRate) {
+    const dec = new Prisma.Decimal(manualRate);
+    validateExchangeRateBounds(currency, baseCurrency, dec);
+    return {
+      value: dec,
+      source: "MANUAL",
+    };
+  }
+
+  if (currency === "USD" && baseCurrency === "ARS") {
+    try {
+      const rateDto = await exchangeRatesService.getUsdExchangeRate(transactionDate);
+
+      // P1: Comparar observedAt con transactionDate: si pasan más de 5 días hábiles, pedir cambio manual
+      const businessDaysDiff = countBusinessDays(rateDto.observedAt, transactionDate);
+      if (businessDaysDiff > 5) {
+        throw new AppError(
+          400,
+          `La cotización oficial disponible (${rateDto.observedAt}) tiene más de 5 días hábiles de antigüedad respecto a la fecha del movimiento (${transactionDate}). Por favor ingrese el tipo de cambio manualmente.`,
+        );
+      }
+
+      return {
+        value: new Prisma.Decimal(rateDto.value),
+        source: "BCRA",
+        observedAt: rateDto.observedAt,
+        rateType: rateDto.rateType,
+      };
+    } catch (error) {
+      console.warn("No se pudo obtener la cotización automática del BCRA:", (error as Error).message);
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(
+        503,
+        "La cotización del BCRA no se encuentra disponible temporalmente. Por favor ingrese el tipo de cambio manualmente.",
+      );
+    }
+  }
+
+  throw new AppError(400, "Exchange rate is required for this currency");
+}

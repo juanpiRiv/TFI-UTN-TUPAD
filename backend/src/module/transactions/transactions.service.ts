@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
 import { Prisma } from "../../generated/prisma/client.js";
+import { resolveExchangeRate } from "../exchange-rates/exchange-rates.service.js";
 import type {
   CreateTransactionInput,
   ListTransactionsQuery,
@@ -93,14 +94,7 @@ export async function createTransaction(
 ) {
   const org = await getOrganizationByUserId(userId);
 
-  // RN-05: Si la moneda difiere de la moneda base, exchangeRate es obligatorio y mayor a cero.
-  // Si coincide con la moneda base, se guarda null.
-  const needsExchangeRate = data.currency !== org.baseCurrency;
-  if (needsExchangeRate && !data.exchangeRate) {
-    throw new AppError(400, "Exchange rate is required for this currency");
-  }
-
-  // Validar categoría: activa y del mismo tipo que el movimiento
+  // 1. Validar categoría: activa y del mismo tipo que el movimiento (P2: antes de llamadas externas)
   const category = await prisma.category.findFirst({
     where: {
       id: data.categoryId,
@@ -116,7 +110,7 @@ export async function createTransaction(
     throw new AppError(400, "Category type must match transaction type");
   }
 
-  // Validar cliente: si se envía, debe pertenecer a la organización y estar activo
+  // 2. Validar cliente: si se envía, debe pertenecer a la organización y estar activo
   if (data.clientId) {
     const client = await prisma.client.findFirst({
       where: {
@@ -131,8 +125,16 @@ export async function createTransaction(
     }
   }
 
+  // 3. Resolver tipo de cambio (RN-05): delegar a resolveExchangeRate para validar límites, antigüedad y fallback
+  const resolvedRate = await resolveExchangeRate(
+    data.currency,
+    org.baseCurrency,
+    data.transactionDate,
+    data.exchangeRate,
+  );
+
   const created = await prisma.$transaction(async (tx) => {
-    const newTx = await tx.transaction.create({
+    const transaction = await tx.transaction.create({
       data: {
         organizationId: org.id,
         categoryId: data.categoryId,
@@ -140,10 +142,7 @@ export async function createTransaction(
         type: data.type,
         amount: new Prisma.Decimal(data.amount),
         currency: data.currency,
-        exchangeRate:
-          needsExchangeRate && data.exchangeRate
-            ? new Prisma.Decimal(data.exchangeRate)
-            : null,
+        exchangeRate: resolvedRate?.value ?? null,
         transactionDate: new Date(`${data.transactionDate}T00:00:00.000Z`),
         description: data.description ?? null,
       },
@@ -153,19 +152,22 @@ export async function createTransaction(
       },
     });
 
+    // RNF-08: Trazabilidad en AuditLog registrando si el tipo de cambio fue manual o del BCRA (P1)
     await tx.auditLog.create({
       data: {
         organizationId: org.id,
         userId,
         action: "transaction.created",
         entity: "Transaction",
-        entityId: newTx.id,
+        entityId: transaction.id,
         metadata: {
-          type: data.type,
-          amount: data.amount,
-          currency: data.currency,
-          exchangeRate:
-            needsExchangeRate && data.exchangeRate ? data.exchangeRate : null,
+          type: transaction.type,
+          amount: transaction.amount.toString(),
+          currency: transaction.currency,
+          exchangeRate: transaction.exchangeRate?.toString(),
+          exchangeRateSource: resolvedRate?.source ?? null,
+          observedAt: resolvedRate?.observedAt ?? null,
+          rateType: resolvedRate?.rateType ?? null,
           categoryId: data.categoryId,
           clientId: data.clientId ?? null,
           transactionDate: data.transactionDate,
@@ -173,7 +175,7 @@ export async function createTransaction(
       },
     });
 
-    return newTx;
+    return transaction;
   });
 
   return formatTransaction(created);
