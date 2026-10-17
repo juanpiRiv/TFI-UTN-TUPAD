@@ -10,6 +10,7 @@ import { invoicesRouter } from './module/invoices/invoices.routes.js';
 import { paymentsRouter } from './module/payments/payments.routes.js';
 import { errorHandler } from './middlewares/error-handler.js';
 import { env } from './config/env.js';
+import { userRouter } from './module/users/user.routes.js';
 
 
 export const app = express();
@@ -23,6 +24,7 @@ app.get("/test", (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/users", userRouter);
 app.use("/api/clients", clientsRouter);
 app.use("/api/transactions", transactionsRouter);
 app.use("/api/dashboard", dashboardRouter);
