@@ -105,6 +105,13 @@ la prioridad solo en el cuerpo del issue.
 - PR hacia `main` (release desde `develop`, o un `fix/*` directo a `main`):
   usar `Closes #<n>` (o `Fixes`/`Resolves`), ese merge sí cierra el issue.
 
+**Ojo:** `Closes` dentro de un PR a `develop` no cierra nada, aunque esté
+escrito. GitHub solo cierra el issue cuando el PR entra a la rama default
+(`main`). Por eso, al mergear un PR a `develop`, el issue hay que cerrarlo
+a mano (como "completed") y pasarlo a `Done` en el tablero; si no, queda
+abierto y en `In progress` hasta el próximo release. Quien mergea el PR es
+quien cierra el issue.
+
 ## Requisitos para correr los scripts
 
 - [GitHub CLI](https://cli.github.com/) (`gh`) y `jq` instalados.
