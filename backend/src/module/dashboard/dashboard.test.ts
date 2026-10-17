@@ -74,6 +74,20 @@ describe("dashboardSummaryQuerySchema", () => {
       expect(message).toBe("'from' no puede ser posterior a 'to'");
     }
   });
+
+  it("rechaza fechas inexistentes en el calendario (ej: 2026-02-31)", () => {
+    const resultFrom = dashboardSummaryQuerySchema.safeParse({
+      from: "2026-02-31",
+      to: "2026-03-01",
+    });
+    expect(resultFrom.success).toBe(false);
+
+    const resultTo = dashboardSummaryQuerySchema.safeParse({
+      from: "2026-02-01",
+      to: "2026-02-31",
+    });
+    expect(resultTo.success).toBe(false);
+  });
 });
 
 describe("getDashboardSummary service", () => {
@@ -267,5 +281,48 @@ describe("getDashboardSummary service", () => {
       type: "INCOME",
       total: "100000.00",
     });
+  });
+
+  it("filtra por organización, excluye transacciones anuladas y aplica el rango de fechas", async () => {
+    vi.mocked(prisma.transaction.findMany).mockResolvedValue([]);
+
+    await getDashboardSummary(1, {
+      from: "2026-09-01",
+      to: "2026-09-30",
+    });
+
+    expect(prisma.transaction.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          organizationId: 1,
+          voidedAt: null,
+          transactionDate: {
+            gte: new Date("2026-09-01T00:00:00.000Z"),
+            lte: new Date("2026-09-30T00:00:00.000Z"),
+          },
+        },
+      }),
+    );
+  });
+
+  it("lanza un error si un movimiento en moneda extranjera no tiene exchangeRate (RN-05)", async () => {
+    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
+      {
+        id: 99,
+        type: "INCOME",
+        amount: new Prisma.Decimal("100.00"),
+        currency: "USD",
+        exchangeRate: null,
+        categoryId: 10,
+        category: { id: 10, name: "Ventas", type: "INCOME" },
+      },
+    ] as any);
+
+    await expect(
+      getDashboardSummary(1, {
+        from: "2026-09-01",
+        to: "2026-09-30",
+      }),
+    ).rejects.toThrow("Transaction 99 in USD is missing exchangeRate");
   });
 });
