@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { authRouter } from './module/auth/auth.routes.js';
 import { clientsRouter } from './module/clients/clients.routes.js';
 import { transactionsRouter } from './module/transactions/transactions.routes.js';
+import { dashboardRouter } from './module/dashboard/dashboard.routes.js';
 import { errorHandler } from './middlewares/error-handler.js';
 import { env } from './config/env.js';
 
@@ -21,6 +22,7 @@ app.get("/test", (_req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/clients", clientsRouter);
 app.use("/api/transactions", transactionsRouter);
+app.use("/api/dashboard", dashboardRouter);
 
 
 app.use((_req, res) => {
