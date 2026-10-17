@@ -73,7 +73,6 @@ export async function getDashboardSummary(
     number,
     { categoryId: number; name: string; type: string; total: Prisma.Decimal }
   >();
-
   for (const tx of transactions) {
     let converted: Prisma.Decimal;
     if (tx.currency === org.baseCurrency) {
