@@ -33,7 +33,12 @@ export function ClientsPage() {
       header: 'Nombre',
       cell: (client) => (
         <div className="min-w-0">
-          <p className="font-medium text-slate-900">{client.name}</p>
+          <Link
+            to={`/clientes/${client.id}`}
+            className="font-medium text-slate-900 hover:text-brand-700 hover:underline"
+          >
+            {client.name}
+          </Link>
           {client.email && <p className="truncate text-xs text-slate-500">{client.email}</p>}
         </div>
       ),
@@ -67,7 +72,7 @@ export function ClientsPage() {
       className: 'text-right',
       cell: (client) => (
         <div className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-sm">
-          <Link to={`/movimientos?clientId=${client.id}`} className="text-brand-700 underline">
+          <Link to={`/clientes/${client.id}`} className="text-brand-700 underline">
             Historial
           </Link>
           <button

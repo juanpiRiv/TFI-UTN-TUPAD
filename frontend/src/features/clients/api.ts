@@ -12,6 +12,10 @@ export function createClient(input: ClientInput): Promise<Client> {
   return apiFetch<Client>('/api/clients', { method: 'POST', body: input })
 }
 
+export function getClient(id: number, signal?: AbortSignal): Promise<Client> {
+  return apiFetch<Client>(`/api/clients/${id}`, { signal })
+}
+
 export function updateClient(
   id: number,
   input: Partial<ClientInput> & { isActive?: boolean },

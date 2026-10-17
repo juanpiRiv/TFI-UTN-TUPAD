@@ -69,7 +69,7 @@ describe('dashboard', () => {
         return HttpResponse.json(summary)
       }),
     )
-    const { user } = renderApp('/?from=2026-09-01&to=2026-09-30')
+    renderApp('/?from=2026-09-01&to=2026-09-30')
 
     expect(plain((await screen.findByTestId('total-income')).textContent)).toBe('$ 100.000,00')
 
