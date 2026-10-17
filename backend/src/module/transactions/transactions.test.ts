@@ -180,6 +180,7 @@ describe("Transactions Module", () => {
       if (result.success) {
         expect(result.data.from).toBe("2026-10-01");
         expect(result.data.to).toBe("2026-10-31");
+        expect(result.data.type).toBe("INCOME");
         expect(result.data.categoryId).toBe(1);
         expect(result.data.clientId).toBe(2);
         expect(result.data.limit).toBe(50);
@@ -220,6 +221,34 @@ describe("Transactions Module", () => {
 
       const zero = listTransactionsQuerySchema.safeParse({ limit: "0" });
       expect(zero.success).toBe(false);
+    });
+
+    it("rejects invalid date format in from", () => {
+      const result = listTransactionsQuerySchema.safeParse({ from: "invalid-date" });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects invalid date format in to", () => {
+      const result = listTransactionsQuerySchema.safeParse({ to: "13/10/2026" });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects invalid movement type", () => {
+      const result = listTransactionsQuerySchema.safeParse({ type: "INVALID_TYPE" });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects non-positive categoryId", () => {
+      const result = listTransactionsQuerySchema.safeParse({ categoryId: "0" });
+      expect(result.success).toBe(false);
+
+      const negativeResult = listTransactionsQuerySchema.safeParse({ categoryId: "-5" });
+      expect(negativeResult.success).toBe(false);
+    });
+
+    it("rejects categoryId exceeding int32 bounds", () => {
+      const result = listTransactionsQuerySchema.safeParse({ categoryId: 3000000000 });
+      expect(result.success).toBe(false);
     });
   });
 
@@ -317,7 +346,99 @@ describe("Transactions Module", () => {
       });
     });
 
-    it("applies limit (take) when listing transactions", async () => {
+    it("builds combined where clause with type, category, client, and date range", async () => {
+      vi.mocked(prisma.organization.findUnique).mockResolvedValue(mockOrg as any);
+      vi.mocked(prisma.transaction.findMany).mockResolvedValue([]);
+
+      const query = {
+        from: "2026-10-01",
+        to: "2026-10-31",
+        type: "EXPENSE" as const,
+        categoryId: 4,
+        clientId: 2,
+        limit: 25,
+      };
+
+      await listTransactions(1, query);
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 1,
+          voidedAt: null,
+          type: "EXPENSE",
+          categoryId: 4,
+          clientId: 2,
+          transactionDate: {
+            gte: new Date("2026-10-01T00:00:00.000Z"),
+            lte: new Date("2026-10-31T00:00:00.000Z"),
+          },
+        },
+        take: 25,
+        orderBy: [{ transactionDate: "desc" }, { id: "desc" }],
+        include: {
+          category: { select: { id: true, name: true, type: true } },
+          client: { select: { id: true, name: true } },
+        },
+      });
+    });
+
+    it("includes transactions on the exact boundary date of the range (to inclusivo)", async () => {
+      vi.mocked(prisma.organization.findUnique).mockResolvedValue(mockOrg as any);
+
+      const boundaryTx = {
+        id: 50,
+        organizationId: 1,
+        paymentId: null,
+        categoryId: 4,
+        clientId: null,
+        type: "EXPENSE",
+        amount: new Prisma.Decimal("250.00"),
+        currency: "ARS",
+        exchangeRate: null,
+        transactionDate: new Date("2026-10-31T00:00:00.000Z"),
+        description: "Gasto de fin de mes",
+        voidedAt: null,
+        createdAt: new Date("2026-10-31T10:00:00.000Z"),
+        updatedAt: new Date("2026-10-31T10:00:00.000Z"),
+        category: { id: 4, name: "Servicios", type: "EXPENSE" },
+        client: null,
+      };
+
+      vi.mocked(prisma.transaction.findMany).mockResolvedValue([boundaryTx] as any);
+
+      const results = await listTransactions(1, {
+        from: "2026-10-01",
+        to: "2026-10-31",
+      });
+
+      expect(results).toHaveLength(1);
+      expect(results[0]?.transactionDate).toBe("2026-10-31");
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            transactionDate: {
+              gte: new Date("2026-10-01T00:00:00.000Z"),
+              lte: new Date("2026-10-31T00:00:00.000Z"),
+            },
+          }),
+        }),
+      );
+    });
+
+    it("applies limit (take) when listing transactions defaulting to 50", async () => {
+      vi.mocked(prisma.organization.findUnique).mockResolvedValue(mockOrg as any);
+      vi.mocked(prisma.transaction.findMany).mockResolvedValue([]);
+
+      await listTransactions(1, {});
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 50,
+        }),
+      );
+    });
+
+    it("applies custom limit (take) when listing transactions", async () => {
       vi.mocked(prisma.organization.findUnique).mockResolvedValue(mockOrg as any);
       vi.mocked(prisma.transaction.findMany).mockResolvedValue([]);
 
