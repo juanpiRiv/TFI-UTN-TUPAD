@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import * as userService from "./user.service.js";
+import * as userService from "./users.service.js";
 
 export async function updateMe(req: Request, res: Response) {
     const user = await userService.updateProfile(req.userId!, req.body);

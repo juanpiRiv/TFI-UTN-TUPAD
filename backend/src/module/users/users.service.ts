@@ -2,7 +2,7 @@ import argon2 from "argon2";
 import type { Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
-import type { ChangePasswordInput, UpdateProfileInput } from "./user.schemas.js";
+import type { ChangePasswordInput, UpdateProfileInput } from "./users.schemas.js";
 
 
 const publicUserFields = {
