@@ -23,6 +23,7 @@ vi.mock("../../lib/prisma.js", () => ({
     transaction: {
       create: vi.fn(),
       findMany: vi.fn(),
+      update: vi.fn(),
     },
     auditLog: {
       create: vi.fn(),
@@ -497,24 +498,25 @@ describe("Transactions Module", () => {
         name: "Honorarios",
         type: "INCOME",
         isActive: true,
-      } as any);
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
       (prisma.transaction.create as any).mockImplementation(async ({ data }: any) => ({
         id: 10,
         organizationId: data.organizationId,
+        paymentId: null,
         categoryId: data.categoryId,
-        clientId: data.clientId,
+        clientId: data.clientId ?? null,
         type: data.type,
         amount: data.amount,
         currency: data.currency,
-        exchangeRate: data.exchangeRate,
+        exchangeRate: data.exchangeRate ?? null,
         transactionDate: data.transactionDate,
-        description: data.description,
+        description: data.description ?? null,
+        voidedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        isVoided: false,
-        voidedAt: null,
-        voidReason: null,
         category: { id: 1, name: "Honorarios", type: "INCOME" },
         client: null,
       }));
@@ -602,6 +604,85 @@ describe("Transactions Module", () => {
           }),
         }),
       );
+    });
+
+    it("RN-06: crear o listar movimientos nunca modifica ni re-resuelve cotizaciones de movimientos existentes", async () => {
+      // 1. Movimiento histórico con cotización fija 1450.00 ARS (sin campos inventados como isVoided o voidReason)
+      const oldTransaction = {
+        id: 1,
+        organizationId: 1,
+        paymentId: null,
+        categoryId: 1,
+        clientId: null,
+        type: "INCOME" as const,
+        amount: new Prisma.Decimal("100.00"),
+        currency: "USD" as const,
+        exchangeRate: new Prisma.Decimal("1450.000000"), // copia histórica inmutable
+        transactionDate: new Date("2026-10-12T00:00:00.000Z"),
+        description: "Cobro cliente ayer",
+        voidedAt: null,
+        createdAt: new Date("2026-10-12T10:00:00.000Z"),
+        updatedAt: new Date("2026-10-12T10:00:00.000Z"),
+        category: { id: 1, name: "Honorarios", type: "INCOME" },
+        client: null,
+      };
+
+      // 2. Mock de cotización del BCRA que hoy sube a 1512.50
+      vi.mocked(exchangeRatesService.getUsdExchangeRate).mockResolvedValueOnce({
+        date: "2026-10-13",
+        observedAt: "2026-10-13",
+        value: "1512.500000",
+        source: "BCRA",
+        rateType: "ESTADISTICAS_CAMBIARIAS",
+      });
+
+      const todayInput = {
+        type: "INCOME" as const,
+        amount: "100.00",
+        currency: "USD" as const,
+        categoryId: 1,
+        transactionDate: "2026-10-13",
+        description: null,
+      };
+
+      const todayTransaction = await createTransaction(1, todayInput);
+      expect(todayTransaction.exchangeRate).toBe("1512.5");
+
+      // Verificación clave (a) de RN-06: NUNCA se invoca prisma.transaction.update
+      expect(prisma.transaction.update).not.toHaveBeenCalled();
+
+      // 3. Mock para listTransactions devolviendo transacciones
+      (prisma.transaction.findMany as any).mockResolvedValueOnce([
+        {
+          id: 10,
+          organizationId: 1,
+          paymentId: null,
+          categoryId: 1,
+          clientId: null,
+          type: "INCOME" as const,
+          amount: new Prisma.Decimal("100.00"),
+          currency: "USD" as const,
+          exchangeRate: new Prisma.Decimal("1512.500000"),
+          transactionDate: new Date("2026-10-13T00:00:00.000Z"),
+          description: null,
+          voidedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          category: { id: 1, name: "Honorarios", type: "INCOME" },
+          client: null,
+        },
+        oldTransaction,
+      ]);
+
+      const listResult = await listTransactions(1, {});
+
+      // Verificación clave (b) de RN-06: listar NUNCA re-resuelve cotizaciones (getUsdExchangeRate no se vuelve a llamar)
+      expect(exchangeRatesService.getUsdExchangeRate).toHaveBeenCalledTimes(1); // Sólo para createTransaction inicial
+      expect(prisma.transaction.update).not.toHaveBeenCalled();
+
+      expect(listResult).toHaveLength(2);
+      expect(listResult[0]?.exchangeRate).toBe("1512.5");
+      expect(listResult[1]?.exchangeRate).toBe("1450");
     });
 
     it("rechaza con 400 si la cotización oficial disponible tiene más de 5 días hábiles de antigüedad (P1)", async () => {
