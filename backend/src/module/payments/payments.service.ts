@@ -303,6 +303,16 @@ export async function getInvoicePayments(userId: number, invoiceId: number) {
       status: true,
       voucherType: true,
       voucherNumber: true,
+      issueDate: true,
+      recipientName: true,
+      concept: true,
+      cae: true,
+      client: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       payments: {
         where: { voidedAt: null },
         orderBy: { paymentDate: "asc" },
@@ -354,12 +364,22 @@ export async function getInvoicePayments(userId: number, invoiceId: number) {
     ? "PAID"
     : "PARTIALLY_PAID";
 
+  const issueDateStr =
+    invoice.issueDate instanceof Date
+      ? invoice.issueDate.toISOString().slice(0, 10)
+      : String(invoice.issueDate).slice(0, 10);
+
   return {
     invoiceId: invoice.id,
     voucherType: invoice.voucherType,
     voucherNumber: invoice.voucherNumber,
     status: invoice.status,
     currency: invoice.currency,
+    issueDate: issueDateStr,
+    concept: invoice.concept,
+    cae: invoice.cae,
+    recipientName: invoice.recipientName ?? invoice.client?.name ?? "Consumidor Final",
+    client: invoice.client,
     totalAmount: totalAmount.toFixed(2),
     totalPaid: totalPaid.toFixed(2),
     pendingBalance: pendingBalance.toFixed(2),
@@ -367,3 +387,4 @@ export async function getInvoicePayments(userId: number, invoiceId: number) {
     payments: formattedPayments,
   };
 }
+

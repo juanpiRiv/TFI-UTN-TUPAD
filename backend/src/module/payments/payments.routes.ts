@@ -7,5 +7,6 @@ export const paymentsRouter = Router({ mergeParams: true });
 // Todas las operaciones de pagos requieren usuario autenticado
 paymentsRouter.use(requireAuth);
 
-paymentsRouter.post("/", paymentsController.createPayment);
-paymentsRouter.get("/", paymentsController.listPayments);
+paymentsRouter.get("/:invoiceId/payments", paymentsController.listPayments);
+paymentsRouter.post("/:invoiceId/payments", paymentsController.createPayment);
+

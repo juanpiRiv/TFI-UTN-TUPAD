@@ -69,3 +69,4 @@ export async function listPayments(req: Request, res: Response) {
 
   res.json(summary);
 }
+

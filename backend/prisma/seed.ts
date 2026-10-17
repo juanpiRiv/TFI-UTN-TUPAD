@@ -157,6 +157,110 @@ async function main() {
   }
   console.log(`👥 ${clients.length} clientes de prueba listos`);
 
+  // 7. Facturas de prueba (para testing e2e de listado y registro de cobros)
+  const pos = await prisma.pointOfSale.findFirst({
+    where: { organizationId: organization.id, number: 1 },
+  });
+  const clientAcme = await prisma.client.findFirst({
+    where: { organizationId: organization.id, docNumber: "30712345671" },
+  });
+  const clientGarcia = await prisma.client.findFirst({
+    where: { organizationId: organization.id, docNumber: "27289876540" },
+  });
+
+  if (pos && clientAcme && clientGarcia) {
+    // Factura 1: Autorizada y con saldo pendiente de $ 150.000,00 ARS (para probar cobro total y parcial)
+    const existingAuthorized = await prisma.invoice.findFirst({
+      where: {
+        pointOfSaleId: pos.id,
+        voucherType: "FACTURA_C",
+        voucherNumber: 1,
+      },
+    });
+
+    if (!existingAuthorized) {
+      const today = new Date();
+      await prisma.invoice.create({
+        data: {
+          organizationId: organization.id,
+          pointOfSaleId: pos.id,
+          clientId: clientAcme.id,
+          voucherType: "FACTURA_C",
+          voucherNumber: 1,
+          concept: "SERVICIOS",
+          issueDate: today,
+          recipientDocType: clientAcme.docType,
+          recipientDocNumber: clientAcme.docNumber,
+          recipientName: clientAcme.name,
+          recipientAddress: clientAcme.address,
+          recipientTaxCondition: clientAcme.taxCondition,
+          currency: "ARS",
+          fiscalExchangeRate: 1,
+          totalAmount: 150000.0,
+          status: "AUTHORIZED",
+          cae: "74321098765432",
+          caeExpiration: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+          authorizedAt: today,
+          items: {
+            create: [
+              {
+                description: "Servicios de Consultoría y Desarrollo de Software",
+                quantity: 1,
+                unitPrice: 150000.0,
+                subtotal: 150000.0,
+              },
+            ],
+          },
+        },
+      });
+      console.log("🧾 Factura autorizada N° 0001-00000001 creada ($ 150.000,00 ARS)");
+    }
+
+    // Factura 2: En borrador (DRAFT) para verificar que no admite cobros
+    const existingDraft = await prisma.invoice.findFirst({
+      where: {
+        pointOfSaleId: pos.id,
+        voucherType: "FACTURA_C",
+        voucherNumber: 2,
+      },
+    });
+
+    if (!existingDraft) {
+      const today = new Date();
+      await prisma.invoice.create({
+        data: {
+          organizationId: organization.id,
+          pointOfSaleId: pos.id,
+          clientId: clientGarcia.id,
+          voucherType: "FACTURA_C",
+          voucherNumber: 2,
+          concept: "SERVICIOS",
+          issueDate: today,
+          recipientDocType: clientGarcia.docType,
+          recipientDocNumber: clientGarcia.docNumber,
+          recipientName: clientGarcia.name,
+          recipientAddress: clientGarcia.address,
+          recipientTaxCondition: clientGarcia.taxCondition,
+          currency: "ARS",
+          fiscalExchangeRate: 1,
+          totalAmount: 45000.0,
+          status: "DRAFT",
+          items: {
+            create: [
+              {
+                description: "Mantenimiento mensual de sistemas",
+                quantity: 1,
+                unitPrice: 45000.0,
+                subtotal: 45000.0,
+              },
+            ],
+          },
+        },
+      });
+      console.log("📝 Factura borrador N° 0001-00000002 creada ($ 45.000,00 ARS)");
+    }
+  }
+
   console.log("\n✨ Base de datos poblada con éxito!");
 }
 
