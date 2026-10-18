@@ -4,7 +4,6 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
 import type { ChangePasswordInput, UpdateProfileInput } from "./users.schemas.js";
 
-
 const publicUserFields = {
     id: true,
     name: true,
@@ -12,7 +11,6 @@ const publicUserFields = {
     createdAt: true,
     updatedAt: true,
 } as const;
-
 
 async function findUserOrThrow(userId: number) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -22,15 +20,15 @@ async function findUserOrThrow(userId: number) {
     return user;
 }
 
-export async function assertCurrentPassword(passwordHash: string, currentPassword: string | undefined) {
+// 400 y no 401: un 401 con token hace que el frontend cierre la sesión
+async function assertCurrentPassword(passwordHash: string, currentPassword: string | undefined) {
     const isValid = currentPassword ? await argon2.verify(passwordHash, currentPassword) : false;
     if (!isValid) {
         throw new AppError(400, "invalid Data", [
-            { field: "currerntPassword", message: "Current password is incorrect" },
+            { field: "currentPassword", message: "Current password is incorrect" },
         ]);
     }
 }
-
 
 export async function updateProfile(userId: number, input: UpdateProfileInput) {
     const user = await findUserOrThrow(userId);
@@ -41,25 +39,24 @@ export async function updateProfile(userId: number, input: UpdateProfileInput) {
     }
 
     if (input.email !== undefined && input.email !== user.email) {
-        await assertCurrentPassword(user.passwordHash, input.currentParrword);
+        await assertCurrentPassword(user.passwordHash, input.currentPassword);
 
         const taken = await prisma.user.findUnique({
             where: { email: input.email },
             select: { id: true },
         });
-
         if (taken) {
             throw new AppError(409, "Email already register");
         }
         data.email = input.email;
     }
+
     return prisma.user.update({
         where: { id: userId },
         data,
         select: publicUserFields,
-    })
+    });
 }
-
 
 export async function changePassword(userId: number, input: ChangePasswordInput) {
     const user = await findUserOrThrow(userId);
