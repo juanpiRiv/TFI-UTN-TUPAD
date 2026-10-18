@@ -13,11 +13,11 @@ export const authHandlers = [
     if (db.users.some((user) => user.email === email)) {
       return HttpResponse.json({ error: 'Email already register' }, { status: 409 })
     }
-    const user = { id: nextId(), email, password, createdAt: nowIso() }
+    const user = { id: nextId(), name: null, email, password, createdAt: nowIso() }
     db.users.push(user)
     saveDb()
     return HttpResponse.json(
-      { user: { id: user.id, email, createdAt: user.createdAt }, token: fakeToken(user.id) },
+      { user: { id: user.id, name: user.name, email, createdAt: user.createdAt }, token: fakeToken(user.id) },
       { status: 201 },
     )
   }),
@@ -29,7 +29,7 @@ export const authHandlers = [
       return HttpResponse.json({ error: 'Email or password wrong' }, { status: 401 })
     }
     return HttpResponse.json({
-      user: { id: user.id, email: user.email, createdAt: user.createdAt },
+      user: { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt },
       token: fakeToken(user.id),
     })
   }),
@@ -42,6 +42,7 @@ export const authHandlers = [
     const organization = db.organizations.find((org) => org.userId === userId) ?? null
     return HttpResponse.json({
       id: user.id,
+      name: user.name,
       email: user.email,
       createdAt: user.createdAt,
       organization,
