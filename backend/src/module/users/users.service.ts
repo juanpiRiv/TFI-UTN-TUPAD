@@ -1,5 +1,5 @@
 import argon2 from "argon2";
-import type { Prisma } from "../../generated/prisma/client.js";
+import { Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
 import type { ChangePasswordInput, UpdateProfileInput } from "./users.schemas.js";
@@ -50,12 +50,18 @@ export async function updateProfile(userId: number, input: UpdateProfileInput) {
         }
         data.email = input.email;
     }
-
-    return prisma.user.update({
-        where: { id: userId },
-        data,
-        select: publicUserFields,
-    });
+    try {
+        return prisma.user.update({
+            where: { id: userId },
+            data,
+            select: publicUserFields,
+        });
+    } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            throw new AppError(409, "Email already register");
+        }
+        throw error;
+    }
 }
 
 export async function changePassword(userId: number, input: ChangePasswordInput) {

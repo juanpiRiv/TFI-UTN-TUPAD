@@ -9,6 +9,7 @@ export const updateProfileSchema = z
         currentPassword: z.string().min(1).optional(),
     })
     .refine((data) => data.name !== undefined || data.email !== undefined, {
+        path: ["name"],
         message: "Nothing to update",
     });
 
