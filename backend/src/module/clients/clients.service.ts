@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
 import { isValidCuit } from "../../lib/cuit.js";
 import { Prisma } from "../../generated/prisma/client.js";
+import { getUserOrganization } from "../../lib/organizations.js";
 import type {
   CreateClientInput,
   UpdateClientInput,
@@ -12,10 +13,7 @@ import type {
  * Obtiene el ID de la organización asociada a un usuario autenticado.
  */
 export async function getOrganizationIdByUserId(userId: number): Promise<number> {
-  const org = await prisma.organization.findUnique({
-    where: { userId },
-    select: { id: true },
-  });
+  const org = await getUserOrganization(userId);
 
   if (!org) {
     throw new AppError(404, "Organization not found for this user");
