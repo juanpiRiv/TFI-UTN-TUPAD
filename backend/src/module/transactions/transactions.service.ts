@@ -6,15 +6,13 @@ import type {
   CreateTransactionInput,
   ListTransactionsQuery,
 } from "./transactions.schemas.js";
+import { getUserOrganization } from "../../lib/organizations.js";
 
 /**
  * Obtiene la organización de un usuario autenticado para control multi-tenant y moneda base.
  */
 export async function getOrganizationByUserId(userId: number) {
-  const org = await prisma.organization.findUnique({
-    where: { userId },
-    select: { id: true, baseCurrency: true },
-  });
+  const org = await getUserOrganization(userId);
 
   if (!org) {
     throw new AppError(404, "Organization not found for this user");
@@ -66,16 +64,16 @@ function formatTransaction(tx: {
     updatedAt: tx.updatedAt.toISOString(),
     category: tx.category
       ? {
-          id: tx.category.id,
-          name: tx.category.name,
-          type: tx.category.type,
-        }
+        id: tx.category.id,
+        name: tx.category.name,
+        type: tx.category.type,
+      }
       : undefined,
     client: tx.client
       ? {
-          id: tx.client.id,
-          name: tx.client.name,
-        }
+        id: tx.client.id,
+        name: tx.client.name,
+      }
       : null,
   };
 }
