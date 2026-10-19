@@ -8,13 +8,7 @@ import { getUserOrganization } from "../../lib/organizations.js";
  * Obtiene la organización de un usuario autenticado para determinar su moneda base.
  */
 export async function getOrganizationByUserId(userId: number) {
-  const org = await getUserOrganization(userId);
-
-  if (!org) {
-    throw new AppError(404, "Organization not found for this user");
-  }
-
-  return org;
+  return await getUserOrganization(userId);
 }
 
 /**

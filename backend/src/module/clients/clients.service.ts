@@ -14,11 +14,6 @@ import type {
  */
 export async function getOrganizationIdByUserId(userId: number): Promise<number> {
   const org = await getUserOrganization(userId);
-
-  if (!org) {
-    throw new AppError(404, "Organization not found for this user");
-  }
-
   return org.id;
 }
 

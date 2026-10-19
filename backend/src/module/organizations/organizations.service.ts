@@ -16,18 +16,28 @@ const DEFAULT_CATEGORIES = [
     { name: "Otros egresos", type: "EXPENSE" },
 ] as const;
 
-function isUniqueViolation(error: unknown): boolean {
-    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+function prismaErrorCode(error: unknown): string | null {
+    return error instanceof Prisma.PrismaClientKnownRequestError ? error.code : null;
 }
 
+const cuitTaken = () =>
+    new AppError(409, "CUIT already registered", [
+        { field: "cuit", message: "CUIT already registered" },
+    ]);
+
+/** Saca las claves undefined: Prisma no las acepta con exactOptionalPropertyTypes. */
 function definedOnly<T extends object>(input: T) {
     return Object.fromEntries(
         Object.entries(input).filter(([, value]) => value !== undefined),
     ) as { [K in keyof T]?: Exclude<T[K], undefined> };
 }
 
-async function ensureCuitAvailable(cuit: string, exceptOrganizationId?: number) {
-    const taken = await prisma.organization.findFirst({
+async function ensureCuitAvailable(
+    tx: Prisma.TransactionClient,
+    cuit: string,
+    exceptOrganizationId?: number,
+) {
+    const taken = await tx.organization.findFirst({
         where: {
             cuit,
             ...(exceptOrganizationId !== undefined && { NOT: { id: exceptOrganizationId } }),
@@ -35,25 +45,23 @@ async function ensureCuitAvailable(cuit: string, exceptOrganizationId?: number) 
         select: { id: true },
     });
     if (taken) {
-        throw new AppError(409, "CUIT already registered", [
-            { field: "cuit", message: "CUIT already registered" },
-        ]);
+        throw cuitTaken();
     }
 }
 
 export async function createOrganization(userId: number, input: CreateOrganizationInput) {
-    const existing = await prisma.organization.findUnique({
-        where: { userId },
-        select: { id: true },
-    });
-    if (existing) {
-        throw new AppError(409, "Organization already exists");
-    }
-    await ensureCuitAvailable(input.cuit);
-
     try {
-        // Organización y categorías por defecto juntas: si falla una, no queda ninguna
+        // Todo en una transacción: organización, categorías por defecto y auditoría
         return await prisma.$transaction(async (tx) => {
+            const existing = await tx.organization.findUnique({
+                where: { userId },
+                select: { id: true },
+            });
+            if (existing) {
+                throw new AppError(409, "Organization already exists");
+            }
+            await ensureCuitAvailable(tx, input.cuit);
+
             const organization = await tx.organization.create({
                 data: {
                     userId,
@@ -76,12 +84,33 @@ export async function createOrganization(userId: number, input: CreateOrganizati
                 })),
             });
 
+            // RNF-08
+            await tx.auditLog.create({
+                data: {
+                    organizationId: organization.id,
+                    userId,
+                    action: "organization.created",
+                    entity: "Organization",
+                    entityId: organization.id,
+                    metadata: { cuit: organization.cuit },
+                },
+            });
+
             return organization;
         });
     } catch (error) {
-        // Dos pedidos simultáneos pueden pasar los chequeos de arriba: el unique de la base decide
-        if (isUniqueViolation(error)) {
-            throw new AppError(409, "Organization already exists or CUIT already registered");
+        const code = prismaErrorCode(error);
+        if (code === "P2002") {
+            // Dos pedidos simultáneos pasaron los chequeos: el unique de la base decide cuál falló
+            const sameUser = await prisma.organization.findUnique({
+                where: { userId },
+                select: { id: true },
+            });
+            throw sameUser ? new AppError(409, "Organization already exists") : cuitTaken();
+        }
+        if (code === "P2003") {
+            // El token es válido pero el usuario ya no existe
+            throw new AppError(401, "User not found");
         }
         throw error;
     }
@@ -94,36 +123,45 @@ export async function getOrganization(userId: number) {
 
 export async function updateOrganization(userId: number, input: UpdateOrganizationInput) {
     const { id } = await getUserOrganization(userId);
-    const current = await prisma.organization.findUniqueOrThrow({ where: { id } });
-
-    if (input.cuit !== undefined && input.cuit !== current.cuit) {
-        // El CUIT es el emisor de los comprobantes: con facturas autorizadas ya no se cambia
-        const authorizedInvoices = await prisma.invoice.count({
-            where: { organizationId: id, status: "AUTHORIZED" },
-        });
-        if (authorizedInvoices > 0) {
-            throw new AppError(409, "CUIT cannot change after issuing authorized invoices", [
-                { field: "cuit", message: "CUIT cannot change after issuing authorized invoices" },
-            ]);
-        }
-        await ensureCuitAvailable(input.cuit, id);
-    }
-
-    if (input.baseCurrency !== undefined && input.baseCurrency !== current.baseCurrency) {
-        // Los tipos de cambio guardados son contra la moneda base (RN-06)
-        const transactions = await prisma.transaction.count({ where: { organizationId: id } });
-        if (transactions > 0) {
-            throw new AppError(409, "Base currency cannot change once there are transactions", [
-                { field: "baseCurrency", message: "Base currency cannot change once there are transactions" },
-            ]);
-        }
-    }
+    const data = definedOnly(input);
 
     try {
-        return await prisma.organization.update({ where: { id }, data: definedOnly(input) });
+        // Chequeos y update en la misma transacción
+        return await prisma.$transaction(async (tx) => {
+            const current = await tx.organization.findUniqueOrThrow({ where: { id } });
+
+            if (data.cuit !== undefined && data.cuit !== current.cuit) {
+                // El CUIT es el emisor de los comprobantes: con facturas autorizadas ya no se cambia
+                const authorizedInvoices = await tx.invoice.count({
+                    where: { organizationId: id, status: "AUTHORIZED" },
+                });
+                if (authorizedInvoices > 0) {
+                    throw new AppError(409, "CUIT cannot change after issuing authorized invoices", [
+                        { field: "cuit", message: "CUIT cannot change after issuing authorized invoices" },
+                    ]);
+                }
+                await ensureCuitAvailable(tx, data.cuit, id);
+            }
+
+            const organization = await tx.organization.update({ where: { id }, data });
+
+            // RNF-08: se registran los campos modificados, no sus valores
+            await tx.auditLog.create({
+                data: {
+                    organizationId: id,
+                    userId,
+                    action: "organization.updated",
+                    entity: "Organization",
+                    entityId: id,
+                    metadata: { fields: Object.keys(data) },
+                },
+            });
+
+            return organization;
+        });
     } catch (error) {
-        if (isUniqueViolation(error)) {
-            throw new AppError(409, "CUIT already registered");
+        if (prismaErrorCode(error) === "P2002") {
+            throw cuitTaken();
         }
         throw error;
     }
