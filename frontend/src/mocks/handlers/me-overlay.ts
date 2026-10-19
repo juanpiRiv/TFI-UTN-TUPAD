@@ -6,20 +6,18 @@ import { seedDefaultCategories } from './categories'
 import { seedDefaultClients } from './clients'
 
 /**
- * Browser only. GET /api/auth/me goes to the real backend untouched; we only fill in
- * `organization` from the mock data when the backend returns null, because the real
- * backend cannot know about an organization that only exists in the mocks.
- * We also sync the real backend's organization, categories, and clients into the mock DB
- * so that any mock handlers that depend on resolveOrganization have the data they need.
- * Remove this handler once POST /api/organizations exists in the backend.
+ * Browser only. GET /api/auth/me goes to the real backend untouched. The organization now
+ * comes from the backend (POST /api/organizations exists), so we never invent one here.
+ * We only copy the real organization into the mock DB and seed its categories and clients,
+ * because the category handlers are still mocked and need them (resolveOrganization).
+ * Remove this handler once the categories endpoints exist in the backend.
  */
 export const meOverlayHandler = http.get(`${API_URL}/api/auth/me`, async ({ request }) => {
   const response = await fetch(bypass(request))
   if (!response.ok) return response
 
   const me = (await response.json()) as Me
-  const organization =
-    me.organization ?? db.organizations.find((org) => org.userId === me.id) ?? null
+  const organization = me.organization
 
   if (organization) {
     const existingIndex = db.organizations.findIndex((org) => org.id === organization.id)

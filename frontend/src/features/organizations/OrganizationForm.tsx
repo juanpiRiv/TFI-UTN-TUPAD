@@ -10,6 +10,7 @@ import {
   organizationFields,
   organizationSchema,
   taxConditionLabels,
+  organizationTaxConditions,
   type OrganizationFormValues,
   type OrganizationInput,
 } from './schemas'
@@ -33,11 +34,11 @@ function toFormValues(organization: Organization): OrganizationFormValues {
     legalName: organization.legalName,
     tradeName: organization.tradeName ?? '',
     commercialAddress: organization.commercialAddress ?? '',
-    taxCondition: organization.taxCondition,
+    taxCondition: organizationTaxConditions.find((value) => value === organization.taxCondition) ?? 'MONOTRIBUTO',
     monotributoCategory: organization.monotributoCategory ?? '',
     activityStartDate: organization.activityStartDate?.slice(0, 10) ?? '',
     grossIncomeNumber: organization.grossIncomeNumber ?? '',
-    baseCurrency: organization.baseCurrency,
+    baseCurrency: 'ARS',
   }
 }
 
@@ -102,21 +103,16 @@ export function OrganizationForm({
         <Select
           id="taxCondition"
           label="Condición frente al IVA"
-          options={Object.entries(taxConditionLabels).map(([value, label]) => ({ value, label }))}
+          options={organizationTaxConditions.map((value) => ({
+            value,
+            label: taxConditionLabels[value],
+          }))}
           error={errors.taxCondition?.message}
           {...register('taxCondition')}
         />
-        <Select
-          id="baseCurrency"
-          label="Moneda base"
-          hint="En esta moneda se muestran los totales."
-          options={[
-            { value: 'ARS', label: 'Pesos (ARS)' },
-            { value: 'USD', label: 'Dólares (USD)' },
-          ]}
-          error={errors.baseCurrency?.message}
-          {...register('baseCurrency')}
-        />
+        <p className="text-sm text-slate-500">
+          La moneda base es pesos (ARS): en ella se muestran los totales y se emiten las facturas.
+        </p>
         <Input
           id="monotributoCategory"
           label="Categoría de monotributo (opcional)"
