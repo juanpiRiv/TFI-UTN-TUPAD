@@ -37,11 +37,26 @@ Todos los errores usan el formato que ya tiene el backend en `middlewares/error-
 
 | Método y ruta | Request | Response |
 | --- | --- | --- |
-| `POST /api/auth/register` | `{ email, password }` | `201` `{ user: { id, email, createdAt }, token }`. `409` si el email ya existe. |
-| `POST /api/auth/login` | `{ email, password }` | `200` `{ user, token }`. `401` si el email o la contraseña no coinciden. |
-| `GET /api/auth/me` | | `200` `{ id, email, createdAt, organization }`. `organization` es `null` hasta que el usuario hace el onboarding. |
+| `POST /api/auth/register` | `{ email, password }` | `201` `{ user: { id, name, email, createdAt }, token }`. `409` si el email ya existe. |
+| `POST /api/auth/login` | `{ email, password }` | `200` `{ user, token }`, con `user` igual que en el registro. `401` si el email o la contraseña no coinciden. |
+| `GET /api/auth/me` | | `200` `{ id, name, email, createdAt, organization }`. `name` es `null` hasta que el usuario lo carga en su perfil; `organization` es `null` hasta que hace el onboarding. |
 
 El frontend usa `organization` de `/me` para decidir si el usuario puede entrar a la app o tiene que pasar primero por `/onboarding`.
+
+## Perfil de usuario
+
+Cubre RF-04. Las rutas usan `me` porque siempre se modifica el usuario del token.
+
+| Método y ruta | Request | Response |
+| --- | --- | --- |
+| `PATCH /api/users/me` | `{ name?, email?, currentPassword? }` | `200` `{ id, name, email, createdAt, updatedAt }`. `409` si el email ya lo usa otro usuario. |
+| `PATCH /api/users/me/password` | `{ currentPassword, newPassword }` | `204` sin contenido. |
+
+- `name` es opcional; `null` lo borra. Tiene que venir `name`, `email` o los dos.
+- Cambiar el `email` exige `currentPassword`. Si no viene o es incorrecta, responde `400` con `details` en el campo `currentPassword`.
+- `newPassword` tiene entre 8 y 128 caracteres y tiene que ser distinta de la actual.
+- **Una contraseña actual incorrecta responde `400`, no `401`.** El frontend cierra la sesión ante cualquier `401` con token, y en este caso el usuario solo se equivocó al tipear.
+- Ninguno de los dos cambios invalida el token: la sesión sigue abierta.
 
 ## Organización
 

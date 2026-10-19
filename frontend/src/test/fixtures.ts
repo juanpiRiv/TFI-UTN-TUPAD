@@ -7,7 +7,7 @@ import { fakeToken } from '@/mocks/jwt'
 export const TEST_PASSWORD = 'clave-segura-123'
 
 export function seedUser(email = 'lucia@example.com') {
-  const user = { id: nextId(), email, password: TEST_PASSWORD, createdAt: nowIso() }
+  const user = { id: nextId(), name: null, email, password: TEST_PASSWORD, createdAt: nowIso() }
   db.users.push(user)
   return user
 }
