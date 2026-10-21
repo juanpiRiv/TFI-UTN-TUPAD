@@ -130,3 +130,17 @@ Estado de lo que pidió la cátedra para esta revisión:
 | 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | En curso. Funciona de punta a punta en el frontend: registro e inicio de sesión contra el backend real, y organización, clientes, movimientos y dashboard simulados con MSW siguiendo el contrato de la API. En el backend están auth y el esquema; organizaciones está en una rama sin mergear y faltan clientes, categorías, movimientos y dashboard. Capturas en el [README del frontend](./frontend/README.md#capturas) |
 | 6 | Spike de homologación WSAA y WSFEv1 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Pendiente: falta el certificado de homologación |
 | 7 | Qué pasa a P1 si ARCA se atrasa | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Hecho |
+
+## ✅ Tercera entrega (23/10)
+
+Estado de lo que se pidió para esta revisión:
+
+| # | Pedido | Dónde está | Estado |
+| :--- | :--- | :--- | :--- |
+| 1 | Evaluación técnica de dos alternativas para integrar ARCA (cliente propio o librería) con decisión justificada | [Evaluación técnica](./docs/arca/evaluacion-tecnica.md) y [Plan B de ARCA](./docs/06-plan-b-arca.md) | Hecho. Elegimos la librería `facturas` como camino principal, el cliente propio como respaldo y un cliente simulado para la demo |
+| 2 | Interfaz propia para la facturación electrónica (`FiscalProvider`) | `backend/src/module/arca/` | Hecho: la interfaz, el cliente simulado, el cliente sobre la librería y los tests de contrato |
+| 3 | Pruebas contra homologación | [Evaluación técnica](./docs/arca/evaluacion-tecnica.md) | Parcial: sin certificado de homologación solo se pudo probar `FEDummy`, el rechazo del WSAA a un certificado de prueba y un error 600 de WSFEv1. No hubo autenticación exitosa ni emisión real |
+| 4 | Perfil de usuario y perfil fiscal de la organización | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | Hecho |
+| 5 | Relevamiento con usuarios reales | [Relevamiento](./docs/07-relevamiento.md) | En curso: las conclusiones se cargan al cierre |
+
+Lo que sigue pendiente (certificado de homologación, emisión real, leyenda de comprobante de prueba, mocks de MSW por retirar) está en los [issues del repositorio](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues).
