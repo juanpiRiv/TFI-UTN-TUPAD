@@ -6,6 +6,8 @@ export const clientKeys = {
   all: ['clients'] as const,
   lists: () => [...clientKeys.all, 'list'] as const,
   list: (filters: ClientFilters) => [...clientKeys.lists(), filters] as const,
+  details: () => [...clientKeys.all, 'detail'] as const,
+  detail: (id: number) => [...clientKeys.details(), id] as const,
 }
 
 export function useClients(filters: ClientFilters = {}) {
@@ -13,6 +15,14 @@ export function useClients(filters: ClientFilters = {}) {
     queryKey: clientKeys.list(filters),
     queryFn: ({ signal }) => clientsApi.listClients(filters, signal),
     placeholderData: keepPreviousData,
+  })
+}
+
+export function useClient(id: number) {
+  return useQuery({
+    queryKey: clientKeys.detail(id),
+    queryFn: ({ signal }) => clientsApi.getClient(id, signal),
+    enabled: Number.isInteger(id) && id > 0,
   })
 }
 

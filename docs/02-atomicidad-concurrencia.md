@@ -104,13 +104,15 @@ stateDiagram-v2
     [*] --> DRAFT
     DRAFT --> PENDING: el usuario pulsa Facturar
     PENDING --> AUTHORIZED: ARCA devuelve el CAE
-    PENDING --> REJECTED: ARCA rechaza con observaciones
+    PENDING --> REJECTED: ARCA rechaza (Resultado R)
     PENDING --> PENDING: no hubo respuesta, se reconcilia
     REJECTED --> DRAFT: el usuario corrige y reintenta
     AUTHORIZED --> [*]
 ```
 
 `AUTHORIZED` es final: la factura no se edita ni se borra (RN-11).
+
+Ojo: una respuesta "aprobada con observaciones" **no** es un rechazo. Si el `Resultado` es `A`, la factura queda `AUTHORIZED` con su CAE y se guardan las observaciones. `REJECTED` es solo para `Resultado = R` (manual de WSFEv1 v4.8, `FECAESolicitar`, p. 25 y 76-77).
 
 ### Flujo en tres pasos
 
@@ -140,10 +142,10 @@ Si la base se usa a través de un pooler en modo transacción (por ejemplo, el d
 
 ## 5. Ticket de acceso de WSAA
 
-- El ticket de acceso dura unas 12 horas. Mientras haya uno vigente, WSAA rechaza pedir otro para el mismo servicio, así que si dos pedidos intentan renovarlo a la vez, uno falla.
-- Lo guardamos en la base, en `ArcaCredential` (`token`, `sign` y `token_expires_at`, por organización, ambiente y servicio), y no en memoria. Así sobrevive a un reinicio del backend.
+- El ticket de acceso dura unas 12 horas. Mientras haya uno vigente, WSAA puede devolver `coe.alreadyAuthenticated` al pedir otro para el mismo servicio, así que si dos pedidos intentan renovarlo a la vez, uno falla (Especificación técnica de WSAA 1.2.2, p. 8 y 10).
+- Lo guardamos en la base, en `ArcaCredential` (`token`, `sign` y `token_expires_at`; el ticket lo emite ARCA por certificado y servicio, no por organización, así que la clave de lectura y del bloqueo debería ser certificado, ambiente y servicio; ver Administrador de Relaciones, FAQ cap. 4 p. 17), y no en memoria. Así sobrevive a un reinicio del backend.
 - Para renovarlo:
-  1. Leemos el ticket. Si vence en más de 10 minutos, lo usamos.
+  1. Leemos el ticket. Si no venció, lo usamos. El manual de WSAA habla de un lapso preventivo (10 minutos en testing, 2 en producción, modificable sin aviso; Manual del desarrollador 10.6): si conviene renovar antes del vencimiento, **no está verificado** y se prueba en homologación.
   2. Si no, abrimos una transacción con `pg_advisory_xact_lock(<organización y servicio>)` y lo volvemos a leer, porque otro pedido pudo haberlo renovado mientras esperábamos. Solo si sigue vencido llamamos a `LoginCms` y guardamos el nuevo.
 - `token`, `sign` y la clave privada son credenciales: nunca se loguean ni se devuelven al frontend (RN-14).
 

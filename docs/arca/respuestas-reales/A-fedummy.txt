@@ -1,0 +1,13 @@
+Capturado: 2026-10-19T22:12:15.962Z
+Comando: ArcaWsfeClient.healthCheck() -> POST wswhomo.afip.gov.ar FEDummy
+Nota: Resultado del cliente: {"ok":true,"detail":"AppServer=OK DbServer=OK AuthServer=OK"}
+
+===== intercambio 1 (2026-10-19T22:12:14.147Z) =====
+POST https://wswhomo.afip.gov.ar/wsfev1/service.asmx
+SOAPAction: http://ar.gov.afip.dif.FEV1/FEDummy
+Content-Type: text/xml;charset=UTF-8
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><FEDummy xmlns="http://ar.gov.afip.dif.FEV1/"/></soap:Body></soap:Envelope>
+
+--- RESPUESTA HTTP 200 ---
+<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><soap:Header><FEHeaderInfo xmlns="http://ar.gov.afip.dif.FEV1/"><ambiente>HomologacionExterno - srt</ambiente><fecha>2026-10-19T19:12:15.8751272-03:00</fecha><id>7.0.0.53</id></FEHeaderInfo></soap:Header><soap:Body><FEDummyResponse xmlns="http://ar.gov.afip.dif.FEV1/"><FEDummyResult><AppServer>OK</AppServer><DbServer>OK</DbServer><AuthServer>OK</AuthServer></FEDummyResult></FEDummyResponse></soap:Body></soap:Envelope>
