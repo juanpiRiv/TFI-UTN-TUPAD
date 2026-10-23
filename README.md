@@ -111,6 +111,9 @@ Toda la documentación está en Markdown dentro del repo, así se puede leer dir
 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Fechas de control y qué pasa a P1 si la integración con ARCA se atrasa |
 | [Relevamiento con usuarios](./docs/07-relevamiento.md) | Guion de entrevistas y resultados (en curso) |
 | [Contrato de la API](./docs/08-contrato-api.md) | Endpoints que espera el frontend: rutas, datos que se mandan y reciben, errores y preguntas abiertas |
+| [Diagramas y Arquitectura](./docs/09-diagramas-y-arquitectura.md) | Diagrama de Entidad-Relación (DER) final en Mermaid, Arquitectura integral del sistema y secuencias de flujos críticos |
+| [Informe Final](./docs/10-informe-final.md) | Informe de cierre del proyecto: respuestas a devoluciones docentes, alcance P0 vs P1/P2, métricas de testing y conclusiones |
+| [Guion de la Demo](./docs/11-guion-demo.md) | Guion paso a paso y estructura de tiempos para la grabación del video demostrativo de la plataforma |
 | [Frontend](./frontend/README.md) | Cómo levantar el frontend, variables, mocks, estructura, rutas, sesión y capturas |
 | [Backlog](./docs/BACKLOG.md) | Tareas por fase hasta la entrega final y camino crítico |
 | [Guía de contribución](./docs/CONTRIBUTING.md) | Ramas, convención de issues y PRs, labels, módulos y tablero |
