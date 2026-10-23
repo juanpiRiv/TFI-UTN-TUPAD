@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
+import type { Prisma } from "../../generated/prisma/client.js";
 import type { CreateOrganizationInput, UpdateOrganizationInput } from "./organizations.schemas.js";
 
 // Categorías iniciales por defecto según docs/08
@@ -82,8 +83,15 @@ export async function updateOrganization(userId: number, input: UpdateOrganizati
     }
   }
 
+  const data: Prisma.OrganizationUpdateInput = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (value !== undefined) {
+      (data as any)[key] = value;
+    }
+  }
+
   return prisma.organization.update({
     where: { id: org.id },
-    data: input,
+    data,
   });
 }

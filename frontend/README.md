@@ -19,11 +19,12 @@ pnpm install
 pnpm dev
 ```
 
-La app queda en http://localhost:5173. Para usar los mocks, creá `frontend/.env.local` con las variables de la tabla de abajo, por ejemplo:
+La app queda en http://localhost:5173. Por defecto se conecta de forma directa a la API en `http://localhost:3000`. Si se desea aislar o simular módulos específicos con MSW, se configura `frontend/.env.local`:
 
 ```text
 VITE_API_URL=http://localhost:3000
-VITE_USE_MOCKS=true
+# Opcional: lista separada por comas de módulos a simular con MSW (ej: categories, organizations, o all)
+# VITE_MOCK_MODULES=categories,organizations
 ```
 
 Otros comandos, también desde la raíz (o desde `frontend/` sin el filtro):
@@ -37,25 +38,22 @@ Otros comandos, también desde la raíz (o desde `frontend/` sin el filtro):
 
 ## Variables de entorno
 
-| Variable         | Default                 | Para qué                                                              |
-| ---------------- | ----------------------- | --------------------------------------------------------------------- |
-| `VITE_API_URL`   | `http://localhost:3000` | URL del backend, sin `/api` al final.                                 |
-| `VITE_USE_MOCKS` | vacío                   | Con `true`, se simulan los endpoints que el backend todavía no tiene. |
+| Variable            | Default                 | Para qué                                                                                          |
+| ------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `VITE_API_URL`      | `http://localhost:3000` | URL del backend, sin `/api` al final.                                                             |
+| `VITE_MOCK_MODULES` | vacío                   | Lista separada por comas de módulos a simular con MSW. Vacío = consumo directo del backend real. |
 
 Las variables `VITE_*` quedan dentro del bundle que se publica, así que nunca pongas ahí secretos.
 
 ## Mocks
 
-Hoy el backend solo tiene autenticación. Para no frenar las pantallas, simulamos el resto con [MSW](https://mswjs.io/), que intercepta los pedidos en el navegador. El contrato que siguen los mocks está en [`docs/08-contrato-api.md`](../docs/08-contrato-api.md).
+Todos los módulos cuentan con su implementación en el backend real. Para desarrollo desacoplado o testing puntual, se puede activar la simulación por módulo con `VITE_MOCK_MODULES` (por ejemplo: `VITE_MOCK_MODULES=categories,organizations` o `all`).
 
-- Se prenden con `VITE_USE_MOCKS=true`. Sin esa variable, el código de los mocks no entra en el bundle. Solo se copia `public/mockServiceWorker.js`, que no hace nada si nadie lo registra.
-- Registro e inicio de sesión van siempre al backend real.
-- `GET /api/auth/me` también va al backend real. Lo único que agrega el mock es la organización cuando el backend devuelve `null`, porque la organización todavía existe solo en los mocks. Ese handler está en `src/mocks/handlers/me-overlay.ts` y se borra cuando el backend tenga `POST /api/organizations`.
+- Si `VITE_MOCK_MODULES` está vacío o no se define, MSW **no** se inicializa en el navegador y el bundle no carga los handlers de mocks.
+- Módulos soportados: `organizations` (incluye `me-overlay` para mantener sincronizada la organización activa), `categories`, `clients`, `transactions`, `dashboard`, `exchange-rates`.
 - Los datos simulados se guardan en el `localStorage` del navegador (`tfi.mocks.db`), así sobreviven a una recarga. Para empezar de cero, borrá esa clave.
-- Las pantallas y los `features/*/api.ts` no saben si hay mocks: llaman a la misma URL en los dos casos.
-- Los tests usan los mismos handlers, más una copia de los de auth (`src/mocks/handlers/auth.ts`), porque en los tests no hay backend.
-
-Cuando el backend implemente un endpoint, se borra su handler de `src/mocks/handlers/` y listo.
+- Las pantallas y los `features/*/api.ts` llaman a la misma URL en ambos casos de forma agnóstica.
+- Los tests en Vitest (`src/test/setup.ts`) usan los handlers de `src/mocks/node.ts` para ejecutar pruebas unitarias y de integración de interfaz sin requerir que el backend esté levantado.
 
 ## Estructura
 
@@ -117,5 +115,6 @@ Las guardas son loaders de React Router (`src/app/guards.ts`). Consultan `GET /a
 | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | ![Login con el error del backend](../docs/img/frontend/01-login.png)              | ![Onboarding](../docs/img/frontend/02-onboarding.png)                                           |
 | ![Clientes con uno dado de baja](../docs/img/frontend/03-clientes.png)            | ![Movimiento en dólares con la cotización sugerida](../docs/img/frontend/04-movimiento-usd.png) |
-| ![Movimientos](../docs/img/frontend/05-movimientos.png)                           | ![Dashboard](../docs/img/frontend/07-dashboard.png)                                             |
+| ![Movimientos](../docs/img/frontend/05-movimientos.png)                           | ![Movimientos filtrados por egreso](../docs/img/frontend/06-movimientos-filtro-egresos.png)      |
+| ![Dashboard](../docs/img/frontend/07-dashboard.png)                               | ![Categorías](../docs/img/frontend/08-categorias.png)                                           |
 | ![Alta de movimiento en el celular](../docs/img/frontend/09-movil-movimiento.png) | ![Dashboard en el celular](../docs/img/frontend/10-movil-dashboard.png)                         |
