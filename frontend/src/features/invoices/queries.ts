@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createInvoicePayment, fetchInvoiceDetail, fetchInvoices } from './api'
+import { createInvoice, createInvoicePayment, fetchInvoiceDetail, fetchInvoices } from './api'
 import type { CreatePaymentFormData } from './schemas'
 
 export const invoicesKeys = {
@@ -34,6 +34,17 @@ export function useCreateInvoicePaymentMutation(invoiceId: number) {
       // También invalida transacciones y dashboard para reflejar el ingreso recién cobrado
       void queryClient.invalidateQueries({ queryKey: ['transactions'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+export function useCreateInvoiceMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: createInvoice,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: invoicesKeys.all })
     },
   })
 }

@@ -8,4 +8,5 @@ export const invoicesRouter = Router();
 invoicesRouter.use(requireAuth);
 
 invoicesRouter.get("/", invoicesController.listInvoices);
+invoicesRouter.post("/", invoicesController.createInvoice);
 invoicesRouter.get("/:invoiceId", invoicesController.getInvoiceById);
