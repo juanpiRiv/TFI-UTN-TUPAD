@@ -54,10 +54,10 @@ Respondieron tres personas que prestan servicios como monotributistas o freelanc
 
 **P1**
 - **Qué hace:** es programador y presta servicios.
-- **Cómo factura:** a mano, desde la web de ARCA.
-- **Cómo lleva la cuenta de lo que cobra y gasta:** no la lleva.
+- **Cómo factura:** las carga a mano en la página de ARCA.
+- **Cómo lleva la cuenta de lo que cobra y gasta:** no lleva ningún registro.
 - **Qué le da más trabajo:** cargar la factura.
-- **Pagos en partes o en dólares:** cobra siempre el total junto. Tiene gastos en dólares que paga en pesos con la tarjeta.
+- **Pagos en partes o en dólares:** cobra siempre el total junto, no en partes. Gasta en dólares y paga en pesos con la tarjeta.
 - **Qué esperaría de una app:** poder mantener su plata en dólares y pasarla a pesos al mejor cambio cuando la necesite.
 
 **P2**
@@ -72,6 +72,7 @@ Respondieron tres personas que prestan servicios como monotributistas o freelanc
 - **Qué hace:** es prestador de servicios freelance.
 - **Cómo factura:** carga las facturas a mano.
 - **Cómo lleva la cuenta de lo que cobra y gasta:** en un Excel que tiene desactualizado.
+- **Qué le da más trabajo:** no lo dijo.
 - **Pagos en partes o en dólares:** gasta y cobra en pesos y en dólares, y con los pesos compra dólares. No mencionó pagos en partes.
 - **Qué esperaría de una app:** tener su dinero, sus facturas y sus finanzas en un solo lugar.
 
