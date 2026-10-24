@@ -1,6 +1,6 @@
 # Relevamiento con usuarios
 
-> **Estado: en curso.** Acá están el guion, la encuesta corta y la planilla. Vamos cargando los resultados a medida que llegan las respuestas, así que los casilleros vacíos son entrevistas que todavía no hicimos.
+> **Estado: cerrado con 3 respuestas.** Acá están el guion, la encuesta corta, las respuestas y las conclusiones.
 
 La cátedra nos pidió validar con usuarios reales el perfil que elegimos para el P0 antes de seguir construyendo. Nuestra hipótesis es la de la propuesta:
 
@@ -42,22 +42,62 @@ Para mandar por WhatsApp o cargar en un formulario:
 
 ## Resultados
 
+Respondieron tres personas que prestan servicios como monotributistas o freelance. Las respuestas se anotan sin nombre y las tres personas son ajenas al proyecto. No hubo nadie que venda productos ni que haga las dos cosas. No les preguntamos la categoría de monotributo, y la cantidad de facturas se anotó de forma aproximada.
+
 | # | Actividad | Productos / servicios | Facturas por mes | Cómo factura hoy | Dónde registra cobros y gastos | Pagos parciales | Maneja dólares | Principal dolor |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | | | | | | | | |
-| 2 | | | | | | | | |
-| 3 | | | | | | | | |
-| 4 | | | | | | | | |
-| 5 | | | | | | | | |
+| P1 | Programador | Servicios | Una, como contractor | A mano, desde la web de ARCA | No lleva registro | No: cobra todo junto | Sí: gastos en dólares que paga en pesos con la tarjeta | Cargar la factura |
+| P2 | Creativo publicitario y director audiovisual (filmación, edición, creatividad y diseño de imagen) | Servicios | Varias, según la cantidad de trabajo | Con Facturita, una aplicación que funciona como chatbot | En Notion, aunque no siempre anota los gastos | Sí: 50% de seña y el resto al terminar | Sí: gastos en servicios, programas de edición y suscripciones | Anotar los gastos y mantener el registro al día |
+| P3 | Diseñador freelance | Servicios | Varias, según la cantidad de trabajo | Carga las facturas a mano | En un Excel desactualizado | No respondió | Sí: gasta y cobra en pesos y en dólares, y con los pesos compra dólares | Completar el Excel y cargar todo en ARCA |
+
+### Respuestas
+
+**P1**
+- **Qué hace:** es programador y presta servicios.
+- **Cómo factura:** las carga a mano en la página de ARCA.
+- **Cuántas facturas hace:** una, porque trabaja como contractor.
+- **Cómo lleva la cuenta de lo que cobra y gasta:** no lleva ningún registro.
+- **Qué le da más trabajo:** cargar la factura.
+- **Pagos en partes o en dólares:** cobra siempre el total junto, no en partes. Gasta en dólares y paga en pesos con la tarjeta.
+- **Qué esperaría de una app:** poder mantener su plata en dólares y pasarla a pesos al mejor cambio cuando la necesite.
+
+**P2**
+- **Qué hace:** es creativo publicitario y director audiovisual. Presta servicios de filmación y edición de videos, creatividad publicitaria y diseño de imagen corporativa.
+- **Cómo factura:** sobre todo con Facturita, una aplicación que funciona como chatbot.
+- **Cuántas facturas hace:** varias, según la cantidad de trabajo.
+- **Cómo lleva la cuenta de lo que cobra y gasta:** en Notion, aunque no siempre anota todos los gastos.
+- **Qué le da más trabajo:** anotar los gastos y mantener el registro al día.
+- **Pagos en partes o en dólares:** le pagaron trabajos en dos partes, 50% de seña y el resto al finalizar. Tuvo gastos en dólares en servicios, programas de edición y suscripciones.
+- **Qué esperaría de una app:** que sea fácil y rápido cargar lo que va gastando, que le deje facturar desde la misma aplicación y tener todo junto. También que le dé consejos de administración y contabilidad: seguir su categoría de monotributo, saber cuándo está cerca de superar los límites de facturación y organizarse para que su plata rinda más.
+
+**P3**
+- **Qué hace:** presta servicios de diseño como freelance.
+- **Cómo factura:** carga las facturas a mano.
+- **Cuántas facturas hace:** varias, según la cantidad de trabajo.
+- **Cómo lleva la cuenta de lo que cobra y gasta:** en un Excel que tiene desactualizado.
+- **Qué le da más trabajo:** completar el Excel y cargar todo en ARCA le resulta tedioso.
+- **Pagos en partes o en dólares:** gasta y cobra en pesos y en dólares, y con los pesos compra dólares. No mencionó pagos en partes.
+- **Qué esperaría de una app:** tener su dinero, sus facturas y sus finanzas en un solo lugar.
 
 ## Conclusiones
 
-Esta parte la escribimos cuando tengamos al menos tres respuestas. Tiene que responder:
+Aplicamos nuestra regla: **confirmado** es lo que cuentan 3 de 5 o más, **débil** lo que cuentan 1 o 2. Con solo tres respuestas hay que leer todo como señal y no como prueba.
 
-- ¿Se confirma el perfil del P0 o hay que ajustarlo?
-- ¿Qué funcionalidades del MVP aparecieron como imprescindibles y cuáles nadie mencionó?
-- ¿Hay algo que no habíamos previsto y que debería entrar en el P0?
+**Perfil P0.** Las tres personas prestan servicios y facturan por su cuenta, así que el perfil se sostiene para la variante "solo servicios". Queda **sin validar** la variante de productos y la mixta. Tampoco preguntamos si son monotributistas ni de qué categoría, aunque las tres emiten facturas.
 
-Para no inventar números con tan pocas entrevistas, cada punto se marca como confirmado (lo cuentan 3 de 5 o más), débil (1 o 2) o descartado (nadie).
+**Confirmado (3 de 3):**
+- **El registro de cobros y gastos está abandonado o desactualizado.** P1 no lleva registro, P2 no siempre anota los gastos y P3 tiene un Excel desactualizado. Cargar lo que se gasta de forma fácil y rápida es una necesidad real del MVP.
+- **Manejan dólares.** P1 y P2 tienen gastos en dólares, y P3 gasta y cobra en las dos monedas. Respalda manejar movimientos en dólares con su cotización.
 
-**Perfil P0 elegido:** monotributista que vende productos y/o presta servicios y emite Factura C (a confirmar con el relevamiento).
+**Débil (1 o 2 de 3):**
+- **Tener facturación y finanzas en un solo lugar (2 de 3, P2 y P3).** P1 dice que cargar la factura es lo que más trabajo le da.
+- **Facturar a mano (2 de 3, P1 y P3).** P2 usa un chatbot, Facturita.
+- **Pagos en partes (1 de 3, P2).** Respalda que un pago parcial no duplique ingresos (RN-10).
+
+**Lo que no habíamos previsto** (no entra al P0, pasa a la lista de ideas para P1):
+- **Mantener un saldo en dólares y convertirlo a pesos cuando conviene (débil, P1 y P3).** P3 compra dólares con sus pesos.
+- **Alertas sobre la categoría de monotributo y los límites de facturación, y consejos de administración (débil, P2).**
+
+**Que nadie mencionó:** enviar facturas por WhatsApp, la Central de Deudores del BCRA y los reportes exportables. La encuesta corta no preguntaba por ellos, así que esto no los descarta.
+
+**Perfil P0 elegido:** monotributista que vende productos y/o presta servicios y emite Factura C. Las respuestas respaldan la parte de servicios; el resto sigue como hipótesis.
