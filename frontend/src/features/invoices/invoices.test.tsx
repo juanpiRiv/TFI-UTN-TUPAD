@@ -155,7 +155,7 @@ describe('pantalla de pagos de una factura (Issue #52)', () => {
       http.get(`${API_URL}/api/invoices/1`, () => {
         return HttpResponse.json({
           ...mockInvoiceDetail,
-          status: 'DRAFT',
+          status: 'PENDING',
         })
       }),
     )

@@ -108,6 +108,14 @@ export function InvoicesPage() {
       <PageHeader
         title="Facturas y Cobros"
         description="Consultá el estado de cobranza de tus facturas y registrá pagos parciales o totales."
+        actions={
+          <Link
+            to="/facturas/nueva"
+            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
+          >
+            Nueva factura
+          </Link>
+        }
       />
 
       {isLoading ? (
@@ -115,7 +123,7 @@ export function InvoicesPage() {
       ) : !invoices || invoices.length === 0 ? (
         <EmptyState
           title="Sin facturas emitidas"
-          description="Aún no tenés facturas registradas. Cuando emitas una factura autorizada, vas a poder gestionar sus cobros desde acá."
+          description="Aún no tenés facturas registradas. Creá una con “Nueva factura”; cuando esté autorizada, vas a poder gestionar sus cobros desde acá."
         />
       ) : (
         <Table

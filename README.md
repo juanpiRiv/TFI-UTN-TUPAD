@@ -81,7 +81,7 @@ El seed crea un usuario de prueba (`demo@monotributo.com` / `Password123!`), una
 
 Si no se usa Prisma, la base también se puede crear con `psql -d <base> -f database/schema.sql`.
 
-Hoy el backend tiene registro, inicio de sesión y `/me`. El resto de los endpoints se simulan en el frontend con MSW: se prenden con `VITE_USE_MOCKS=true` en `frontend/.env.local` (ver [README del frontend](./frontend/README.md#mocks)).
+El backend implementa autenticación, usuarios, organizaciones, categorías, clientes, movimientos, dashboard, cotización del BCRA, facturas (borrador y facturar con el proveedor fiscal simulado) y cobros. El frontend se conecta de manera directa a la API real. Opcionalmente, se pueden simular módulos aislados con MSW especificándolos con `VITE_MOCK_MODULES` en `frontend/.env.local` (ver [README del frontend](./frontend/README.md#mocks)).
 
 Controles: `pnpm lint`, `pnpm test` y `pnpm build` desde la raíz.
 
@@ -112,6 +112,9 @@ Toda la documentación está en Markdown dentro del repo, así se puede leer dir
 | [Relevamiento con usuarios](./docs/07-relevamiento.md) | Guion de entrevistas y resultados (en curso) |
 | [Contrato de la API](./docs/08-contrato-api.md) | Endpoints que espera el frontend: rutas, datos que se mandan y reciben, errores y preguntas abiertas |
 | [Deploy](./docs/09-deploy.md) | Dónde vive cada pieza (Railway y Cloudflare), dónde van los secretos y el paso a paso para publicarlo |
+| [Diagramas y Arquitectura](./docs/10-diagramas-y-arquitectura.md) | DER con las tablas del esquema de Prisma, arquitectura del sistema y secuencias de los flujos de facturar y cobrar |
+| [Informe Final](./docs/11-informe-final.md) | Informe de cierre: estado de cada devolución docente, qué está hecho y qué está pendiente, pruebas y conclusiones |
+| [Guion de la Demo](./docs/12-guion-demo.md) | Guion paso a paso del recorrido de la demo, con lo que funciona hoy y lo que queda simulado |
 | [Frontend](./frontend/README.md) | Cómo levantar el frontend, variables, mocks, estructura, rutas, sesión y capturas |
 | [Backlog](./docs/BACKLOG.md) | Tareas por fase hasta la entrega final y camino crítico |
 | [Guía de contribución](./docs/CONTRIBUTING.md) | Ramas, convención de issues y PRs, labels, módulos y tablero |

@@ -141,9 +141,9 @@ cargar por quien administra la cuenta de Cloudflare, nunca en el repo:
 | Secret | `CLOUDFLARE_ACCOUNT_ID` | Identificador de la cuenta |
 | Variable | `CLOUDFLARE_PAGES_PROJECT` | Nombre del proyecto en Pages (por defecto `tfi-tupad`) |
 | Variable | `VITE_API_URL` | URL pública del backend |
-| Variable | `VITE_USE_MOCKS` | `false` cuando el backend esté desplegado (por defecto `true`) |
+| Variable | `VITE_MOCK_MODULES` | Módulos a simular con MSW (vacío = usa la API real, que es lo normal) |
 
 El proyecto de Pages tiene que existir antes del primer deploy
 (`wrangler pages project create tfi-tupad --production-branch=main`).
-Mientras `VITE_USE_MOCKS` sea `true`, el sitio publicado usa datos
-simulados.
+Si `VITE_MOCK_MODULES` tiene módulos, el sitio publicado simula esos
+módulos con datos de prueba; vacío usa siempre `VITE_API_URL`.

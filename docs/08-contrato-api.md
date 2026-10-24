@@ -186,6 +186,36 @@ Cada movimiento de la respuesta trae, además de sus campos, la categoría y el 
 }
 ```
 
+## Facturas
+
+Cubre RF-22 y RF-23. El backend crea facturas en borrador, las consulta y las autoriza con el proveedor fiscal que indique `ARCA_PROVIDER` (hoy se prueba con el simulado).
+
+| Endpoint | Cuerpo | Respuesta |
+| --- | --- | --- |
+| `POST /api/invoices` | Ver abajo | `201` con la factura en estado `DRAFT` y la misma forma que `GET /api/invoices/:id` (con `invoiceId`, `items`, `totalPaid` en `0.00` y `payments` vacío). `400` si algún campo no es válido o no hay ítems. `404` si el cliente o el punto de venta no existen en la organización. `409` si el cliente está dado de baja. `403` si todavía no hay organización. |
+| `POST /api/invoices/:invoiceId/authorize` | Sin cuerpo | `200` con `{ invoice, fiscal }`: `invoice` tiene la forma del detalle y `fiscal` trae `outcome` (`AUTHORIZED`, `AUTHORIZED_WITH_OBSERVATIONS` o `REJECTED`), `simulated`, `observations` y `errors`. `202` si ARCA no respondió (`INDETERMINATE`) y la factura queda `PENDING`. `409` si no está en borrador. `404` si no existe. `502` si falló la comunicación y quedó `PENDING`. `503` si el proveedor fiscal no se pudo armar (la factura no se toca). |
+
+```json
+{
+  "pointOfSaleId": 1,
+  "clientId": 7,
+  "concept": "SERVICIOS",
+  "issueDate": "2026-10-24",
+  "serviceFrom": "2026-10-01",
+  "serviceTo": "2026-10-31",
+  "paymentDueDate": "2026-11-23",
+  "items": [{ "description": "Consultoría técnica", "quantity": 1, "unitPrice": 250000 }]
+}
+```
+
+Cómo autoriza (docs/02, sección 4): reserva el borrador (`DRAFT` → `PENDING`) con la fila bloqueada; después, de a una por punto de venta, calcula el número (el mayor entre el último del proveedor y el último autorizado en la base, más uno), pide el CAE y guarda `AUTHORIZED` con `voucher_number`, `cae` y `cae_expiration`, o `REJECTED` con los errores en `arca_response`. Registra `invoice.authorized` o `invoice.rejected` en la auditoría. Una factura `PENDING` no se reintenta sola: la reconciliación todavía no está hecha.
+
+- `pointOfSaleId` es opcional: si falta se usa el primer punto de venta activo. `clientId` es opcional: sin cliente se emite como consumidor final.
+- `concept` es `PRODUCTOS`, `SERVICIOS` o `PRODUCTOS_Y_SERVICIOS`. Si incluye servicios, `serviceFrom`, `serviceTo` y `paymentDueDate` son obligatorias.
+- `voucherType` (solo `FACTURA_C`) y `currency` (solo `ARS`) son opcionales y valen eso por defecto en el P0.
+- El total y los subtotales los calcula siempre el backend (`cantidad × precio`, redondeado a dos decimales); si el cuerpo trae un total, se ignora. Cantidad hasta 3 decimales y mayor a cero, precio hasta 2 decimales y no negativo, total mayor a cero.
+- La factura guarda una copia del nombre, documento y condición frente al IVA del cliente. Se registra `invoice.created` en la auditoría.
+
 ## Cotización sugerida
 
 Sirve para proponer el tipo de cambio cuando el movimiento es en dólares. El usuario lo puede cambiar. La fuente y la regla de la fecha están en [Cotización](./05-cotizacion.md).
