@@ -248,7 +248,31 @@ describe.skipIf(!dbAvailable)("Recorrido facturar y cobrar contra PostgreSQL rea
     });
   });
 
-  it("14. quedó registrada la auditoría de crear, autorizar y cobrar", async () => {
+  it("14. un borrador de servicios sin fechas no se puede facturar y sigue siendo borrador", async () => {
+    const created = await api.post("/api/invoices", {
+      clientId,
+      concept: "SERVICIOS",
+      issueDate: today(),
+      serviceFrom: "2026-10-01",
+      serviceTo: "2026-10-31",
+      paymentDueDate: "2026-11-23",
+      items: [{ description: "Servicio", quantity: 1, unitPrice: 1000 }],
+    });
+    expect(created.status).toBe(201);
+    // Se le sacan las fechas por la base: la API no deja crearlo así, pero un dato viejo podría estar
+    await prisma.invoice.update({
+      where: { id: created.body.invoiceId },
+      data: { serviceFrom: null, serviceTo: null, paymentDueDate: null },
+    });
+
+    const res = await api.post(`/api/invoices/${created.body.invoiceId}/authorize`);
+
+    expect(res.status).toBe(400);
+    const detail = await api.get(`/api/invoices/${created.body.invoiceId}`);
+    expect(detail.body.status).toBe("DRAFT");
+  });
+
+  it("15. quedó registrada la auditoría de crear, autorizar y cobrar", async () => {
     const actions: { action: string }[] = await prisma.auditLog.findMany({
       where: { organizationId: orgId },
       select: { action: true },

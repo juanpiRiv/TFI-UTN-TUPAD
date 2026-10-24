@@ -168,6 +168,12 @@ async function main() {
     where: { organizationId: organization.id, docNumber: "27289876540" },
   });
 
+  // Las facturas de servicios llevan período del servicio y vencimiento del pago (docs/04)
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+  const monthEnd = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0));
+  const dueDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 30));
+
   if (pos && clientAcme && clientGarcia) {
     // Factura 1: Autorizada y con saldo pendiente de $ 150.000,00 ARS (para probar cobro total y parcial)
     const existingAuthorized = await prisma.invoice.findFirst({
@@ -188,6 +194,9 @@ async function main() {
           voucherType: "FACTURA_C",
           voucherNumber: 1,
           concept: "SERVICIOS",
+          serviceFrom: monthStart,
+          serviceTo: monthEnd,
+          paymentDueDate: dueDate,
           issueDate: today,
           recipientDocType: clientAcme.docType,
           recipientDocNumber: clientAcme.docNumber,
@@ -244,6 +253,9 @@ async function main() {
           clientId: clientGarcia.id,
           voucherType: "FACTURA_C",
           concept: "SERVICIOS",
+          serviceFrom: monthStart,
+          serviceTo: monthEnd,
+          paymentDueDate: dueDate,
           issueDate: today,
           recipientDocType: clientGarcia.docType,
           recipientDocNumber: clientGarcia.docNumber,

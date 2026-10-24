@@ -260,6 +260,18 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     expect(audit.metadata.voucherNumber).toBe(1);
   });
 
+  it("un borrador de servicios sin fechas devuelve 400, queda en borrador y no llama al proveedor", async () => {
+    row.concept = "SERVICIOS";
+    const requestCae = vi.spyOn(current.provider as ArcaSimulatedClient, "requestCae");
+    const res = await post();
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/serviceStartDate/);
+    expect(requestCae).not.toHaveBeenCalled();
+    // La reserva (DRAFT -> PENDING) corre en una transacción: al fallar, se deshace entera
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
   it("devuelve 409 si la factura ya no está en borrador y no llama al proveedor", async () => {
     row.status = "AUTHORIZED";
     const requestCae = vi.spyOn(current.provider as ArcaSimulatedClient, "requestCae");
