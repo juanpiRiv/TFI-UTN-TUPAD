@@ -123,7 +123,7 @@ Estado de lo que pidió la cátedra para esta revisión:
 
 | # | Pedido | Dónde está | Estado |
 | :--- | :--- | :--- | :--- |
-| 1 | Relevamiento breve con usuarios reales y perfil P0 elegido | [Relevamiento](./docs/07-relevamiento.md) | Hecho con 2 entrevistas: guion, encuesta corta, respuestas y conclusiones (quedó por debajo de las 3 buscadas) |
+| 1 | Relevamiento breve con usuarios reales y perfil P0 elegido | [Relevamiento](./docs/07-relevamiento.md) | Hecho con 3 respuestas (2 de personas ajenas al proyecto y 1 de un integrante del equipo): guion, encuesta corta, respuestas y conclusiones |
 | 2 | Modelo ER inicial con Organization, Client, Transaction, Invoice, InvoiceItem y Payment | [Modelo de datos](./docs/03-modelo-de-datos.md), `backend/prisma/` y [`database/schema.sql`](./database/schema.sql) | Hecho. El esquema de Prisma, sus migraciones y el SQL coinciden con el documento |
 | 3 | Reglas de factura contra cobro y pagos parciales | [Factura, cobro y pagos parciales](./docs/04-factura-cobro-y-pagos.md) | Hecho |
 | 4 | Definición de la cotización usada | [Cotización](./docs/05-cotizacion.md) | Hecho |
@@ -141,6 +141,6 @@ Estado de lo que se pidió para esta revisión:
 | 2 | Interfaz propia para la facturación electrónica (`FiscalProvider`) | `backend/src/module/arca/` | Hecho: la interfaz, el cliente simulado, el cliente sobre la librería y los tests de contrato |
 | 3 | Pruebas contra homologación | [Evaluación técnica](./docs/arca/evaluacion-tecnica.md) | Parcial: sin certificado de homologación solo se pudo probar `FEDummy`, el rechazo del WSAA a un certificado de prueba y un error 600 de WSFEv1. No hubo autenticación exitosa ni emisión real |
 | 4 | Perfil de usuario y perfil fiscal de la organización | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | Hecho |
-| 5 | Relevamiento con usuarios reales | [Relevamiento](./docs/07-relevamiento.md) | Hecho con 2 entrevistas, por debajo de las 3 buscadas. Las conclusiones están marcadas como débiles |
+| 5 | Relevamiento con usuarios reales | [Relevamiento](./docs/07-relevamiento.md) | Hecho con 3 respuestas (2 ajenas al proyecto y 1 del equipo). Las conclusiones aclaran qué está confirmado y qué es débil |
 
 Lo que sigue pendiente (certificado de homologación, emisión real, leyenda de comprobante de prueba, mocks de MSW por retirar) está en los [issues del repositorio](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues).
