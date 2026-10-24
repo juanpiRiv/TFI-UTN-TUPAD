@@ -29,20 +29,17 @@ describe.skipIf(!dbAvailable)("Recorrido funcional completo contra Backend Real 
   const testEmail = `recorrido-${timestamp}@test.com`;
   const testPassword = "Password123!";
 
-  // Generador determinístico de CUITs válidos según algoritmo módulo 11 de AFIP/ARCA
+  // CUIT válido para un número semilla. Si el dígito verificador no existe (el módulo 11 da 10),
+  // pasa a la semilla siguiente: antes ese caso producía un CUIT inválido y el test fallaba al azar.
   function generateValidCuit(seedNumber: number): string {
-    const raw = String(seedNumber).padStart(8, "0").slice(-8);
-    const base = `20${raw}`;
-    const weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
-    const digits = base.split("").map(Number);
-    const sum = weights.reduce((acc, w, i) => acc + w * (digits[i] ?? 0), 0);
-    const rem = 11 - (sum % 11);
-    const dv = rem === 11 ? 0 : rem === 10 ? 9 : rem;
-    const cuit = `${base}${dv}`;
-    if (!isValidCuit(cuit)) {
-      throw new Error(`CUIT generado invalido: ${cuit}`);
+    for (let offset = 0; offset < 100; offset++) {
+      const raw = String((seedNumber + offset) % 100000000).padStart(8, "0");
+      const base = `20${raw}`;
+      for (let dv = 0; dv <= 9; dv++) {
+        if (isValidCuit(`${base}${dv}`)) return `${base}${dv}`;
+      }
     }
-    return cuit;
+    throw new Error(`No se pudo generar un CUIT válido a partir de ${seedNumber}`);
   }
 
   const orgCuit = generateValidCuit(timestamp % 100000000);
