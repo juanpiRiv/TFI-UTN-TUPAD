@@ -51,7 +51,7 @@ async function ensureCuitAvailable(
 
 export async function createOrganization(userId: number, input: CreateOrganizationInput) {
     try {
-        // Todo en una transacción: organización, categorías por defecto y auditoría
+        // Todo en una transacción: organización, categorías por defecto, punto de venta N° 1 y auditoría
         return await prisma.$transaction(async (tx) => {
             const existing = await tx.organization.findUnique({
                 where: { userId },
@@ -82,6 +82,12 @@ export async function createOrganization(userId: number, input: CreateOrganizati
                     ...category,
                     organizationId: organization.id,
                 })),
+            });
+
+            // Punto de venta N° 1: sin uno no se puede crear ninguna factura. El número real del punto de
+            // venta habilitado en ARCA se carga después (#27).
+            await tx.pointOfSale.create({
+                data: { organizationId: organization.id, number: 1, billingMethod: "CAE" },
             });
 
             // RNF-08
