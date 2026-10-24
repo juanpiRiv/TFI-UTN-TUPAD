@@ -47,7 +47,7 @@ Las variables `VITE_*` quedan dentro del bundle que se publica, así que nunca p
 
 ## Mocks
 
-Todos los módulos cuentan con su implementación en el backend real. Para desarrollo desacoplado o testing puntual, se puede activar la simulación por módulo con `VITE_MOCK_MODULES` (por ejemplo: `VITE_MOCK_MODULES=categories,organizations` o `all`).
+Los módulos de la app tienen su backend real. Para desarrollo desacoplado o testing puntual, se puede activar la simulación por módulo con `VITE_MOCK_MODULES` (por ejemplo: `VITE_MOCK_MODULES=categories,organizations` o `all`).
 
 - Si `VITE_MOCK_MODULES` está vacío o no se define, MSW **no** se inicializa en el navegador y el bundle no carga los handlers de mocks.
 - Módulos soportados: `organizations` (incluye `me-overlay` para mantener sincronizada la organización activa), `categories`, `clients`, `transactions`, `dashboard`, `exchange-rates`.

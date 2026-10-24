@@ -1,16 +1,30 @@
 import "dotenv/config";
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import request from "supertest";
-import { app } from "../app.js";
-import { prisma } from "../lib/prisma.js";
 import { isValidCuit } from "../lib/cuit.js";
+
+let app: any;
+let prisma: any;
+let dbAvailable = false;
+
+// Como el resto de las suites de integración: sin DATABASE_URL, JWT_SECRET y PostgreSQL se saltea.
+if (process.env.DATABASE_URL && process.env.JWT_SECRET) {
+  try {
+    prisma = (await import("../lib/prisma.js")).prisma;
+    await prisma.$queryRaw`SELECT 1`;
+    app = (await import("../app.js")).app;
+    dbAvailable = true;
+  } catch {
+    console.warn("⚠️ PostgreSQL no disponible para el test de recorrido");
+  }
+}
 
 /**
  * Test de recorrido E2E completo contra el backend real (PostgreSQL + Express), sin mocks MSW.
  * Criterio de cierre Issue #108:
  * "Un test de recorrido (registro, organización, cliente, movimiento, dashboard) pasa contra el backend real, sin mocks."
  */
-describe("Recorrido funcional completo contra Backend Real sin mocks (Issue #108)", () => {
+describe.skipIf(!dbAvailable)("Recorrido funcional completo contra Backend Real sin mocks (Issue #108)", () => {
   const timestamp = Date.now();
   const testEmail = `recorrido-${timestamp}@test.com`;
   const testPassword = "Password123!";
@@ -41,15 +55,6 @@ describe("Recorrido funcional completo contra Backend Real sin mocks (Issue #108
   let incomeCategoryId: number;
   let createdTxId: number;
 
-  beforeAll(async () => {
-    // Validar conexión a la base de datos PostgreSQL real
-    try {
-      await prisma.$connect();
-    } catch (err) {
-      console.warn("PostgreSQL no disponible, salteando test de recorrido:", err);
-    }
-  });
-
   afterAll(async () => {
     try {
       if (createdTxId) {
@@ -58,6 +63,10 @@ describe("Recorrido funcional completo contra Backend Real sin mocks (Issue #108
       if (createdClientId) {
         await prisma.client.deleteMany({ where: { id: createdClientId } });
       }
+      // La auditoría referencia a la organización y al usuario: va antes de borrarlos.
+      await prisma.auditLog.deleteMany({
+        where: { OR: [{ organizationId: createdOrgId ?? -1 }, { userId: createdUserId ?? -1 }] },
+      });
       if (createdOrgId) {
         await prisma.pointOfSale.deleteMany({ where: { organizationId: createdOrgId } });
         await prisma.category.deleteMany({ where: { organizationId: createdOrgId } });

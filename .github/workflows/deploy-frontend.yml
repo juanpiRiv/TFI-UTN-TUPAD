@@ -25,8 +25,8 @@ jobs:
     timeout-minutes: 15
     env:
       VITE_API_URL: ${{ vars.VITE_API_URL }}
-      # Sin backend desplegado, el front se publica con los mocks de MSW.
-      VITE_USE_MOCKS: ${{ vars.VITE_USE_MOCKS || 'true' }}
+      # Vacío (lo normal) = el sitio usa la API de VITE_API_URL. Con módulos, esos se simulan con MSW.
+      VITE_MOCK_MODULES: ${{ vars.VITE_MOCK_MODULES }}
     steps:
       - uses: actions/checkout@v4
 

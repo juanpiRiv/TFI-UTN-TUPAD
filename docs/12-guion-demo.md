@@ -19,7 +19,7 @@ Este guion describe el recorrido sobre el release de `main`.
 1. Levantar todo con el script del repositorio (`./scripts/dev.sh`) o, a mano, siguiendo la sección "Cómo levantar el proyecto" del [README](../README.md):
    - PostgreSQL en Docker (puerto 5433).
    - Backend en `http://localhost:3000`, con `ARCA_PROVIDER=simulated` en `backend/.env` (sin esa variable el backend no arranca).
-   - Frontend en `http://localhost:5173`, con `VITE_USE_MOCKS=false` para usar el backend real.
+   - Frontend en `http://localhost:5173`, sin `VITE_MOCK_MODULES` (es el valor por defecto) para usar el backend real.
 2. Cargar los datos de prueba con `pnpm db:seed`. Crea el usuario `demo@monotributo.com` con la contraseña `Password123!`, una organización, un punto de venta, clientes y categorías.
 3. Sesión cerrada en el navegador, zoom entre 100 % y 110 %.
 4. Probar el recorrido completo una vez antes de grabar. Una factura facturada no se puede deshacer: para repetir la demo hay que volver a crear los datos con el seed.
