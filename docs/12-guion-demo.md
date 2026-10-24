@@ -1,111 +1,71 @@
-# Guion y Estructura de la Demo en Video
+# Guion de la demo
 
-**Requerimiento:** F10-6 (Issue #81: `docs(demo): grabar el video o demo del sistema`)  
-**Duración estimada:** 5 a 7 minutos  
-**Objetivo:** Demostrar de forma fluida el recorrido funcional completo de la plataforma: **Login → Onboarding / Organización → Clientes → Categorías → Facturación Electrónica (ARCA) → Cobranza / Pagos → Dashboard Financiero**.
+**Requerimiento:** F10-6 (Issue #81: `docs(demo): grabar el video o demo del sistema`)
+**Duración estimada:** 6 a 8 minutos
+**Recorrido:** ingreso → organización → clientes → categorías → movimientos → factura en borrador → facturar → cobro parcial → dashboard.
 
----
+## Qué es real y qué es simulado
 
-## 1. Preparación Previa (Antes de Grabar)
+Decirlo en el video, de entrada. Si no se aclara, parece que se emitió una factura fiscal:
 
-1. **Servidores locales activos:**
-   - Base de datos PostgreSQL en contenedor Docker (`port 5433`).
-   - Backend Express corriendo en `http://localhost:3000`.
-   - Frontend Vite corriendo en `http://localhost:5173`.
-2. **Navegador limpio:**
-   - Ventana en modo incógnito o sesión cerrada para mostrar el login inicial.
-   - Zoom al 100% o 110% para legibilidad óptima de tipografías y tablas.
-3. **Datos de prueba sugeridos:**
-   - **Usuario demo:** `demo@monotributo.com` / `password123!`
-   - **Cliente de ejemplo:** Razón Social `Estudio Contable García & Asoc.`, CUIT `30-71234567-8`.
-   - **Ítem de factura:** `Consultoría técnica mensual`, Cantidad: `1`, Precio: `$ 250.000,00`.
+- **Simulado:** la autorización. El backend corre con `ARCA_PROVIDER=simulated`, así que el CAE lo genera un cliente simulado y **no tiene validez fiscal**. La pantalla lo avisa con el texto "Comprobante de prueba, sin validez fiscal".
+- **Real:** todo lo demás. Los datos viven en PostgreSQL; las cuentas, clientes, movimientos, cobros y el dashboard son los del sistema; la cotización sugerida sale del BCRA.
+- **Pendiente:** la primera autenticación y emisión reales contra homologación de ARCA (issue #138). No se muestra en la demo.
 
----
+## Antes de grabar
 
-## 2. Minuto a Minuto del Recorrido
+Este guion supone que ya están mergeados los PRs de creación de facturas (#150, ya está) y de facturar (#152). Si #152 no está, el recorrido se corta en el paso 6.
 
-### Minuto 0:00 - 0:45 | Introducción y Presentación del Problema
-- **Qué se muestra en pantalla:** Pantalla de Inicio de Sesión (`/login`).
-- **Qué decir:**
-  > "Buenas tardes. En esta demo presentamos nuestra plataforma integral de facturación y gestión financiera para monotributistas, desarrollada para el Trabajo Final Integrador de la Tecnicatura Universitaria en Programación de Sistemas de la UTN.
-  > El sistema resuelve el desfasaje cotidiano entre emitir facturas en ARCA y controlar la caja real del negocio, unificando cobranzas, movimientos multimoneda y métricas de gestión en una única aplicación web ágil y segura."
+1. Levantar todo con el script del repositorio (`./scripts/dev.sh`) o, a mano, siguiendo la sección "Cómo levantar el proyecto" del [README](../README.md):
+   - PostgreSQL en Docker (puerto 5433).
+   - Backend en `http://localhost:3000`, con `ARCA_PROVIDER=simulated` en `backend/.env` (sin esa variable el backend no arranca).
+   - Frontend en `http://localhost:5173`, con `VITE_USE_MOCKS=false` para usar el backend real.
+2. Cargar los datos de prueba con `pnpm db:seed`. Crea el usuario `demo@monotributo.com` con la contraseña `Password123!`, una organización, un punto de venta, clientes y categorías.
+3. Sesión cerrada en el navegador, zoom entre 100 % y 110 %.
+4. Probar el recorrido completo una vez antes de grabar. Una factura facturada no se puede deshacer: para repetir la demo hay que volver a crear los datos con el seed.
 
----
+## Recorrido
 
-### Minuto 0:45 - 1:30 | Autenticación y Onboarding de la Organización
-- **Qué se muestra en pantalla:**
-  1. Iniciar sesión con el usuario demo (`demo@monotributo.com`).
-  2. Navegar a Configuración de la Organización (`/organizacion` o perfil).
-- **Qué destacar:**
-  - CUIT fiscal y Razón Social del monotributista.
-  - Condición frente al IVA (`Monotributo`) y categoría.
-  - Moneda base en Pesos Argentinos (`ARS`).
-  - Punto de Venta fiscal habilitado para facturación electrónica.
+### 0:00 a 0:45: presentación
+- **Pantalla:** `/login`.
+- **Decir:** qué problema resuelve (el monotributista factura en un lado y lleva su plata en otro) y la idea central: facturar, cobrar y mover plata son tres cosas distintas.
+- Aclarar que la autorización con ARCA es simulada (ver arriba).
 
----
+### 0:45 a 1:30: ingreso y organización
+- Iniciar sesión con `demo@monotributo.com`.
+- Abrir **Organización** (`/organizacion`) y mostrar CUIT, razón social y condición frente al IVA.
 
-### Minuto 1:30 - 2:30 | Gestión de Clientes y Categorías de Caja
-- **Qué se muestra en pantalla:**
-  1. Ir al módulo de **Clientes** (`/clientes`).
-     - Mostrar el listado con CUIT, Razón Social, Condición Tributaria y estado activo.
-     - Mostrar que cada cliente cuenta con un historial de comprobantes y movimientos asociados.
-  2. Ir al módulo de **Categorías** (`/categorias`).
-     - Mostrar las categorías predeterminadas del negocio (ingresos como *Ventas* y *Cobro de facturas*, egresos como *Servicios*, *Alquiler*, *Impuestos*).
-     - Mostrar cómo se da de alta una nueva categoría o se realiza una baja lógica sin perder consistencia histórica.
+### 1:30 a 2:30: clientes y categorías
+- **Clientes** (`/clientes`): mostrar el listado, buscar uno y entrar al detalle para ver su historial. Mostrar la baja lógica (un cliente dado de baja no se borra).
+- **Categorías** (`/categorias`): mostrar las de ingreso y egreso y crear una nueva.
 
----
+### 2:30 a 3:45: movimientos
+- **Movimientos** (`/movimientos`): registrar un egreso en pesos.
+- Registrar un ingreso en dólares y mostrar que el formulario sugiere la cotización del BCRA, que se puede cambiar. Explicar que el tipo de cambio queda guardado en el movimiento.
+- Probar los filtros por fecha, tipo y categoría.
 
-### Minuto 2:30 - 4:00 | Facturación Electrónica y Autorización ARCA
-- **Qué se muestra en pantalla:**
-  1. Ir al módulo de **Facturas** (`/facturas`).
-  2. Hacer clic en **"Nueva Factura"**.
-  3. Completar el formulario:
-     - Tipo de comprobante: `Factura C`.
-     - Cliente receptor: Seleccionar un cliente existente (se completan automáticamente CUIT y datos de snapshot).
-     - Concepto: `Servicios` (mostrar cómo se habilitan fechas de prestación y vencimiento).
-     - Ítem: `Consultoría técnica mensual`, Cantidad: `1`, Precio Unitario: `$ 250.000,00`.
-  4. Mostrar que el total ($ 250.000,00) lo calcula de forma estricta el backend con precisión decimal.
-  5. Guardar como borrador y hacer clic en **"Autorizar comprobante"**.
-  6. **Momento clave:** Mostrar cómo el sistema se comunica con ARCA (WSFEv1), autoriza el comprobante y recibe el **Código de Autorización Electrónico (CAE)** con su fecha de vencimiento fiscal oficial.
+### 3:45 a 5:15: factura en borrador y facturar
+- **Facturas** (`/facturas`) → **Nueva factura** (`/facturas/nueva`).
+- Elegir el cliente "Estudio Contable García & Asoc.", concepto **Servicios** (se proponen el mes de la factura y el vencimiento a 30 días) y un ítem: "Consultoría técnica mensual", cantidad 1, precio 250000. Mostrar el total estimado y aclarar que el backend lo vuelve a calcular.
+- **Crear borrador**. En el detalle se ve el estado **Borrador** y que todavía no se puede cobrar.
+- **Facturar** y confirmar. Se ve el CAE y el aviso "Comprobante de prueba, sin validez fiscal". Decir que acá, con el proveedor real, se pediría el CAE a ARCA.
 
----
+### 5:15 a 6:30: cobro parcial
+- En la factura autorizada, **Importe a cobrar**: 100000 y **Registrar cobro**. El estado pasa a **Cobrada en parte** y el saldo baja a $ 150.000,00.
+- Explicar que cada cobro genera su propio movimiento de ingreso (nunca uno por la factura completa) y que el control de saldo corre dentro de una transacción de base de datos con bloqueo de fila, para que dos cobros simultáneos no superen el total.
 
-### Minuto 4:00 - 5:30 | Cobranzas Parciales, Bloqueo Pesimista y Adopción
-- **Qué se muestra en pantalla:**
-  1. Dentro de la factura autorizada, mostrar su estado comercial inicial: **Pendiente de Cobro** (Saldo: $ 250.000,00).
-  2. Hacer clic en **"Registrar Cobro"**:
-     - Registrar un pago parcial por `$ 100.000,00`.
-     - Mostrar cómo el estado pasa a **Cobrada Parcialmente** y el saldo remanente desciende a `$ 150.000,00`.
-  3. Explicar brevemente la arquitectura de concurrencia:
-     > "Cada pago se ejecuta dentro de una transacción PostgreSQL con bloqueo pesimista (`FOR UPDATE`). Esto garantiza que dos cobros simultáneos nunca puedan superar el saldo de la factura ni generar inconsistencias."
-  4. Explicar el mecanismo de **Adopción de Ingresos Manuales** para evitar el doble conteo entre movimientos de caja y facturación posterior.
+### 6:30 a 7:30: dashboard
+- **Dashboard** (`/`): Total Facturado, Total Cobrado y "Facturado menos cobrado en el período".
+- Diferenciar **Resultado de caja** (plata que entró menos plata que salió) de **Resultado de gestión** (facturado más ingresos manuales menos egresos).
+- Mostrar el gráfico por categoría.
 
----
+### 7:30 a 8:00: cierre
+- Resumir lo que funciona y decir qué falta: la prueba real contra homologación de ARCA, el PDF del comprobante, la reconciliación de facturas pendientes y el despliegue público.
 
-### Minuto 5:30 - 6:30 | Dashboard Financiero: Caja vs. Gestión
-- **Qué se muestra en pantalla:** Ir a la pantalla principal del **Dashboard** (`/`).
-- **Qué destacar:**
-  1. **Métricas Superiores:**
-     - **Total Facturado en el período:** suma de facturas autorizadas por fecha de emisión.
-     - **Total Cobrado:** cobranzas reales ingresadas en la ventana de tiempo.
-     - **Facturado menos Cobrado:** desfasaje temporal de cobranzas del mes.
-  2. **Resultado de Caja vs. Resultado de Gestión:**
-     - Explicar la diferencia: la caja mide la liquidez neta (`ingresos - egresos`), mientras que la gestión mide el resultado económico devengado (`facturado + ingresos manuales - egresos`).
-  3. **Gráficos de Distribución:**
-     - Mostrar los gráficos interactivos de Recharts por categoría de gasto e ingreso.
+## Checklist de grabación
 
----
-
-### Minuto 6:30 - 7:00 | Cierre y Conclusiones
-- **Qué decir:**
-  > "Como pudimos observar, la plataforma cumple al 100% con los requerimientos del régimen de Monotributo, garantizando integridad fiscal con ARCA, robustez transaccional en base de datos y una experiencia de usuario clara y ágil.
-  > Muchas gracias por su tiempo."
-
----
-
-## 3. Checklist de Grabación
-
-- [ ] Audio claro y sin ruido ambiente.
-- [ ] Resolución de video recomendada: 1080p (1920x1080).
-- [ ] No mostrar contraseñas reales ni certificados productivos de ARCA.
-- [ ] Verificar que todos los movimientos y facturas cargados en la demo figuren en estado coherente.
+- [ ] Audio claro, sin ruido de fondo.
+- [ ] 1080p.
+- [ ] Se aclara que la autorización es simulada.
+- [ ] No se muestran contraseñas reales, certificados ni claves de ARCA.
+- [ ] El recorrido se probó completo antes de grabar.

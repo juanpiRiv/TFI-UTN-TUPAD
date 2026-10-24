@@ -71,15 +71,15 @@ Stack, según los `package.json` y el esquema del repositorio:
 1. **Autenticación:** registro e inicio de sesión (Argon2id y JWT de 1 día), cambio de contraseña y perfil de usuario. El aislamiento por organización se aplica en las consultas del backend.
 2. **Organización:** alta y edición del perfil fiscal (CUIT, razón social, condición frente al IVA). Al crearla se generan las categorías por defecto.
 3. **Clientes:** alta, edición, baja lógica, búsqueda e historial de operaciones.
-4. **Categorías:** listar, crear y editar (PR #149, ya mergeado).
+4. **Categorías:** listar, crear y editar (PR #149).
 5. **Movimientos:** ingresos y egresos en ARS y USD, con filtros por fecha, tipo y categoría y sugerencia de cotización del BCRA.
 6. **Cobros:** pagos parciales o totales sobre facturas autorizadas, con control de saldo y de moneda, y adopción de un ingreso manual existente.
 7. **Dashboard:** resultado de caja, resultado de gestión y facturado contra cobrado, con gráficos de Recharts.
-8. **Auditoría:** hay una tabla `audit_logs` y se registran altas de organización, movimientos y pagos. El login y la autorización de facturas todavía no se auditan.
+8. **Facturas en borrador:** crear una factura con uno o más ítems, con subtotales y total calculados por el backend y los datos del receptor copiados; pantalla de alta y listado (PR #150). Todavía no se pueden editar.
+9. **Auditoría:** hay una tabla `audit_logs` y se registran altas de organización, movimientos, pagos y facturas creadas. El login y la autorización de facturas todavía no se auditan.
 
 ### 3.2. En revisión (PRs abiertos)
 
-- **#150:** crear facturas en borrador con ítems, con el total calculado por el backend, y pantalla de alta.
 - **#151:** elegir el proveedor fiscal con `ARCA_PROVIDER`.
 - **#152:** botón **Facturar** con el proveedor simulado (autoriza, rechaza o queda pendiente).
 - **#148:** despliegue del backend en Railway y del frontend en Cloudflare Pages.
@@ -117,11 +117,11 @@ El aislamiento entre organizaciones se resuelve en cada servicio, filtrando por 
 ## 5. Pruebas
 
 Sobre `develop` al 24/10/2026:
-- **Backend (Vitest y Supertest):** 185 tests pasan y 17 de integración se saltan cuando no hay PostgreSQL. Tres suites (`invoices`, `payments` y la de RN-06) necesitan `DATABASE_URL` y `JWT_SECRET` y fallan si faltan esas variables.
-- **Frontend (Vitest y Testing Library):** 37 tests pasan.
+- **Backend (Vitest y Supertest):** 202 tests pasan y 17 de integración se saltan cuando no hay PostgreSQL. Tres suites (`invoices`, `payments` y la de RN-06) necesitan `DATABASE_URL` y `JWT_SECRET` y fallan si faltan esas variables.
+- **Frontend (Vitest y Testing Library):** 48 tests pasan.
 - Los tests que prueban concurrencia real (`FOR UPDATE`) requieren PostgreSQL local (`docker compose up -d`) y no se ejecutaron en el entorno donde se actualizó este informe.
 
-La ronda de QA general quedó registrada en el issue #74 y sus correcciones en #75. Los PRs abiertos suman tests propios: 17 en el backend y 11 en el frontend para la creación de facturas, y 20 en el backend y 7 en el frontend para facturar.
+La ronda de QA general quedó registrada en el issue #74 y sus correcciones en #75. Los PRs abiertos suman tests propios: el #152 (facturar) agrega 20 en el backend y 7 en el frontend.
 
 ---
 
