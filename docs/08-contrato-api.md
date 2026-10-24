@@ -193,6 +193,7 @@ Cubre RF-22 y RF-23. El backend crea facturas en borrador, las consulta y las au
 | Endpoint | Cuerpo | Respuesta |
 | --- | --- | --- |
 | `POST /api/invoices` | Ver abajo | `201` con la factura en estado `DRAFT` y la misma forma que `GET /api/invoices/:id` (con `invoiceId`, `items`, `totalPaid` en `0.00` y `payments` vacío). `400` si algún campo no es válido o no hay ítems. `404` si el cliente o el punto de venta no existen en la organización. `409` si el cliente está dado de baja. `403` si todavía no hay organización. |
+| `POST /api/invoices/:invoiceId/authorize` | Sin cuerpo | `200` con `{ invoice, fiscal }`: `invoice` tiene la forma del detalle y `fiscal` trae `outcome` (`AUTHORIZED`, `AUTHORIZED_WITH_OBSERVATIONS` o `REJECTED`), `simulated`, `observations` y `errors`. `202` si ARCA no respondió (`INDETERMINATE`) y la factura queda `PENDING`. `409` si no está en borrador. `404` si no existe. `502` si falló la comunicación y quedó `PENDING`. `503` si el proveedor fiscal no se pudo armar (la factura no se toca). |
 
 ```json
 {
@@ -206,8 +207,6 @@ Cubre RF-22 y RF-23. El backend crea facturas en borrador, las consulta y las au
   "items": [{ "description": "Consultoría técnica", "quantity": 1, "unitPrice": 250000 }]
 }
 ```
-
-| `POST /api/invoices/:invoiceId/authorize` | Sin cuerpo | `200` con `{ invoice, fiscal }`: `invoice` tiene la forma del detalle y `fiscal` trae `outcome` (`AUTHORIZED`, `AUTHORIZED_WITH_OBSERVATIONS` o `REJECTED`), `simulated`, `observations` y `errors`. `202` si ARCA no respondió (`INDETERMINATE`) y la factura queda `PENDING`. `409` si no está en borrador. `404` si no existe. `502` si falló la comunicación y quedó `PENDING`. `503` si el proveedor fiscal no se pudo armar (la factura no se toca). |
 
 Cómo autoriza (docs/02, sección 4): reserva el borrador (`DRAFT` → `PENDING`) con la fila bloqueada; después, de a una por punto de venta, calcula el número (el mayor entre el último del proveedor y el último autorizado en la base, más uno), pide el CAE y guarda `AUTHORIZED` con `voucher_number`, `cae` y `cae_expiration`, o `REJECTED` con los errores en `arca_response`. Registra `invoice.authorized` o `invoice.rejected` en la auditoría. Una factura `PENDING` no se reintenta sola: la reconciliación todavía no está hecha.
 
