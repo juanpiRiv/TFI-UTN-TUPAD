@@ -2,21 +2,13 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import type { DashboardSummaryQuery } from "./dashboard.schemas.js";
+import { getUserOrganization } from "../../lib/organizations.js";
 
 /**
  * Obtiene la organización de un usuario autenticado para determinar su moneda base.
  */
 export async function getOrganizationByUserId(userId: number) {
-  const org = await prisma.organization.findUnique({
-    where: { userId },
-    select: { id: true, baseCurrency: true },
-  });
-
-  if (!org) {
-    throw new AppError(404, "Organization not found for this user");
-  }
-
-  return org;
+  return await getUserOrganization(userId);
 }
 
 /**
@@ -73,7 +65,6 @@ export async function getDashboardSummary(
     number,
     { categoryId: number; name: string; type: string; total: Prisma.Decimal }
   >();
-
   for (const tx of transactions) {
     let converted: Prisma.Decimal;
     if (tx.currency === org.baseCurrency) {

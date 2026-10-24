@@ -5,6 +5,12 @@ import { prisma } from "../../lib/prisma.js";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env.js";
 
+// Valores falsos: la base está mockeada, pero config/env.ts exige las variables al importar la app.
+vi.hoisted(() => {
+  process.env.DATABASE_URL ??= "postgresql://test:test@localhost:5432/test";
+  process.env.JWT_SECRET ??= "test-secret-solo-para-tests-0000000";
+});
+
 vi.mock("../../lib/prisma.js", () => ({
   prisma: {
     organization: {

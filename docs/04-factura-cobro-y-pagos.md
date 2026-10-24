@@ -93,40 +93,6 @@ El panel muestra de forma separada:
 > [!NOTE]
 > Esta diferencia mide el desfasaje entre emisión y cobranza dentro de la ventana de tiempo consultada. Por ejemplo, en octubre Lucía factura $0 y cobra $60.000 de la factura de septiembre: la diferencia de octubre es -$60.000, reflejando fielmente que en ese mes las cobranzas superaron la facturación. No debe confundirse con la deuda histórica total de clientes ("saldo por cobrar"), la cual es la sumatoria del saldo pendiente (`pendingBalance`) de todas las facturas autorizadas abiertas y se administra en el módulo de facturación.
 
-### Prevención de doble conteo: Ingresos manuales vs. Facturas (Conciliación por Adopción - #98)
-
-Un escenario frecuente en la operatoria de un monotributista ocurre cuando recibe primero el dinero (por ejemplo, una transferencia bancaria o pago en efectivo) y lo anota de inmediato como movimiento manual para cuadrar su caja diaria, pero recién emite la factura días más tarde.
-
-Si el sistema tratara ambos registros de forma ingenua:
-1. El movimiento manual sumaría como ingreso en la caja y en el resultado económico.
-2. Al emitirse la factura, el importe sumaría a lo facturado.
-3. Si al cobrar la factura se creara un nuevo movimiento de cobro, el dinero entraría dos veces en caja y la venta figuraría duplicada en la gestión comercial.
-
-#### Decisión de Dominio: El Mecanismo de Adopción (`adoptTransactionId`)
-Para resolver este problema sin complejizar la base de datos con tablas intermedias ni forzar al usuario a borrar movimientos históricos, se implementó la **conciliación por adopción**:
-- Al registrar el pago de una factura autorizada (`POST /api/invoices/:id/payments`), el cliente puede enviar opcionalmente el campo `adoptTransactionId`.
-- **Validaciones atómicas (Backend):**
-  1. Mediante `SELECT ... FOR UPDATE` dentro de la transacción Prisma, se bloquea pesimistamente el registro en `transactions`. Esto impide que dos cobros simultáneos adopten el mismo movimiento en condiciones de carrera.
-  2. Se valida que el movimiento pertenezca a la misma organización, que no esté anulado (`voided_at IS NULL`) y que su `payment_id` sea `NULL` (que no esté ya adoptado por otro cobro).
-  3. Se exige que el tipo sea estrictamente `INCOME`, y que tanto el `amount` como el `currency` coincidan de manera exacta con los datos del nuevo pago.
-- **Efecto de la adopción:**
-  - Se genera el registro en `payments` vinculado a la factura.
-  - **No se crea un nuevo movimiento de caja.** En su lugar, el movimiento preexistente se actualiza (`transactions.payment_id = payment.id`, categoría "Cobro de facturas" y asociación al cliente de la factura).
-- **Impacto en el Dashboard:**
-  - El cálculo del dashboard clasifica los ingresos en dos grupos disjuntos:
-    - `manualIncome`: ingresos con `payment_id IS NULL`.
-    - `collected`: ingresos con `payment_id IS NOT NULL`.
-  - La fórmula del resultado de gestión es:
-    $$\text{Resultado de Gestión} = \text{invoiced} + \text{manualIncome} - \text{expense}$$
-  - **Evolución del estado:** Mientras el usuario no concilia, el ingreso figura como `manualIncome`. Al adoptarlo mediante el cobro de la factura, el movimiento deja de ser `manualIncome` y pasa a `collected`. Como la factura ya aportaba su valor en `invoiced`, el hecho económico se computa **exactamente una sola vez**, manteniendo la caja (`income - expense`) y la gestión en perfecta consistencia matemática.
-
-### Coincidencia Estricta de Moneda Factura-Pago (#97)
-Para garantizar la consistencia en el control de saldos y sumatorias sin requerir conversiones dinámicas complejas en el P0:
-- Cada pago sobre una factura debe realizarse **estrictamente en la misma moneda que la factura** (`Payment.currency === Invoice.currency`).
-- Si un usuario o cliente de API intenta enviar un pago con una moneda distinta (por ejemplo, registrar un pago en `USD` para una factura autorizada en `ARS`), el servicio de backend rechaza la operación inmediatamente con código HTTP `422 Unprocessable Entity` y el mensaje descriptivo:
-  `"La moneda del pago (USD) debe coincidir con la moneda de la factura (ARS)"`.
-- Esta restricción asegura que la suma de pagos parciales contra el total de la factura (`totalAmount - SUM(payments.amount)`) opere sobre unidades monetarias homogéneas, previniendo distorsiones financieras.
-
 ## Concepto de la factura
 
 ARCA pide que cada factura diga si es por productos (1), servicios (2) o productos y servicios (3). Si incluye servicios, además hay que informar desde y hasta cuándo se prestó el servicio y el vencimiento del pago.

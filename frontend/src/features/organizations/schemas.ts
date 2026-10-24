@@ -24,6 +24,9 @@ export function isValidCuit(cuit: string): boolean {
   return expected !== 10 && expected === digits[10]
 }
 
+/** Tax conditions an issuing organization can have (the clients can also be CONSUMIDOR_FINAL). */
+export const organizationTaxConditions = ['MONOTRIBUTO', 'RESPONSABLE_INSCRIPTO', 'EXENTO'] as const
+
 export const organizationSchema = z.object({
   cuit: z
     .string()
@@ -38,14 +41,14 @@ export const organizationSchema = z.object({
   tradeName: optionalText(255),
   commercialAddress: optionalText(255),
   // P0 profile: monotributista. The other values exist in the backend enum.
-  taxCondition: z.enum(['MONOTRIBUTO', 'RESPONSABLE_INSCRIPTO', 'EXENTO', 'CONSUMIDOR_FINAL']),
+  taxCondition: z.enum(organizationTaxConditions),
   monotributoCategory: optionalText(10),
   activityStartDate: z
     .string()
     .transform((value) => (value === '' ? null : value))
     .refine((value) => value === null || /^\d{4}-\d{2}-\d{2}$/.test(value), 'Fecha inválida'),
   grossIncomeNumber: optionalText(50),
-  baseCurrency: z.enum(['ARS', 'USD'], { error: 'Elegí la moneda base' }),
+  baseCurrency: z.literal('ARS'),
 })
 
 export type OrganizationFormValues = z.input<typeof organizationSchema>
@@ -60,5 +63,4 @@ export const organizationFields = [
   'monotributoCategory',
   'activityStartDate',
   'grossIncomeNumber',
-  'baseCurrency',
 ] as const satisfies readonly (keyof OrganizationFormValues)[]

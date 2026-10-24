@@ -1,0 +1,15 @@
+# Copia literal de evidencia/raw/conn/log.txt (lineas 14 a 27), captura 2026-10-19T22:00:22Z (cabecera Date de la respuesta).
+# El archivo bad.xml es un sobre loginCms con in0=AAAA. Sin certificado.
+$ curl ... -H "SOAPAction: urn:LoginCms" --data-binary @bad.xml https://wsaahomo.afip.gov.ar/ws/services/LoginCms   (in0=AAAA)
+HTTP/1.1 200 Connection Established
+
+HTTP/1.1 500 Internal Server Error
+Date: Mon, 19 Oct 2026 22:00:22 GMT
+Content-Type: text/xml;charset=utf-8
+Connection: close
+Set-Cookie: f5avraaaaaaaaaaaaaaaa_session_=EHELCKCMGDCGPEOLPFFJEFCEAODPJENBHFEEDINCCFEGPDOBDCKJAKENNHFLFCJNBFCDJMNPBCDEMAMBENJANGDNKJAIKCNIJOPMHMOJBCPAFOPMNKHNFMKCEANKCHPF; HttpOnly; secure;
+Set-Cookie: TS01b14f84=01ef919f300a2d7b3fcc34ade94bcd19abfb9e5292e7047c7e495120fef4cd33a9b628fcea25bd0d13814462a81badcd09ee55ce7106d4ae09e4ce0a297f1ed25205780d4d; Path=/; 
+Vary: Accept-Encoding
+Transfer-Encoding: chunked
+
+<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Body><soapenv:Fault><faultcode xmlns:ns1="http://xml.apache.org/axis/">ns1:cms.bad</faultcode><faultstring>El CMS no es valido</faultstring><detail><ns2:exceptionName xmlns:ns2="http://xml.apache.org/axis/">gov.afip.desein.dvadac.sua.view.wsaa.LoginFault</ns2:exceptionName><ns3:hostname xmlns:ns3="http://xml.apache.org/axis/">wsaaext1.homo.afip.gov.ar</ns3:hostname></detail></soapenv:Fault></soapenv:Body></soapenv:Envelope>

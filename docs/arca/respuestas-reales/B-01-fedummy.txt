@@ -1,0 +1,8 @@
+# B: facturas@0.25.2 getServerStatus (FEDummy) contra homologacion real
+# comando: node probe-b.mjs dummy
+fecha 2026-10-19T22:07:14.981Z
+[getServerStatus] OK 1104ms {
+ "appServer": "OK",
+ "dbServer": "OK",
+ "authServer": "OK"
+}

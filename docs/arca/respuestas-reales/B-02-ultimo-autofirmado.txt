@@ -1,0 +1,24 @@
+# B: facturas@0.25.2 wsfe.getNextVoucherNumber con certificado AUTOFIRMADO de prueba, CUIT falso 20000000001 contra WSAA/WSFE de homologacion real
+# comando: node probe-b.mjs last
+fecha 2026-10-19T22:07:17.234Z
+WSAA SOAP fault response {
+  service: 'wsfe',
+  operation: 'loginCms',
+  url: 'https://wsaahomo.afip.gov.ar/ws/services/LoginCms',
+  errorName: 'ArcaSoapFaultError',
+  errorCode: 'ARCA_SOAP_FAULT',
+  faultCode: 'ns1:cms.cert.untrusted'
+}
+[getNextVoucherNumber] ERROR 11382ms ArcaSoapFaultError ARCA_SOAP_FAULT Certificado no emitido por AC de confianza
+cause: undefined undefined
+safe: {
+ "name": "ArcaSoapFaultError",
+ "message": "Certificado no emitido por AC de confianza",
+ "code": "ARCA_SOAP_FAULT",
+ "faultCode": "ns1:cms.cert.untrusted"
+}
+{
+  faultCode: 'ns1:cms.cert.untrusted',
+  reason: undefined,
+  statusCode: undefined
+}
