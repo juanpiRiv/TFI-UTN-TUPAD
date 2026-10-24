@@ -188,7 +188,7 @@ Cada movimiento de la respuesta trae, además de sus campos, la categoría y el 
 
 ## Facturas
 
-Cubre RF-22 y RF-23. Por ahora el backend crea facturas en borrador y las consulta. Autorizarlas con ARCA llega después (#59).
+Cubre RF-22 y RF-23. El backend crea facturas en borrador, las consulta y las autoriza con el proveedor fiscal que indique `ARCA_PROVIDER` (hoy se prueba con el simulado).
 
 | Endpoint | Cuerpo | Respuesta |
 | --- | --- | --- |
@@ -206,6 +206,10 @@ Cubre RF-22 y RF-23. Por ahora el backend crea facturas en borrador y las consul
   "items": [{ "description": "Consultoría técnica", "quantity": 1, "unitPrice": 250000 }]
 }
 ```
+
+| `POST /api/invoices/:invoiceId/authorize` | Sin cuerpo | `200` con `{ invoice, fiscal }`: `invoice` tiene la forma del detalle y `fiscal` trae `outcome` (`AUTHORIZED`, `AUTHORIZED_WITH_OBSERVATIONS` o `REJECTED`), `simulated`, `observations` y `errors`. `202` si ARCA no respondió (`INDETERMINATE`) y la factura queda `PENDING`. `409` si no está en borrador. `404` si no existe. `502` si falló la comunicación y quedó `PENDING`. `503` si el proveedor fiscal no se pudo armar (la factura no se toca). |
+
+Cómo autoriza (docs/02, sección 4): reserva el borrador (`DRAFT` → `PENDING`) con la fila bloqueada; después, de a una por punto de venta, calcula el número (el mayor entre el último del proveedor y el último autorizado en la base, más uno), pide el CAE y guarda `AUTHORIZED` con `voucher_number`, `cae` y `cae_expiration`, o `REJECTED` con los errores en `arca_response`. Registra `invoice.authorized` o `invoice.rejected` en la auditoría. Una factura `PENDING` no se reintenta sola: la reconciliación todavía no está hecha.
 
 - `pointOfSaleId` es opcional: si falta se usa el primer punto de venta activo. `clientId` es opcional: sin cliente se emite como consumidor final.
 - `concept` es `PRODUCTOS`, `SERVICIOS` o `PRODUCTOS_Y_SERVICIOS`. Si incluye servicios, `serviceFrom`, `serviceTo` y `paymentDueDate` son obligatorias.
