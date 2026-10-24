@@ -121,3 +121,26 @@ quien cierra el issue.
   ```
   gh auth refresh -s project -s read:project
   ```
+
+## Deploy del frontend
+
+El workflow [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml)
+publica el frontend en Cloudflare Pages cuando entra un cambio a `main`
+(o a mano desde Actions > Deploy frontend > Run workflow). Antes de
+publicar corre lint, tests y build.
+
+Configuración en GitHub (Settings > Secrets and variables > Actions), a
+cargar por quien administra la cuenta de Cloudflare, nunca en el repo:
+
+| Tipo | Nombre | Para qué |
+|---|---|---|
+| Secret | `CLOUDFLARE_API_TOKEN` | Token con el permiso Cloudflare Pages: Edit, con vencimiento |
+| Secret | `CLOUDFLARE_ACCOUNT_ID` | Identificador de la cuenta |
+| Variable | `CLOUDFLARE_PAGES_PROJECT` | Nombre del proyecto en Pages (por defecto `tfi-tupad`) |
+| Variable | `VITE_API_URL` | URL pública del backend |
+| Variable | `VITE_USE_MOCKS` | `false` cuando el backend esté desplegado (por defecto `true`) |
+
+El proyecto de Pages tiene que existir antes del primer deploy
+(`wrangler pages project create tfi-tupad --production-branch=main`).
+Mientras `VITE_USE_MOCKS` sea `true`, el sitio publicado usa datos
+simulados.
