@@ -41,7 +41,7 @@ Hoy el certificado de homologación vive solo en la computadora del titular del 
 | `CLOUDFLARE_ACCOUNT_ID` | Secret | Workflow del frontend |
 | `CLOUDFLARE_PAGES_PROJECT` | Variable (opcional, por defecto `tfi-tupad`) | Workflow del frontend |
 | `VITE_API_URL` | Variable | Build del frontend |
-| `VITE_USE_MOCKS` | Variable (por defecto `true`) | Build del frontend |
+| `VITE_MOCK_MODULES` | Variable (vacía = usa la API real; es lo normal) | Build del frontend |
 
 Las variables `VITE_*` quedan incluidas en el sitio publicado y las ve cualquiera: no pueden ser secretos.
 
@@ -66,7 +66,7 @@ Lo hace la persona dueña de la cuenta de Railway (Brian). Los pasos son por el 
 ## Después: conectar el frontend
 
 1. Probar que el backend responde en su URL pública.
-2. En GitHub (Settings → Secrets and variables → Actions → Variables), cargar `VITE_API_URL` con esa URL y `VITE_USE_MOCKS` con `false`.
+2. En GitHub (Settings → Secrets and variables → Actions → Variables), cargar `VITE_API_URL` con esa URL. `VITE_MOCK_MODULES` se deja sin definir, para que el sitio use la API real.
 3. Relanzar el workflow del frontend (Actions → Deploy frontend → Run workflow).
 4. Probar el recorrido completo en las URLs publicadas: ingreso, cliente, movimiento, factura, pago y dashboard.
 
