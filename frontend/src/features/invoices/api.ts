@@ -4,6 +4,7 @@ import {
   invoiceListItemSchema,
   type CreatePaymentFormData,
   type InvoiceDetail,
+  type InvoiceInput,
   type InvoiceListItem,
 } from './schemas'
 import { z } from 'zod'
@@ -26,4 +27,9 @@ export async function createInvoicePayment(
     method: 'POST',
     body: input,
   })
+}
+
+export async function createInvoice(input: InvoiceInput): Promise<InvoiceDetail> {
+  const data = await apiFetch<unknown>('/api/invoices', { method: 'POST', body: input })
+  return invoiceDetailSchema.parse(data)
 }
