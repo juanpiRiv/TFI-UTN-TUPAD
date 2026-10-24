@@ -214,6 +214,10 @@ describe.skipIf(!dbAvailable)("organizations (integration)", () => {
                 issueDate: new Date("2026-10-01T00:00:00.000Z"),
                 totalAmount: "1000.00",
                 status: "AUTHORIZED",
+                // Fuera de borrador la base exige los datos del emisor (#95)
+                issuerCuit: "20000000001",
+                issuerLegalName: "Emisor de prueba",
+                issuerTaxCondition: "MONOTRIBUTO",
                 // La base exige CAE en toda factura autorizada (RN-09)
                 cae: "71234567890123",
                 caeExpiration: new Date("2026-10-11T00:00:00.000Z"),
