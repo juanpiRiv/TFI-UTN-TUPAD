@@ -186,6 +186,33 @@ Cada movimiento de la respuesta trae, además de sus campos, la categoría y el 
 }
 ```
 
+## Facturas
+
+Cubre RF-22 y RF-23. Por ahora el backend crea facturas en borrador y las consulta. Autorizarlas con ARCA llega después (#59).
+
+| Endpoint | Cuerpo | Respuesta |
+| --- | --- | --- |
+| `POST /api/invoices` | Ver abajo | `201` con la factura en estado `DRAFT`, sus ítems y los datos del receptor copiados. `400` si algún campo no es válido o no hay ítems. `404` si el cliente o el punto de venta no existen en la organización. `409` si el cliente está dado de baja. `403` si todavía no hay organización. |
+
+```json
+{
+  "pointOfSaleId": 1,
+  "clientId": 7,
+  "concept": "SERVICIOS",
+  "issueDate": "2026-10-24",
+  "serviceFrom": "2026-10-01",
+  "serviceTo": "2026-10-31",
+  "paymentDueDate": "2026-11-23",
+  "items": [{ "description": "Consultoría técnica", "quantity": 1, "unitPrice": 250000 }]
+}
+```
+
+- `pointOfSaleId` es opcional: si falta se usa el primer punto de venta activo. `clientId` es opcional: sin cliente se emite como consumidor final.
+- `concept` es `PRODUCTOS`, `SERVICIOS` o `PRODUCTOS_Y_SERVICIOS`. Si incluye servicios, `serviceFrom`, `serviceTo` y `paymentDueDate` son obligatorias.
+- `voucherType` (solo `FACTURA_C`) y `currency` (solo `ARS`) son opcionales y valen eso por defecto en el P0.
+- El total y los subtotales los calcula siempre el backend (`cantidad × precio`, redondeado a dos decimales); si el cuerpo trae un total, se ignora. Cantidad hasta 3 decimales y mayor a cero, precio hasta 2 decimales y no negativo, total mayor a cero.
+- La factura guarda una copia del nombre, documento y condición frente al IVA del cliente. Se registra `invoice.created` en la auditoría.
+
 ## Cotización sugerida
 
 Sirve para proponer el tipo de cambio cuando el movimiento es en dólares. El usuario lo puede cambiar. La fuente y la regla de la fecha están en [Cotización](./05-cotizacion.md).

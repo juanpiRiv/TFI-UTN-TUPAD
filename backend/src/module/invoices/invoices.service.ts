@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import { getOrganizationByUserId } from "../transactions/transactions.service.js";
+import type { CreateInvoiceInput } from "./invoices.schemas.js";
 
 /**
  * Lista todas las facturas de la organización con su estado comercial y saldos calculados.
@@ -172,4 +173,91 @@ export async function getInvoiceById(userId: number, invoiceId: number) {
     })),
     payments: formattedPayments,
   };
+}
+
+/**
+ * Crea una factura en borrador (DRAFT) con sus ítems.
+ * El backend calcula subtotales y total (docs/04, regla 9) y copia los datos del cliente
+ * dentro de la factura (regla 8). Todavía no se manda a ARCA ni se asigna número.
+ */
+export async function createInvoice(userId: number, input: CreateInvoiceInput) {
+  const org = await getOrganizationByUserId(userId);
+
+  const pointOfSale = await prisma.pointOfSale.findFirst({
+    where: input.pointOfSaleId
+      ? { id: input.pointOfSaleId, organizationId: org.id }
+      : { organizationId: org.id, isActive: true },
+    orderBy: { number: "asc" },
+  });
+  if (!pointOfSale) {
+    throw new AppError(404, "Punto de venta no encontrado");
+  }
+
+  const client = input.clientId
+    ? await prisma.client.findFirst({ where: { id: input.clientId, organizationId: org.id } })
+    : null;
+  if (input.clientId && !client) {
+    throw new AppError(404, "Cliente no encontrado");
+  }
+  if (client && !client.isActive) {
+    throw new AppError(409, "El cliente está dado de baja");
+  }
+
+  const items = input.items.map((item) => {
+    const quantity = new Prisma.Decimal(String(item.quantity));
+    const unitPrice = new Prisma.Decimal(String(item.unitPrice));
+    const subtotal = quantity.times(unitPrice).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    return {
+      description: item.description,
+      quantity: quantity.toFixed(3),
+      unitPrice: unitPrice.toFixed(2),
+      subtotal: subtotal.toFixed(2),
+    };
+  });
+  const total = items.reduce((sum, item) => sum.plus(item.subtotal), new Prisma.Decimal(0));
+  if (total.lessThanOrEqualTo(0)) {
+    throw new AppError(400, "El total de la factura debe ser mayor a cero");
+  }
+
+  const toDate = (value?: string) => (value ? new Date(`${value}T00:00:00.000Z`) : null);
+
+  return prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.create({
+      data: {
+        organizationId: org.id,
+        pointOfSaleId: pointOfSale.id,
+        clientId: client?.id ?? null,
+        voucherType: input.voucherType,
+        concept: input.concept,
+        issueDate: toDate(input.issueDate)!,
+        recipientName: client?.name ?? "Consumidor Final",
+        recipientDocType: client?.docType ?? "SIN_IDENTIFICAR",
+        recipientDocNumber: client ? client.docNumber : "0",
+        recipientAddress: client?.address ?? null,
+        recipientTaxCondition: client?.taxCondition ?? "CONSUMIDOR_FINAL",
+        currency: input.currency,
+        fiscalExchangeRate: "1",
+        serviceFrom: toDate(input.serviceFrom),
+        serviceTo: toDate(input.serviceTo),
+        paymentDueDate: toDate(input.paymentDueDate),
+        totalAmount: total.toFixed(2),
+        status: "DRAFT",
+        items: { create: items },
+      },
+      include: { items: true },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        organizationId: org.id,
+        userId,
+        action: "invoice.created",
+        entity: "Invoice",
+        entityId: invoice.id,
+        metadata: { totalAmount: total.toFixed(2), currency: input.currency, items: items.length },
+      },
+    });
+
+    return invoice;
+  });
 }
