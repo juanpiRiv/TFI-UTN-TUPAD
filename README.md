@@ -81,7 +81,7 @@ El seed crea un usuario de prueba (`demo@monotributo.com` / `Password123!`), una
 
 Si no se usa Prisma, la base también se puede crear con `psql -d <base> -f database/schema.sql`.
 
-Hoy el backend tiene registro, inicio de sesión y `/me`. El resto de los endpoints se simulan en el frontend con MSW: se prenden con `VITE_USE_MOCKS=true` en `frontend/.env.local` (ver [README del frontend](./frontend/README.md#mocks)).
+El backend cuenta con todos los módulos implementados (autenticación, organizaciones, categorías, clientes, movimientos, dashboard, cotizaciones BCRA, facturación ARCA y cobranzas). El frontend se conecta de manera directa a la API real. Opcionalmente, se pueden simular módulos aislados con MSW especificándolos con `VITE_MOCK_MODULES` en `frontend/.env.local` (ver [README del frontend](./frontend/README.md#mocks)).
 
 Controles: `pnpm lint`, `pnpm test` y `pnpm build` desde la raíz.
 
