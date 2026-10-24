@@ -59,10 +59,11 @@ describe("POST /api/invoices (crear factura en borrador, Issue #45)", () => {
       address: "Calle 1",
       taxCondition: "RESPONSABLE_INSCRIPTO",
     } as never);
-    tx.invoice.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
+    tx.invoice.create.mockImplementation(async ({ data }: { data: Record<string, unknown> & { items: { create: object[] } } }) => ({
       id: 99,
       ...data,
-      items: [],
+      client: null,
+      items: data.items.create.map((item, index) => ({ id: index + 1, ...item })),
     }));
   });
 
@@ -83,6 +84,28 @@ describe("POST /api/invoices (crear factura en borrador, Issue #45)", () => {
     // 1.5 * 10.01 = 15.015 -> 15.02 (mitad hacia arriba); 2 * 100 = 200.00
     expect(data.items.create.map((i: { subtotal: string }) => i.subtotal)).toEqual(["15.02", "200.00"]);
     expect(data.totalAmount).toBe("215.02");
+  });
+
+  it("responde con la misma forma que el detalle de factura para que el frontend la reutilice", async () => {
+    const res = await post(validBody());
+
+    expect(res.body).toMatchObject({
+      invoiceId: 99,
+      status: "DRAFT",
+      voucherType: "FACTURA_C",
+      voucherNumber: null,
+      cae: null,
+      issueDate: "2026-10-24",
+      currency: "ARS",
+      recipientName: "Estudio García",
+      totalAmount: "215.02",
+      totalPaid: "0.00",
+      pendingBalance: "215.02",
+      commercialStatus: "PENDING",
+      payments: [],
+    });
+    expect(res.body.items).toHaveLength(2);
+    expect(res.body.items[0]).toMatchObject({ description: "Consultoría", quantity: "1.500", unitPrice: "10.01", subtotal: "15.02" });
   });
 
   it("copia los datos del cliente dentro de la factura (RN snapshot del receptor)", async () => {

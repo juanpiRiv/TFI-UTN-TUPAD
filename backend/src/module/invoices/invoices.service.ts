@@ -221,7 +221,7 @@ export async function createInvoice(userId: number, input: CreateInvoiceInput) {
 
   const toDate = (value?: string) => (value ? new Date(`${value}T00:00:00.000Z`) : null);
 
-  return prisma.$transaction(async (tx) => {
+  const created = await prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.create({
       data: {
         organizationId: org.id,
@@ -260,4 +260,30 @@ export async function createInvoice(userId: number, input: CreateInvoiceInput) {
 
     return invoice;
   });
+
+  // Misma forma que el detalle (getInvoiceById) para que el frontend la reutilice.
+  return {
+    invoiceId: created.id,
+    voucherType: created.voucherType,
+    voucherNumber: created.voucherNumber ?? null,
+    status: created.status,
+    currency: created.currency,
+    issueDate: input.issueDate,
+    concept: created.concept,
+    cae: created.cae ?? null,
+    recipientName: created.recipientName ?? "Consumidor Final",
+    client: client ? { id: client.id, name: client.name } : null,
+    totalAmount: total.toFixed(2),
+    totalPaid: "0.00",
+    pendingBalance: total.toFixed(2),
+    commercialStatus: "PENDING" as const,
+    items: created.items.map((it) => ({
+      id: it.id,
+      description: it.description,
+      quantity: new Prisma.Decimal(it.quantity).toFixed(3),
+      unitPrice: new Prisma.Decimal(it.unitPrice).toFixed(2),
+      subtotal: new Prisma.Decimal(it.subtotal).toFixed(2),
+    })),
+    payments: [],
+  };
 }

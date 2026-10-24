@@ -192,7 +192,7 @@ Cubre RF-22 y RF-23. Por ahora el backend crea facturas en borrador y las consul
 
 | Endpoint | Cuerpo | Respuesta |
 | --- | --- | --- |
-| `POST /api/invoices` | Ver abajo | `201` con la factura en estado `DRAFT`, sus ítems y los datos del receptor copiados. `400` si algún campo no es válido o no hay ítems. `404` si el cliente o el punto de venta no existen en la organización. `409` si el cliente está dado de baja. `403` si todavía no hay organización. |
+| `POST /api/invoices` | Ver abajo | `201` con la factura en estado `DRAFT` y la misma forma que `GET /api/invoices/:id` (con `invoiceId`, `items`, `totalPaid` en `0.00` y `payments` vacío). `400` si algún campo no es válido o no hay ítems. `404` si el cliente o el punto de venta no existen en la organización. `409` si el cliente está dado de baja. `403` si todavía no hay organización. |
 
 ```json
 {
