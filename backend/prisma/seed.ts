@@ -198,6 +198,14 @@ async function main() {
           fiscalExchangeRate: 1,
           totalAmount: 150000.0,
           status: "AUTHORIZED",
+          // Fuera de borrador la factura trae copiados los datos del emisor (#95)
+          issuerCuit: organization.cuit,
+          issuerLegalName: organization.legalName,
+          issuerTradeName: organization.tradeName,
+          issuerAddress: organization.commercialAddress,
+          issuerTaxCondition: organization.taxCondition,
+          issuerGrossIncomeNumber: organization.grossIncomeNumber,
+          issuerActivityStartDate: organization.activityStartDate,
           cae: "74321098765432",
           caeExpiration: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
           authorizedAt: today,
@@ -216,13 +224,15 @@ async function main() {
       console.log("🧾 Factura autorizada N° 0001-00000001 creada ($ 150.000,00 ARS)");
     }
 
-    // Factura 2: En borrador (DRAFT) para verificar que no admite cobros
+    // Factura 2: En borrador (DRAFT) para verificar que no admite cobros.
+    // Un borrador no tiene número: lo asigna ARCA al autorizar. Las semillas viejas le ponían el 2, y eso
+    // chocaba con la siguiente factura que se autoriza, así que se lo quitamos.
+    await prisma.invoice.updateMany({
+      where: { pointOfSaleId: pos.id, voucherType: "FACTURA_C", voucherNumber: 2, status: "DRAFT" },
+      data: { voucherNumber: null },
+    });
     const existingDraft = await prisma.invoice.findFirst({
-      where: {
-        pointOfSaleId: pos.id,
-        voucherType: "FACTURA_C",
-        voucherNumber: 2,
-      },
+      where: { organizationId: organization.id, status: "DRAFT", clientId: clientGarcia.id },
     });
 
     if (!existingDraft) {
@@ -233,7 +243,6 @@ async function main() {
           pointOfSaleId: pos.id,
           clientId: clientGarcia.id,
           voucherType: "FACTURA_C",
-          voucherNumber: 2,
           concept: "SERVICIOS",
           issueDate: today,
           recipientDocType: clientGarcia.docType,
@@ -257,7 +266,7 @@ async function main() {
           },
         },
       });
-      console.log("📝 Factura borrador N° 0001-00000002 creada ($ 45.000,00 ARS)");
+      console.log("📝 Factura borrador (sin número) creada ($ 45.000,00 ARS)");
     }
   }
 
