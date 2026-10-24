@@ -48,7 +48,7 @@ Respondieron tres personas que prestan servicios como monotributistas o freelanc
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P1 | Programador | Servicios | No respondió | A mano, desde la web de ARCA | No lleva registro | No: cobra todo junto | Sí: gastos en dólares que paga en pesos con la tarjeta | Cargar la factura |
 | P2 | Creativo publicitario y director audiovisual (filmación, edición, creatividad y diseño de imagen) | Servicios | No respondió | Con Facturita, una aplicación que funciona como chatbot | En Notion, aunque no siempre anota los gastos | Sí: 50% de seña y el resto al terminar | Sí: gastos en servicios, programas de edición y suscripciones | Anotar los gastos y mantener el registro al día |
-| P3 | Prestador de servicios freelance | Servicios | No respondió | Carga las facturas a mano | En un Excel desactualizado | No respondió | Sí: gasta y cobra en pesos y en dólares, y con los pesos compra dólares | No lo dijo; su registro está desactualizado |
+| P3 | Diseñador freelance | Servicios | No respondió | Carga las facturas a mano | En un Excel desactualizado | No respondió | Sí: gasta y cobra en pesos y en dólares, y con los pesos compra dólares | No lo dijo; su registro está desactualizado |
 
 ### Respuestas
 
@@ -69,7 +69,7 @@ Respondieron tres personas que prestan servicios como monotributistas o freelanc
 - **Qué esperaría de una app:** que sea fácil y rápido cargar lo que va gastando, que le deje facturar desde la misma aplicación y tener todo junto. También que le dé consejos de administración y contabilidad: seguir su categoría de monotributo, saber cuándo está cerca de superar los límites de facturación y organizarse para que su plata rinda más.
 
 **P3**
-- **Qué hace:** es prestador de servicios freelance.
+- **Qué hace:** presta servicios de diseño como freelance.
 - **Cómo factura:** carga las facturas a mano.
 - **Cómo lleva la cuenta de lo que cobra y gasta:** en un Excel que tiene desactualizado.
 - **Qué le da más trabajo:** no lo dijo.
