@@ -12,13 +12,38 @@ Dónde vive cada pieza, quién configura qué y los pasos para dejarlo andando. 
 
 Cada secreto vive en un solo lugar, el de quien lo usa. Nunca van al repositorio (RN-14).
 
-| Dato | Dónde | Quién lo usa |
+### Backend (variables del servicio `backend` en Railway)
+
+| Variable | Qué es | Cómo se carga | ¿La lee hoy el backend? |
+|---|---|---|---|
+| `DATABASE_URL` | Conexión a PostgreSQL | Referencia `${{Postgres.DATABASE_URL}}` | Sí |
+| `JWT_SECRET` | Firma de los tokens de sesión, 32 caracteres o más | Generarlo con `openssl rand -hex 32` | Sí |
+| `CORS_ORIGIN` | Orígenes permitidos, separados por coma | `https://tfi-tupad.pages.dev` | Sí |
+| `PORT` | Puerto de la API | Lo inyecta Railway, no se carga | Sí |
+| `NODE_ENV` | Ambiente | Lo fija el Dockerfile en `production`, no se carga | Sí |
+| `ARCA_MODE` | `homologacion` o `produccion` | Variable normal | No: pendiente en #134 |
+| `ARCA_PROVIDER` | Qué proveedor fiscal se usa (simulado o real) | Variable normal | No: pendiente en #134 |
+| `ARCA_ENCRYPTION_KEY` | Clave que cifra en la base la clave privada de cada organización | Generarla con `openssl rand -hex 32`. Es un secreto | No: pendiente en #134 |
+
+Las tres variables de ARCA se cargan cuando se implemente #134. Cargarlas antes no hace daño, pero no cambian nada.
+
+### Credenciales de ARCA: no son variables
+
+El certificado y la clave privada de ARCA no se cargan en Railway ni en GitHub. Según el [modelo de datos](./03-modelo-de-datos.md), se guardan por organización y ambiente en la tabla `ArcaCredential`: el certificado y la clave privada cifrada con `ARCA_ENCRYPTION_KEY`, más el ticket de acceso de WSAA. Todavía no hay una pantalla ni un endpoint para cargarlos.
+
+Hoy el certificado de homologación vive solo en la computadora del titular del CUIT, fuera del repositorio, y no hay que subirlo a ningún lado. Si se pierde `ARCA_ENCRYPTION_KEY`, las claves cifradas en la base no se pueden recuperar, así que conviene guardarla también en un gestor de contraseñas.
+
+### Frontend y publicación (secrets y variables de GitHub Actions)
+
+| Dato | Tipo | Quién lo usa |
 |---|---|---|
-| `DATABASE_URL` | Railway, variable del servicio `backend` | Backend |
-| `JWT_SECRET` | Railway, variable del servicio `backend` | Backend |
-| `CORS_ORIGIN` | Railway, variable del servicio `backend` | Backend |
-| `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID` | GitHub, secrets de Actions | Workflow del frontend |
-| `VITE_API_URL` y `VITE_USE_MOCKS` | GitHub, variables de Actions | Build del frontend |
+| `CLOUDFLARE_API_TOKEN` | Secret | Workflow del frontend |
+| `CLOUDFLARE_ACCOUNT_ID` | Secret | Workflow del frontend |
+| `CLOUDFLARE_PAGES_PROJECT` | Variable (opcional, por defecto `tfi-tupad`) | Workflow del frontend |
+| `VITE_API_URL` | Variable | Build del frontend |
+| `VITE_USE_MOCKS` | Variable (por defecto `true`) | Build del frontend |
+
+Las variables `VITE_*` quedan incluidas en el sitio publicado y las ve cualquiera: no pueden ser secretos.
 
 El backend no usa secrets de GitHub: Railway se conecta al repositorio y construye por su cuenta. Por eso no hace falta un token de Railway en GitHub.
 
@@ -33,6 +58,7 @@ Lo hace la persona dueña de la cuenta de Railway (Brian). Los pasos son por el 
    - `DATABASE_URL` con el valor `${{Postgres.DATABASE_URL}}` (referencia al servicio de la base, no se copia la clave).
    - `JWT_SECRET`: un valor propio de 32 caracteres o más. Se genera con `openssl rand -hex 32`.
    - `CORS_ORIGIN` con `https://tfi-tupad.pages.dev`.
+   - Las variables de ARCA se cargan más adelante (ver la tabla de arriba).
 5. En Settings → Networking → Generate Domain, para tener una URL pública.
 6. Invitar al resto del equipo: Project Settings → Members → invitar por correo o con un enlace.
 7. Ver los logs en la pestaña Deployments del servicio. El primer arranque corre las migraciones sobre la base vacía.
