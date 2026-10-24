@@ -42,19 +42,20 @@ Para mandar por WhatsApp o cargar en un formulario:
 
 ## Resultados
 
-Respondieron tres personas que prestan servicios como monotributistas o freelance. Las respuestas se anotan sin nombre y las tres personas son ajenas al proyecto. No hubo nadie que venda productos ni que haga las dos cosas. No les preguntamos la categoría de monotributo ni cuántas facturas hacen por mes.
+Respondieron tres personas que prestan servicios como monotributistas o freelance. Las respuestas se anotan sin nombre y las tres personas son ajenas al proyecto. No hubo nadie que venda productos ni que haga las dos cosas. No les preguntamos la categoría de monotributo, y la cantidad de facturas se anotó de forma aproximada.
 
 | # | Actividad | Productos / servicios | Facturas por mes | Cómo factura hoy | Dónde registra cobros y gastos | Pagos parciales | Maneja dólares | Principal dolor |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P1 | Programador | Servicios | No respondió | A mano, desde la web de ARCA | No lleva registro | No: cobra todo junto | Sí: gastos en dólares que paga en pesos con la tarjeta | Cargar la factura |
-| P2 | Creativo publicitario y director audiovisual (filmación, edición, creatividad y diseño de imagen) | Servicios | No respondió | Con Facturita, una aplicación que funciona como chatbot | En Notion, aunque no siempre anota los gastos | Sí: 50% de seña y el resto al terminar | Sí: gastos en servicios, programas de edición y suscripciones | Anotar los gastos y mantener el registro al día |
-| P3 | Diseñador freelance | Servicios | No respondió | Carga las facturas a mano | En un Excel desactualizado | No respondió | Sí: gasta y cobra en pesos y en dólares, y con los pesos compra dólares | No lo dijo; su registro está desactualizado |
+| P1 | Programador | Servicios | Una, como contractor | A mano, desde la web de ARCA | No lleva registro | No: cobra todo junto | Sí: gastos en dólares que paga en pesos con la tarjeta | Cargar la factura |
+| P2 | Creativo publicitario y director audiovisual (filmación, edición, creatividad y diseño de imagen) | Servicios | Varias, según la cantidad de trabajo | Con Facturita, una aplicación que funciona como chatbot | En Notion, aunque no siempre anota los gastos | Sí: 50% de seña y el resto al terminar | Sí: gastos en servicios, programas de edición y suscripciones | Anotar los gastos y mantener el registro al día |
+| P3 | Diseñador freelance | Servicios | Varias, según la cantidad de trabajo | Carga las facturas a mano | En un Excel desactualizado | No respondió | Sí: gasta y cobra en pesos y en dólares, y con los pesos compra dólares | Completar el Excel y cargar todo en ARCA |
 
 ### Respuestas
 
 **P1**
 - **Qué hace:** es programador y presta servicios.
 - **Cómo factura:** las carga a mano en la página de ARCA.
+- **Cuántas facturas hace:** una, porque trabaja como contractor.
 - **Cómo lleva la cuenta de lo que cobra y gasta:** no lleva ningún registro.
 - **Qué le da más trabajo:** cargar la factura.
 - **Pagos en partes o en dólares:** cobra siempre el total junto, no en partes. Gasta en dólares y paga en pesos con la tarjeta.
@@ -63,6 +64,7 @@ Respondieron tres personas que prestan servicios como monotributistas o freelanc
 **P2**
 - **Qué hace:** es creativo publicitario y director audiovisual. Presta servicios de filmación y edición de videos, creatividad publicitaria y diseño de imagen corporativa.
 - **Cómo factura:** sobre todo con Facturita, una aplicación que funciona como chatbot.
+- **Cuántas facturas hace:** varias, según la cantidad de trabajo.
 - **Cómo lleva la cuenta de lo que cobra y gasta:** en Notion, aunque no siempre anota todos los gastos.
 - **Qué le da más trabajo:** anotar los gastos y mantener el registro al día.
 - **Pagos en partes o en dólares:** le pagaron trabajos en dos partes, 50% de seña y el resto al finalizar. Tuvo gastos en dólares en servicios, programas de edición y suscripciones.
@@ -71,8 +73,9 @@ Respondieron tres personas que prestan servicios como monotributistas o freelanc
 **P3**
 - **Qué hace:** presta servicios de diseño como freelance.
 - **Cómo factura:** carga las facturas a mano.
+- **Cuántas facturas hace:** varias, según la cantidad de trabajo.
 - **Cómo lleva la cuenta de lo que cobra y gasta:** en un Excel que tiene desactualizado.
-- **Qué le da más trabajo:** no lo dijo.
+- **Qué le da más trabajo:** completar el Excel y cargar todo en ARCA le resulta tedioso.
 - **Pagos en partes o en dólares:** gasta y cobra en pesos y en dólares, y con los pesos compra dólares. No mencionó pagos en partes.
 - **Qué esperaría de una app:** tener su dinero, sus facturas y sus finanzas en un solo lugar.
 
