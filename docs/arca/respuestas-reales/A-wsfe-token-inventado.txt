@@ -1,0 +1,23 @@
+Capturado: 2026-10-19T22:12:40.117Z
+Comando: POST FECompUltimoAutorizado y FECAESolicitar con Token/Sign inventados
+Nota: Sirve para ver la forma real del error de autenticacion de WSFEv1. Los valores de codigos NO se asumen: leer la respuesta.
+
+===== intercambio 1 (2026-10-19T22:12:38.613Z) =====
+POST https://wswhomo.afip.gov.ar/wsfev1/service.asmx
+SOAPAction: http://ar.gov.afip.dif.FEV1/FECompUltimoAutorizado
+Content-Type: text/xml;charset=UTF-8
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><FECompUltimoAutorizado xmlns="http://ar.gov.afip.dif.FEV1/"><Auth><Token>TOKEN-INVENTADO</Token><Sign>SIGN-INVENTADO</Sign><Cuit>20000000001</Cuit></Auth><PtoVta>1</PtoVta><CbteTipo>11</CbteTipo></FECompUltimoAutorizado></soap:Body></soap:Envelope>
+
+--- RESPUESTA HTTP 200 ---
+<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><soap:Header><FEHeaderInfo xmlns="http://ar.gov.afip.dif.FEV1/"><ambiente>HomologacionExterno - srt</ambiente><fecha>2026-10-19T19:12:39.8387038-03:00</fecha><id>7.0.0.53</id></FEHeaderInfo></soap:Header><soap:Body><FECompUltimoAutorizadoResponse xmlns="http://ar.gov.afip.dif.FEV1/"><FECompUltimoAutorizadoResult><PtoVta>0</PtoVta><CbteTipo>0</CbteTipo><CbteNro>0</CbteNro><Errors><Err><Code>600</Code><Msg>ValidacionDeToken: No valido token. Excepcion: CargarStringBase64Token: Excepción: The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters. </Msg></Err></Errors></FECompUltimoAutorizadoResult></FECompUltimoAutorizadoResponse></soap:Body></soap:Envelope>
+
+===== intercambio 2 (2026-10-19T22:12:39.912Z) =====
+POST https://wswhomo.afip.gov.ar/wsfev1/service.asmx
+SOAPAction: http://ar.gov.afip.dif.FEV1/FECAESolicitar
+Content-Type: text/xml;charset=UTF-8
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><FECAESolicitar xmlns="http://ar.gov.afip.dif.FEV1/"><Auth><Token>TOKEN-INVENTADO</Token><Sign>SIGN-INVENTADO</Sign><Cuit>20000000001</Cuit></Auth><FeCAEReq><FeCabReq><CantReg>1</CantReg><PtoVta>1</PtoVta><CbteTipo>11</CbteTipo></FeCabReq><FeDetReq><FECAEDetRequest><Concepto>1</Concepto><DocTipo>99</DocTipo><DocNro>0</DocNro><CbteDesde>1</CbteDesde><CbteHasta>1</CbteHasta><CbteFch>20261019</CbteFch><ImpTotal>1000.00</ImpTotal><ImpTotConc>0</ImpTotConc><ImpNeto>1000.00</ImpNeto><ImpOpEx>0</ImpOpEx><ImpTrib>0</ImpTrib><ImpIVA>0.00</ImpIVA><MonId>PES</MonId><MonCotiz>1</MonCotiz><CondicionIVAReceptorId>5</CondicionIVAReceptorId></FECAEDetRequest></FeDetReq></FeCAEReq></FECAESolicitar></soap:Body></soap:Envelope>
+
+--- RESPUESTA HTTP 200 ---
+<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><soap:Header><FEHeaderInfo xmlns="http://ar.gov.afip.dif.FEV1/"><ambiente>HomologacionExterno - srt</ambiente><fecha>2026-10-19T19:12:40.0274626-03:00</fecha><id>7.0.0.53</id></FEHeaderInfo></soap:Header><soap:Body><FECAESolicitarResponse xmlns="http://ar.gov.afip.dif.FEV1/"><FECAESolicitarResult><Errors><Err><Code>600</Code><Msg>ValidacionDeToken: No valido token. Excepcion: CargarStringBase64Token: Excepción: The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters. </Msg></Err></Errors></FECAESolicitarResult></FECAESolicitarResponse></soap:Body></soap:Envelope>

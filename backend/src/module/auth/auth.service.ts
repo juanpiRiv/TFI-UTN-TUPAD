@@ -5,7 +5,7 @@ import { env } from '../../config/env.js';
 import { AppError } from "../../lib/error.js";
 import type { LoginInput, RegisterInput } from "./auth.schemas.js";
 
-const publicUserFields = { id: true, email: true, createdAt: true } as const;
+const publicUserFields = { id: true, name: true, email: true, createdAt: true } as const;
 
 function signToken(userId: number): string {
     return jwt.sign({}, env.JWT_SECRET, {
@@ -40,7 +40,7 @@ export async function login(input: LoginInput) {
     }
 
     return {
-        user: { id: user.id, email: user.email, createdAt: user.createdAt },
+        user: { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt },
         token: signToken(user.id),
     }
 }

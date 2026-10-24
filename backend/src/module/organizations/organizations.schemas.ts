@@ -1,47 +1,86 @@
 import { z } from "zod";
 import { isValidCuit } from "../../lib/cuit.js";
+import { isoDate } from "../../lib/date.js";
 
-export const createOrganizationSchema = z.object({
-  cuit: z
+// Postgres rechaza el carácter nulo en columnas de texto: sin esto, la base tira un 500
+const noNullChar = (value: string) => !value.includes("\u0000");
+const NULL_CHAR_MESSAGE = "Text contains invalid characters";
+
+/** Texto opcional: "" o null se guardan como null. */
+const optionalText = (max: number) =>
+    z
+        .string()
+        .trim()
+        .max(max)
+        .refine(noNullChar, NULL_CHAR_MESSAGE)
+        .transform((value) => (value === "" ? null : value))
+        .nullable()
+        .optional();
+
+const cuit = z
+    .string()
+    .transform((value) => value.replace(/[-\s]/g, ""))
+    .refine((value) => /^\d{11}$/.test(value), "CUIT must have 11 digits")
+    .refine(isValidCuit, "Invalid CUIT");
+
+// CONSUMIDOR_FINAL no va: es una condición del receptor de la factura, no del emisor
+const taxCondition = z.enum(["MONOTRIBUTO", "RESPONSABLE_INSCRIPTO", "EXENTO"]);
+
+// P0: la moneda base es siempre ARS (issue #96; las facturas van en ARS, docs/04)
+const baseCurrency = z.literal("ARS", { error: "Base currency must be ARS" });
+
+const monotributoCategory = z
     .string()
     .trim()
-    .transform((val) => val.replace(/[-\s]/g, ""))
-    .refine((val) => /^\d{11}$/.test(val), "El CUIT debe tener 11 dígitos")
-    .refine(isValidCuit, "El CUIT no es válido (revisá el dígito verificador)"),
-  legalName: z
+    .toUpperCase()
+    .transform((value) => (value === "" ? null : value))
+    .refine((value) => value === null || /^[A-K]$/.test(value), {
+        message: "Monotributo category must be a letter from A to K",
+    })
+    .nullable()
+    .optional();
+
+const MIN_ACTIVITY_START = "1900-01-01";
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
+const activityStartDate = z
     .string()
     .trim()
-    .min(1, "Ingresá la razón social o tu nombre y apellido")
-    .max(255, "Hasta 255 caracteres"),
-  tradeName: z.string().trim().max(255).nullish(),
-  commercialAddress: z.string().trim().max(255).nullish(),
-  taxCondition: z
-    .enum(["MONOTRIBUTO", "RESPONSABLE_INSCRIPTO", "EXENTO", "CONSUMIDOR_FINAL"])
-    .default("MONOTRIBUTO"),
-  monotributoCategory: z.string().trim().max(10).nullish(),
-  activityStartDate: z
-    .string()
-    .nullish()
-    .transform((val) => (val && val.trim() ? new Date(val) : null)),
-  grossIncomeNumber: z.string().trim().max(50).nullish(),
-  baseCurrency: z.enum(["ARS", "USD"]).default("ARS"),
+    .refine((value) => value === "" || isoDate.safeParse(value).success, {
+        message: "Invalid date (expected YYYY-MM-DD)",
+        abort: true,
+    })
+    .refine((value) => value === "" || value >= MIN_ACTIVITY_START, {
+        message: `Activity start date must be ${MIN_ACTIVITY_START} or later`,
+    })
+    .refine((value) => value === "" || value <= todayIso(), {
+        message: "Activity start date cannot be in the future",
+    })
+    .transform((value) => (value === "" ? null : new Date(`${value}T00:00:00.000Z`)))
+    .nullable()
+    .optional();
+
+const organizationFields = z.object({
+    cuit,
+    legalName: z
+        .string()
+        .trim()
+        .min(1, "Legal name is required")
+        .max(255)
+        .refine(noNullChar, NULL_CHAR_MESSAGE),
+    tradeName: optionalText(255),
+    commercialAddress: optionalText(255),
+    taxCondition,
+    monotributoCategory,
+    activityStartDate,
+    grossIncomeNumber: optionalText(50),
+    baseCurrency,
 });
 
-export const updateOrganizationSchema = z.object({
-  legalName: z.string().trim().min(1).max(255).optional(),
-  tradeName: z.string().trim().max(255).nullish(),
-  commercialAddress: z.string().trim().max(255).nullish(),
-  taxCondition: z
-    .enum(["MONOTRIBUTO", "RESPONSABLE_INSCRIPTO", "EXENTO", "CONSUMIDOR_FINAL"])
-    .optional(),
-  monotributoCategory: z.string().trim().max(10).nullish(),
-  activityStartDate: z
-    .string()
-    .nullish()
-    .transform((val) => (val && val.trim() ? new Date(val) : null)),
-  grossIncomeNumber: z.string().trim().max(50).nullish(),
-  baseCurrency: z.enum(["ARS", "USD"]).optional(),
-});
+export const createOrganizationSchema = organizationFields;
 
-export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
-export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
+// PATCH: cualquier campo del alta; los que no vienen no se tocan
+export const updateOrganizationSchema = organizationFields.partial();
+
+export type CreateOrganizationInput = z.output<typeof createOrganizationSchema>;
+export type UpdateOrganizationInput = z.output<typeof updateOrganizationSchema>;

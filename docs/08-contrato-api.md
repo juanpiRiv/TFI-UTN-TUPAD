@@ -23,7 +23,7 @@ Todos los errores usan el formato que ya tiene el backend en `middlewares/error-
 { "error": "invalid Data", "details": [{ "field": "amount", "message": "Amount must be greater than zero" }] }
 ```
 
-`details` es opcional y solo aparece en los errores de validación (`400`). El frontend muestra `error` arriba del formulario y cada `details[].message` debajo del campo que indica `field`.
+`details` es opcional. Aparece en los errores de validación (`400`) y en los `409` que se pueden atribuir a un campo (por ejemplo, un CUIT ya registrado). El frontend muestra `error` arriba del formulario y cada `details[].message` debajo del campo que indica `field`.
 
 | Código | Cuándo |
 | --- | --- |
@@ -31,17 +31,32 @@ Todos los errores usan el formato que ya tiene el backend en `middlewares/error-
 | `401` | Falta el token o es inválido. El frontend cierra la sesión y vuelve al login. |
 | `403` | El usuario todavía no creó su organización y pide algo que la necesita. |
 | `404` | No existe, o es de otra organización. |
-| `409` | Choca con un dato único (CUIT, documento del cliente, nombre de categoría) o la organización ya existe. |
+| `409` | Choca con un dato único (CUIT, documento del cliente, nombre de categoría), la organización ya existe o la operación no está permitida por el estado de los datos (por ejemplo, cambiar el CUIT con facturas autorizadas). Puede traer `details`. |
 
 ## Autenticación (ya existe en el backend)
 
 | Método y ruta | Request | Response |
 | --- | --- | --- |
-| `POST /api/auth/register` | `{ email, password }` | `201` `{ user: { id, email, createdAt }, token }`. `409` si el email ya existe. |
-| `POST /api/auth/login` | `{ email, password }` | `200` `{ user, token }`. `401` si el email o la contraseña no coinciden. |
-| `GET /api/auth/me` | | `200` `{ id, email, createdAt, organization }`. `organization` es `null` hasta que el usuario hace el onboarding. |
+| `POST /api/auth/register` | `{ email, password }` | `201` `{ user: { id, name, email, createdAt }, token }`. `409` si el email ya existe. |
+| `POST /api/auth/login` | `{ email, password }` | `200` `{ user, token }`, con `user` igual que en el registro. `401` si el email o la contraseña no coinciden. |
+| `GET /api/auth/me` | | `200` `{ id, name, email, createdAt, organization }`. `name` es `null` hasta que el usuario lo carga en su perfil; `organization` es `null` hasta que hace el onboarding. |
 
 El frontend usa `organization` de `/me` para decidir si el usuario puede entrar a la app o tiene que pasar primero por `/onboarding`.
+
+## Perfil de usuario
+
+Cubre RF-04. Las rutas usan `me` porque siempre se modifica el usuario del token.
+
+| Método y ruta | Request | Response |
+| --- | --- | --- |
+| `PATCH /api/users/me` | `{ name?, email?, currentPassword? }` | `200` `{ id, name, email, createdAt, updatedAt }`. `409` si el email ya lo usa otro usuario. |
+| `PATCH /api/users/me/password` | `{ currentPassword, newPassword }` | `204` sin contenido. |
+
+- `name` es opcional; `null` lo borra. Tiene que venir `name`, `email` o los dos.
+- Cambiar el `email` exige `currentPassword`. Si no viene o es incorrecta, responde `400` con `details` en el campo `currentPassword`.
+- `newPassword` tiene entre 8 y 128 caracteres y tiene que ser distinta de la actual.
+- **Una contraseña actual incorrecta responde `400`, no `401`.** El frontend cierra la sesión ante cualquier `401` con token, y en este caso el usuario solo se equivocó al tipear.
+- Ninguno de los dos cambios invalida el token: la sesión sigue abierta.
 
 ## Organización
 
@@ -49,9 +64,9 @@ La organización es del usuario logueado, por eso las rutas usan `me` en lugar d
 
 | Método y ruta | Request | Response |
 | --- | --- | --- |
-| `POST /api/organizations` | Ver cuerpo abajo | `201` con la organización. Crea también las categorías por defecto. `409` si el usuario ya tiene una o si el CUIT ya está registrado. |
+| `POST /api/organizations` | Ver cuerpo abajo | `201` con la organización. Crea también las categorías por defecto y registra el alta en la auditoría. `400` si algún campo no es válido. `409` si el usuario ya tiene una o si el CUIT ya está registrado. `401` si el usuario del token ya no existe. |
 | `GET /api/organizations/me` | | `200` con la organización. `403` si todavía no tiene. |
-| `PATCH /api/organizations/me` | Cualquier campo del cuerpo de alta | `200` con la organización actualizada. |
+| `PATCH /api/organizations/me` | Cualquier campo del cuerpo de alta | `200` con la organización actualizada. `400` si algún campo no es válido. `403` si todavía no tiene organización. `409` si el CUIT ya está registrado o si se intenta cambiar con facturas autorizadas. |
 
 Cuerpo de alta:
 
@@ -70,8 +85,9 @@ Cuerpo de alta:
 ```
 
 - `cuit`: 11 dígitos sin guiones, con el dígito verificador válido.
-- `legalName`, `taxCondition` y `baseCurrency` son obligatorios. `baseCurrency` es `ARS` o `USD`.
-- La respuesta es el modelo `Organization` completo: los campos de arriba más `id`, `userId`, `isActive`, `createdAt` y `updatedAt`.
+- `legalName`, `taxCondition` y `baseCurrency` son obligatorios. En el P0, `baseCurrency` es siempre `ARS` (#96). `taxCondition` es `MONOTRIBUTO`, `RESPONSABLE_INSCRIPTO` o `EXENTO`; `CONSUMIDOR_FINAL` solo aplica a clientes.
+- `activityStartDate` es opcional; si viene, tiene que ser desde el 1900-01-01 y no puede ser una fecha futura.
+- Los `409` por CUIT (ya registrado, o cambio con facturas autorizadas) traen `details` con el campo `cuit`, para mostrar el error debajo del input.
 
 ## Clientes
 
@@ -217,8 +233,8 @@ Cubre RF-31 y RF-32. Por ahora solo el resultado de caja, porque todavía no hay
 
 1. **Baja de clientes:** proponemos `PATCH` con `{ "isActive": false }`. ¿Preferimos un `DELETE /api/clients/:id` que haga la baja lógica?
 2. **Paginación:** las listas de clientes y movimientos vienen completas. ¿Paginamos desde ahora (`page`, `pageSize`) o cuando haya volumen?
-3. **Categorías por defecto:** además de "Cobro de facturas", ¿cuáles creamos? La lista de arriba es una propuesta.
-4. **Organización pendiente:** ¿`403` es el código correcto cuando el usuario todavía no tiene organización?
-5. **Movimientos en USD con moneda base USD:** el modelo permite `baseCurrency = USD`. En ese caso, un movimiento en pesos necesita un tipo de cambio de ARS a USD, y la API del BCRA no lo da directo. ¿Limitamos la moneda base a `ARS` en el P0?
+3. ~~**Categorías por defecto:** además de "Cobro de facturas", ¿cuáles creamos?~~ **Resuelta:** se crean las 7 de la tabla de arriba, en la misma transacción que la organización.
+4. ~~**Organización pendiente:** ¿`403` es el código correcto cuando el usuario todavía no tiene organización?~~ **Resuelta:** sí, `403`. Todos los módulos la obtienen con `getUserOrganization` (`lib/organization.ts`).
+5. ~~**Movimientos en USD con moneda base USD:** ¿Limitamos la moneda base a `ARS` en el P0?~~ **Resuelta:** sí, la moneda base es siempre `ARS` en el P0 (#96).
 6. **Anulación de movimientos:** el modelo tiene `voidedAt`, pero no definimos el endpoint. ¿`POST /api/transactions/:id/void`?
 7. **Formato de fechas:** ¿el backend devuelve `transactionDate` como `YYYY-MM-DD` o deja el formato de Prisma con hora?

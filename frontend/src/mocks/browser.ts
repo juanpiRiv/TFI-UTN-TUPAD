@@ -6,9 +6,11 @@ import { transactionHandlers } from './handlers/transactions'
 import { dashboardHandlers } from './handlers/dashboard'
 import { clientHandlers } from './handlers/clients'
 import { exchangeRateHandlers } from './handlers/exchange-rates'
+import { organizationHandlers } from './handlers/organizations'
 
-// In the browser, transactions, dashboard, clients and exchange-rates are handled by the real backend on localhost:3000.
+// In the browser, organizations, transactions, dashboard, clients and exchange-rates are handled by the real backend on localhost:3000.
 const excluded = new Set<unknown>([
+  ...organizationHandlers,
   ...transactionHandlers,
   ...dashboardHandlers,
   ...clientHandlers,

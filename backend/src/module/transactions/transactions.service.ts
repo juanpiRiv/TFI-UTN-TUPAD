@@ -6,21 +6,13 @@ import type {
   CreateTransactionInput,
   ListTransactionsQuery,
 } from "./transactions.schemas.js";
+import { getUserOrganization } from "../../lib/organizations.js";
 
 /**
  * Obtiene la organización de un usuario autenticado para control multi-tenant y moneda base.
  */
 export async function getOrganizationByUserId(userId: number) {
-  const org = await prisma.organization.findUnique({
-    where: { userId },
-    select: { id: true, baseCurrency: true },
-  });
-
-  if (!org) {
-    throw new AppError(404, "Organization not found for this user");
-  }
-
-  return org;
+  return await getUserOrganization(userId);
 }
 
 /**
@@ -66,16 +58,16 @@ function formatTransaction(tx: {
     updatedAt: tx.updatedAt.toISOString(),
     category: tx.category
       ? {
-          id: tx.category.id,
-          name: tx.category.name,
-          type: tx.category.type,
-        }
+        id: tx.category.id,
+        name: tx.category.name,
+        type: tx.category.type,
+      }
       : undefined,
     client: tx.client
       ? {
-          id: tx.client.id,
-          name: tx.client.name,
-        }
+        id: tx.client.id,
+        name: tx.client.name,
+      }
       : null,
   };
 }
@@ -110,17 +102,18 @@ export async function createTransaction(
     throw new AppError(400, "Category type must match transaction type");
   }
 
-  // 2. Validar cliente: si se envía, debe pertenecer a la organización
+  // 2. Validar cliente: si se envía, debe pertenecer a la organización y estar activo
   if (data.clientId) {
     const client = await prisma.client.findFirst({
       where: {
         id: data.clientId,
         organizationId: org.id,
+        isActive: true,
       },
     });
 
     if (!client) {
-      throw new AppError(400, "Client not found");
+      throw new AppError(400, "Client not found or inactive");
     }
   }
 
@@ -167,6 +160,9 @@ export async function createTransaction(
           exchangeRateSource: resolvedRate?.source ?? null,
           observedAt: resolvedRate?.observedAt ?? null,
           rateType: resolvedRate?.rateType ?? null,
+          categoryId: data.categoryId,
+          clientId: data.clientId ?? null,
+          transactionDate: data.transactionDate,
         },
       },
     });
@@ -205,8 +201,11 @@ export async function listTransactions(
     }
   }
 
+  const take = query.limit ?? 50;
+
   const transactions = await prisma.transaction.findMany({
     where,
+    take,
     orderBy: [{ transactionDate: "desc" }, { id: "desc" }],
     include: {
       category: { select: { id: true, name: true, type: true } },

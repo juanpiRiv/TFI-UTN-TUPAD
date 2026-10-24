@@ -92,6 +92,13 @@ export function createRoutes(queryClient: QueryClient): RouteObject[] {
                 })),
             },
             {
+              path: 'perfil',
+              lazy: () =>
+                import('@/features/profile/ProfilePage').then((m) => ({
+                  Component: m.ProfilePage,
+                })),
+            },
+            {
               path: 'organizacion',
               lazy: () =>
                 import('@/features/organizations/OrganizationPage').then((m) => ({
