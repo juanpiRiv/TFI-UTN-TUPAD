@@ -21,11 +21,11 @@ Cada secreto vive en un solo lugar, el de quien lo usa. Nunca van al repositorio
 | `CORS_ORIGIN` | Orígenes permitidos, separados por coma | `https://tfi-tupad.pages.dev` | Sí |
 | `PORT` | Puerto de la API | Lo inyecta Railway, no se carga | Sí |
 | `NODE_ENV` | Ambiente | Lo fija el Dockerfile en `production`, no se carga | Sí |
-| `ARCA_MODE` | `homologacion` o `produccion` | Variable normal | No: pendiente en #134 |
-| `ARCA_PROVIDER` | Qué proveedor fiscal se usa (simulado o real) | Variable normal | No: pendiente en #134 |
-| `ARCA_ENCRYPTION_KEY` | Clave que cifra en la base la clave privada de cada organización | Generarla con `openssl rand -hex 32`. Es un secreto | No: pendiente en #134 |
+| `ARCA_MODE` | `homologacion` (por defecto) o `produccion` | Variable normal, opcional | Sí, desde #151 |
+| `ARCA_PROVIDER` | Qué proveedor fiscal se usa: `simulated`, `sdk` o `direct` | Variable normal. **Obligatoria**: sin ella el backend no arranca. Usar `simulated` hasta tener la emisión real | Sí, desde #151 |
+| `ARCA_ENCRYPTION_KEY` | Clave que cifra en la base la clave privada de cada organización | Generarla con `openssl rand -hex 32`. Es un secreto | No: todavía no se usa |
 
-Las tres variables de ARCA se cargan cuando se implemente #134. Cargarlas antes no hace daño, pero no cambian nada.
+`ARCA_PROVIDER` hay que cargarla desde el primer despliegue, porque el backend la valida al arrancar (cambio de #151). `ARCA_ENCRYPTION_KEY` se carga cuando se guarden credenciales por organización; cargarla antes no hace daño.
 
 ### Credenciales de ARCA: no son variables
 
@@ -58,7 +58,7 @@ Lo hace la persona dueña de la cuenta de Railway (Brian). Los pasos son por el 
    - `DATABASE_URL` con el valor `${{Postgres.DATABASE_URL}}` (referencia al servicio de la base, no se copia la clave).
    - `JWT_SECRET`: un valor propio de 32 caracteres o más. Se genera con `openssl rand -hex 32`.
    - `CORS_ORIGIN` con `https://tfi-tupad.pages.dev`.
-   - Las variables de ARCA se cargan más adelante (ver la tabla de arriba).
+   - `ARCA_PROVIDER` con el valor `simulated` (obligatoria; sin ella el backend no arranca). `ARCA_MODE` queda en `homologacion` por defecto. `ARCA_ENCRYPTION_KEY` se carga más adelante (ver la tabla de arriba).
 5. En Settings → Networking → Generate Domain, para tener una URL pública.
 6. Invitar al resto del equipo: Project Settings → Members → invitar por correo o con un enlace.
 7. Ver los logs en la pestaña Deployments del servicio. El primer arranque corre las migraciones sobre la base vacía.
@@ -74,4 +74,4 @@ Lo hace la persona dueña de la cuenta de Railway (Brian). Los pasos son por el 
 
 - El backend todavía no tiene una ruta de health. Railway lo da por vivo cuando el proceso arranca.
 - Si el crédito de prueba se agota, la alternativa sin costo es el mismo Dockerfile en Render (el servicio gratuito se duerme tras 15 minutos sin uso) con la base en Supabase (conexión por el session pooler, que mantiene los bloqueos de `pg_advisory_lock`). No está configurada.
-- Las variables de ARCA todavía no las lee el backend (ver [Plan B de ARCA](./06-plan-b-arca.md)).
+- El backend lee `ARCA_PROVIDER` y `ARCA_MODE` desde #151, pero todavía nada emite comprobantes con el proveedor elegido (ver [Plan B de ARCA](./06-plan-b-arca.md)).
