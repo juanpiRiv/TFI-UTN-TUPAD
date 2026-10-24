@@ -1,7 +1,9 @@
 import { apiFetch } from '@/lib/api'
 import {
+  authorizeResultSchema,
   invoiceDetailSchema,
   invoiceListItemSchema,
+  type AuthorizeResult,
   type CreatePaymentFormData,
   type InvoiceDetail,
   type InvoiceInput,
@@ -32,4 +34,9 @@ export async function createInvoicePayment(
 export async function createInvoice(input: InvoiceInput): Promise<InvoiceDetail> {
   const data = await apiFetch<unknown>('/api/invoices', { method: 'POST', body: input })
   return invoiceDetailSchema.parse(data)
+}
+
+export async function authorizeInvoice(invoiceId: number): Promise<AuthorizeResult> {
+  const data = await apiFetch<unknown>(`/api/invoices/${invoiceId}/authorize`, { method: 'POST' })
+  return authorizeResultSchema.parse(data)
 }

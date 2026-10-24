@@ -46,6 +46,19 @@ export const invoiceDetailSchema = z.object({
   payments: z.array(paymentItemSchema),
 })
 
+const fiscalMessageSchema = z.object({ code: z.number(), message: z.string() })
+
+/** Respuesta de POST /api/invoices/:id/authorize: la factura y qué dijo el proveedor fiscal. */
+export const authorizeResultSchema = z.object({
+  invoice: invoiceDetailSchema,
+  fiscal: z.object({
+    outcome: z.enum(['AUTHORIZED', 'AUTHORIZED_WITH_OBSERVATIONS', 'REJECTED', 'INDETERMINATE']),
+    simulated: z.boolean(),
+    observations: z.array(fiscalMessageSchema),
+    errors: z.array(fiscalMessageSchema),
+  }),
+})
+
 export const invoiceListItemSchema = z.object({
   id: z.number(),
   voucherType: z.string(),
@@ -87,6 +100,7 @@ export const createPaymentFormSchema = z.object({
 
 export type PaymentItem = z.infer<typeof paymentItemSchema>
 export type InvoiceDetail = z.infer<typeof invoiceDetailSchema>
+export type AuthorizeResult = z.infer<typeof authorizeResultSchema>
 export type InvoiceListItem = z.infer<typeof invoiceListItemSchema>
 export type CreatePaymentFormData = z.infer<typeof createPaymentFormSchema>
 
