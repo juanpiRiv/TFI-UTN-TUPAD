@@ -22,7 +22,19 @@ export async function authorizeInvoice(
   invoiceId: number,
   createProvider: () => FiscalProvider,
 ) {
-  const org = await prisma.organization.findUnique({ where: { userId }, select: { id: true, cuit: true } });
+  const org = await prisma.organization.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      cuit: true,
+      legalName: true,
+      tradeName: true,
+      commercialAddress: true,
+      taxCondition: true,
+      grossIncomeNumber: true,
+      activityStartDate: true,
+    },
+  });
   if (!org) throw new AppError(403, "Organization required");
 
   // Antes de tocar nada: si el proveedor no se puede armar, la factura queda como estaba.
@@ -45,7 +57,18 @@ export async function authorizeInvoice(
     }
     return tx.invoice.update({
       where: { id: invoiceId },
-      data: { status: "PENDING" },
+      // El emisor se copia acá, cuando deja de ser borrador (#95): un borrador puede quedar días y los
+      // datos de la organización podrían cambiar antes de facturar.
+      data: {
+        status: "PENDING",
+        issuerCuit: org.cuit,
+        issuerLegalName: org.legalName,
+        issuerTradeName: org.tradeName,
+        issuerAddress: org.commercialAddress,
+        issuerTaxCondition: org.taxCondition,
+        issuerGrossIncomeNumber: org.grossIncomeNumber,
+        issuerActivityStartDate: org.activityStartDate,
+      },
       include: { pointOfSale: true },
     });
   });

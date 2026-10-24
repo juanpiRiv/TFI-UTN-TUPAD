@@ -133,6 +133,13 @@ export function InvoiceDetailPage() {
               {invoice.issueDate && ` • Emitida: ${formatDate(invoice.issueDate)}`}
               {invoice.cae && ` • CAE: ${invoice.cae}`}
             </p>
+            {invoice.issuer && (
+              <p className="mt-1 text-sm text-slate-500" data-testid="invoice-issuer">
+                Emisor:{' '}
+                <span className="font-medium text-slate-700">{invoice.issuer.legalName}</span>
+                {` • CUIT ${invoice.issuer.cuit}`}
+              </p>
+            )}
           </div>
         </div>
       </div>

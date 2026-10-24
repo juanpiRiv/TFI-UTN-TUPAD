@@ -84,6 +84,24 @@ describe('botón Facturar de un borrador (Issue #59)', () => {
     expect(screen.queryByRole('button', { name: 'Facturar' })).not.toBeInTheDocument()
   })
 
+  it('una factura autorizada muestra los datos del emisor del momento de la autorización', async () => {
+    current = {
+      ...authorized,
+      issuer: { cuit: '20000000001', legalName: 'Recorrido SAS', taxCondition: 'MONOTRIBUTO' },
+    }
+    renderApp('/facturas/1')
+
+    expect(await screen.findByTestId('invoice-issuer')).toHaveTextContent('Recorrido SAS')
+    expect(screen.getByTestId('invoice-issuer')).toHaveTextContent('CUIT 20000000001')
+  })
+
+  it('un borrador no muestra emisor', async () => {
+    renderApp('/facturas/1')
+
+    await screen.findByRole('button', { name: 'Facturar' })
+    expect(screen.queryByTestId('invoice-issuer')).not.toBeInTheDocument()
+  })
+
   it('si se cancela la confirmación no llama a la API', async () => {
     vi.mocked(window.confirm).mockReturnValue(false)
     mockAuthorize(authorized, {})

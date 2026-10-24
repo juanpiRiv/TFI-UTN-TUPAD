@@ -214,7 +214,7 @@ Cómo autoriza (docs/02, sección 4): reserva el borrador (`DRAFT` → `PENDING`
 - `concept` es `PRODUCTOS`, `SERVICIOS` o `PRODUCTOS_Y_SERVICIOS`. Si incluye servicios, `serviceFrom`, `serviceTo` y `paymentDueDate` son obligatorias.
 - `voucherType` (solo `FACTURA_C`) y `currency` (solo `ARS`) son opcionales y valen eso por defecto en el P0.
 - El total y los subtotales los calcula siempre el backend (`cantidad × precio`, redondeado a dos decimales); si el cuerpo trae un total, se ignora. Cantidad hasta 3 decimales y mayor a cero, precio hasta 2 decimales y no negativo, total mayor a cero.
-- La factura guarda una copia del nombre, documento y condición frente al IVA del cliente. Se registra `invoice.created` en la auditoría.
+- La factura guarda una copia del nombre, documento y condición frente al IVA del cliente. Al facturar (`authorize`) guarda también una copia de los datos del emisor, que el detalle devuelve en `issuer` (`cuit`, `legalName`, `tradeName`, `address`, `taxCondition`, `grossIncomeNumber`, `activityStartDate`); es `null` mientras sea borrador. Se registra `invoice.created` en la auditoría.
 
 ## Cotización sugerida
 

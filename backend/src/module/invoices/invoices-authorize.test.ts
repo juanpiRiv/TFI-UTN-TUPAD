@@ -42,6 +42,17 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
   const orgId = 5;
   const token = jwt.sign({}, env.JWT_SECRET, { subject: String(userId) });
 
+  const org = {
+    id: orgId,
+    cuit: "20000000001",
+    legalName: "Recorrido SAS",
+    tradeName: "Recorrido",
+    commercialAddress: "Av. Siempre Viva 742",
+    taxCondition: "MONOTRIBUTO",
+    grossIncomeNumber: "901-123456-7",
+    activityStartDate: new Date("2020-03-01T00:00:00.000Z"),
+  };
+
   /** Estado que simula la fila de la factura en la base. */
   let row: Record<string, unknown>;
 
@@ -82,7 +93,7 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     current.factoryError = null;
     useScenario("AUTHORIZED");
     row = draftRow();
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ id: orgId, cuit: "20000000001" } as never);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue(org as never);
     tx.$queryRaw.mockImplementation(async () => [{ id: 99, status: row.status }]);
     tx.$executeRaw.mockResolvedValue(1);
     tx.invoice.aggregate.mockResolvedValue({ _max: { voucherNumber: null } });
@@ -98,6 +109,20 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     })) as never);
   });
 
+  it("copia los datos del emisor a la factura al reservarla y los devuelve en el detalle", async () => {
+    const res = await post();
+
+    expect(res.body.invoice.issuer).toEqual({
+      cuit: "20000000001",
+      legalName: "Recorrido SAS",
+      tradeName: "Recorrido",
+      address: "Av. Siempre Viva 742",
+      taxCondition: "MONOTRIBUTO",
+      grossIncomeNumber: "901-123456-7",
+      activityStartDate: "2020-03-01",
+    });
+  });
+
   it("devuelve 401 sin token", async () => {
     const res = await request(app).post("/api/invoices/99/authorize");
     expect(res.status).toBe(401);
@@ -108,7 +133,16 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
 
     expect(res.status).toBe(200);
     const [reserve, authorize] = updates();
-    expect(reserve).toEqual({ status: "PENDING" });
+    expect(reserve).toEqual({
+      status: "PENDING",
+      issuerCuit: "20000000001",
+      issuerLegalName: "Recorrido SAS",
+      issuerTradeName: "Recorrido",
+      issuerAddress: "Av. Siempre Viva 742",
+      issuerTaxCondition: "MONOTRIBUTO",
+      issuerGrossIncomeNumber: "901-123456-7",
+      issuerActivityStartDate: new Date("2020-03-01T00:00:00.000Z"),
+    });
     expect(authorize).toMatchObject({ status: "AUTHORIZED", voucherNumber: 1 });
     expect(authorize!.cae).toMatch(/^\d{14}$/);
     expect(authorize!.caeExpiration).toBeInstanceOf(Date);
@@ -160,7 +194,8 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     const res = await post();
 
     expect(res.status).toBe(202);
-    expect(updates()).toEqual([{ status: "PENDING" }]);
+    expect(updates()).toHaveLength(1);
+    expect(updates()[0]).toMatchObject({ status: "PENDING", issuerCuit: "20000000001" });
     expect(res.body.invoice.status).toBe("PENDING");
     expect(res.body.fiscal.outcome).toBe("INDETERMINATE");
   });
@@ -180,7 +215,8 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
 
     expect(res.status).toBe(502);
     expect(res.body.error).toMatch(/pendiente/i);
-    expect(updates()).toEqual([{ status: "PENDING" }]);
+    expect(updates()).toHaveLength(1);
+    expect(updates()[0]).toMatchObject({ status: "PENDING" });
   });
 
   it("registra invoice.authorized en la auditoría con el CAE", async () => {

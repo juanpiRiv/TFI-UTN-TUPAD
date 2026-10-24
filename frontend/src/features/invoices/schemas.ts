@@ -31,6 +31,19 @@ export const invoiceDetailSchema = z.object({
   issueDate: z.string().optional(),
   concept: z.string().optional(),
   cae: z.string().nullable().optional(),
+  // Datos del emisor al momento de facturar; null mientras sea borrador.
+  issuer: z
+    .object({
+      cuit: z.string(),
+      legalName: z.string(),
+      tradeName: z.string().nullable().optional(),
+      address: z.string().nullable().optional(),
+      taxCondition: z.string(),
+      grossIncomeNumber: z.string().nullable().optional(),
+      activityStartDate: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   recipientName: z.string().optional(),
   client: z
     .object({

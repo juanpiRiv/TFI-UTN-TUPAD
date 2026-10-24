@@ -50,6 +50,7 @@ El saldo pendiente (RF-30) es el total menos la suma de los pagos no anulados.
 9. El total lo calcula siempre el backend sumando los ítems. Lo que manda el frontend como total se ignora.
 10. La moneda del pago debe coincidir exactamente con la moneda de la factura (en el P0 todas las facturas se emiten en ARS). Si difieren, se rechaza la operación con código 422.
 11. La fecha del pago (`paymentDate`) no puede ser una fecha futura ni anterior a la fecha de emisión (`issueDate`) de la factura.
+12. Al pasar de borrador a pendiente (al pulsar Facturar) se copian los datos del emisor (CUIT, razón social, nombre de fantasía, domicilio comercial, condición frente al IVA, ingresos brutos e inicio de actividades). Si después se edita la organización, la factura autorizada no cambia.
 
 ## Ejemplo con pagos parciales
 
