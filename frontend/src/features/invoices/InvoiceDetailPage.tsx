@@ -38,6 +38,9 @@ export function InvoiceDetailPage() {
     : `Factura #${invoice.invoiceId}`
 
   const statusBadge = () => {
+    if (invoice.status === 'DRAFT') {
+      return { label: 'Borrador', classes: 'bg-slate-100 text-slate-700 border-slate-300' }
+    }
     switch (invoice.commercialStatus) {
       case 'PAID':
         return {
