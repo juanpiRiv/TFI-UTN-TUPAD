@@ -1,6 +1,10 @@
 # Diagramas Finales y Arquitectura del Sistema
 
-Este documento da cumplimiento al requerimiento **F10-4 (Issue #79: docs(der): armar los diagramas finales)** del proyecto. Reúne el Diagrama de Entidad-Relación (DER) actualizado que refleja fielmente el esquema real de base de datos (`schema.prisma`), el Diagrama de Arquitectura Integral del sistema y los Diagramas de Secuencia de los flujos críticos del negocio.
+Este documento da cumplimiento al requerimiento **F10-4 (Issue #79: docs(der): armar los diagramas finales)** del proyecto. Reúne el Diagrama de Entidad-Relación (DER) con las tablas y columnas del esquema de Prisma (`backend/prisma/schema/`), el diagrama de arquitectura y los diagramas de secuencia de dos flujos críticos.
+
+Qué parte está implementada:
+- El DER coincide, tabla por tabla y columna por columna, con el esquema de Prisma. Lo que aparece en el esquema no siempre tiene pantalla o endpoint (por ejemplo, `PASSWORD_RESET_TOKEN`, `ACTIVITY` y `ARCA_CREDENTIAL` existen como tablas, pero todavía no hay recuperación de contraseña ni carga de actividades o credenciales).
+- El flujo B (cobro) está en `develop`. El flujo A (facturar) corresponde al PR #152, abierto al escribir esto, y funciona con el proveedor fiscal simulado.
 
 ---
 
@@ -59,7 +63,7 @@ erDiagram
         string legal_name
         string trade_name
         string commercial_address
-        enum tax_condition "MONOTRIBUTO"
+        enum tax_condition "MONOTRIBUTO en el P0"
         string monotributo_category
         date activity_start_date
         string gross_income_number
@@ -88,7 +92,7 @@ erDiagram
         int organization_id FK
         string arca_activity_code
         string description
-        enum activity_kind "GOODS | SERVICES | BOTH"
+        enum activity_kind "GOODS | SERVICES"
         bool is_primary
         bool is_active
         datetime created_at
@@ -109,11 +113,11 @@ erDiagram
     CLIENT {
         int id PK
         int organization_id FK
-        enum doc_type "CUIT | DNI | PASAPORTE | CI"
+        enum doc_type "CUIT | CUIL | DNI | PASAPORTE | SIN_IDENTIFICAR"
         string doc_number
         string name
         string address
-        enum tax_condition "CONSUMIDOR_FINAL | IVA_EXENTO | etc"
+        enum tax_condition "RESPONSABLE_INSCRIPTO | MONOTRIBUTO | EXENTO | CONSUMIDOR_FINAL"
         string email
         string phone
         bool is_active
@@ -229,6 +233,7 @@ erDiagram
 2. **Inmutabilidad y Snapshot Histórico:**
    - La tabla `Invoice` contiene campos de snapshot del receptor (`recipient_*`). Si el cliente asociado cambia de domicilio o razón social posteriormente, el comprobante fiscal permanece inalterado.
    - Todo movimiento en moneda extranjera (`USD`) guarda su tipo de cambio histórico en `exchange_rate`, asegurando que fluctuaciones cambiarias posteriores no alteren la caja histórica.
+   - El snapshot del emisor (`Organization`) todavía no está: hoy la factura copia solo los datos del receptor (issue #95, pendiente).
 3. **Desacoplamiento Fiscal y Comercial (Factura vs. Pago vs. Movimiento):**
    - Una `Invoice` autorizada representa un hecho fiscal y comercial, pero no mueve la caja por sí sola.
    - Cada `Payment` representa un cobro parcial o total y se vincula de forma exactamente 1:1 con un `Transaction` (`payment_id UNIQUE`).
@@ -244,8 +249,8 @@ El sistema está diseñado bajo el patrón **Monolito Modular** en el backend y 
 ```mermaid
 graph TB
     subgraph Cliente["Capa de Presentación (Frontend SPA)"]
-        UI["React 18 + TypeScript + Vite"]
-        Router["React Router v6 (Navegación / Rutas Protegidas)"]
+        UI["React 19 + TypeScript + Vite"]
+        Router["React Router 8 (Navegación / Rutas Protegidas)"]
         State["TanStack Query (Caché & Mutaciones HTTP)"]
         Tailwind["Tailwind CSS (UI & Responsive Design)"]
         Recharts["Recharts (Gráficos Dashboard)"]
@@ -258,22 +263,22 @@ graph TB
     subgraph API_GW["Capa de Red & Entrada"]
         HTTP["HTTP / JSON REST API"]
         Cors["CORS & JSON Body Parser"]
-        AuthMid["Middleware de Autenticación JWT"]
-        TenancyMid["Middleware Multi-Tenant (Tenant Context)"]
+        AuthMid["Middleware de Autenticación JWT (requireAuth)"]
         ErrMid["Middleware Global de Manejo de Errores (AppError)"]
     end
 
     subgraph Backend["Capa de Negocio (Backend Express - Monolito Modular)"]
-        ModAuth["módulo: auth (Registro, Login, Reset)"]
-        ModOrg["módulo: organizations (Perfil Fiscal, Configuración)"]
+        ModAuth["módulo: auth (Registro, Login)"]
+        ModUsers["módulo: users (Perfil, cambio de contraseña)"]
+        ModOrg["módulo: organizations (Perfil Fiscal)"]
         ModCat["módulo: categories (CRUD Ingreso/Egreso)"]
         ModCli["módulo: clients (CRUD, Historial)"]
         ModTx["módulo: transactions (Movimientos Manuales, Filtros)"]
-        ModInv["módulo: invoices (Borrador, Validación, Emisión)"]
+        ModInv["módulo: invoices (Borrador, Facturar)"]
         ModPay["módulo: payments (Cobranzas, Conciliación FOR UPDATE)"]
         ModDash["módulo: dashboard (Caja, Gestión, Facturado vs Cobrado)"]
         ModRate["módulo: exchange-rates (Cotización BCRA)"]
-        ModArca["módulo: arca (WSAA Token, WSFEv1 Facturación C)"]
+        ModArca["módulo: arca (FiscalProvider: simulado, librería facturas)"]
     end
 
     subgraph Datos["Capa de Persistencia"]
@@ -288,11 +293,12 @@ graph TB
 
     %% Relaciones
     State -->|JWT Bearer + REST| HTTP
-    HTTP --> Cors --> AuthMid --> TenancyMid
-    TenancyMid --> Backend
+    HTTP --> Cors --> AuthMid
+    AuthMid --> Backend
     Backend -.-> ErrMid
 
     ModAuth --> Prisma
+    ModUsers --> Prisma
     ModOrg --> Prisma
     ModCat --> Prisma
     ModCli --> Prisma
@@ -301,20 +307,20 @@ graph TB
     ModPay --> Prisma
     ModDash --> Prisma
     ModRate --> Prisma
-    ModArca --> Prisma
+    ModInv --> ModArca
 
     Prisma -->|Conexión TCP / Pool de Conexiones| Postgres
 
     ModRate -->|Fetch Cotización Oficial| BCRA_API
-    ModArca -->|Firma CMS/PKCS#7 + SOAP| ARCA_API
+    ModArca -.->|Solo con ARCA_PROVIDER=sdk; todavía sin prueba real| ARCA_API
 ```
 
 ### Componentes de la Arquitectura
-- **Frontend SPA (Vite + React 18):**
+- **Frontend SPA (Vite + React 19):**
   - Renderizado completamente en cliente con TypeScript estricto.
-  - Almacenamiento seguro de token JWT en memoria y sincronización con local storage para persistencia de sesión.
-  - Interceptores HTTP que inyectan el encabezado `Authorization: Bearer <token>` en cada petición.
-  - Manejo optimista y caché de datos con TanStack Query.
+  - El token JWT se guarda en memoria y se copia a `localStorage` para sobrevivir a una recarga. Esto lo expone a un ataque XSS; es una decisión de simplicidad para el alcance del TFI.
+  - Un cliente HTTP propio (`apiFetch`) agrega el encabezado `Authorization: Bearer <token>` en cada petición.
+  - Caché de datos y mutaciones con TanStack Query.
 - **Backend (Node.js + Express):**
   - Separación rigurosa por módulos funcionales (`src/module/*`), cada uno compuesto por:
     - `*.schemas.ts`: Esquemas de validación de entrada con Zod.
@@ -327,53 +333,55 @@ graph TB
   - Bloqueo pesimista a nivel de fila (`SELECT ... FOR UPDATE`) en transacciones concurrentes de pagos y cobranzas.
   - Índices compuestos estratégicos para búsquedas por organización, fechas y clientes.
 - **Integraciones Externas:**
-  - **ARCA (WSAA + WSFEv1):** Generación de ticket de acceso (TRA) firmado digitalmente con certificado X.509 y clave privada; solicitud de CAE con protocolo SOAP/XML estricto y fallback a mock/librería desacoplada.
-  - **BCRA:** Consumo de serie de tipo de cambio oficial para fijación histórica de cotizaciones.
+  - **ARCA (WSAA + WSFEv1):** el sistema habla con ARCA a través de la interfaz `FiscalProvider` (`backend/src/module/arca/`). Hoy se elige por la variable `ARCA_PROVIDER`: `simulated` (cliente simulado, el que usa la demo), `sdk` (librería `facturas`, probada solo contra una simulación local y `FEDummy`) y `direct` (cliente propio, en el PR #141, sin mergear). La primera autenticación real contra homologación sigue pendiente (issue #138).
+  - **BCRA:** consulta de la cotización oficial USD/ARS para sugerir el tipo de cambio de los movimientos (ver `docs/05-cotizacion.md`).
 
 ---
 
 ## 3. Diagramas de Secuencia de Flujos Críticos
 
-### Flujo A: Emisión y Autorización de Factura Electrónica (ARCA)
+### Flujo A: Facturar un borrador (PR #152, con el proveedor simulado)
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Usuario
     participant Frontend
-    participant Backend as Backend (invoices/arca)
-    participant Prisma as Prisma / PostgreSQL
-    participant ARCA as ARCA (WSAA / WSFEv1)
+    participant Backend as Backend (invoices)
+    participant DB as PostgreSQL
+    participant Fiscal as FiscalProvider (simulado)
 
-    Usuario->>Frontend: Completa ítems y hace clic en "Autorizar comprobante"
+    Usuario->>Frontend: Pulsa "Facturar" en un borrador y confirma
     Frontend->>Backend: POST /api/invoices/:id/authorize
-    Note over Backend: Middleware valida JWT y organización
+    Note over Backend: Valida JWT y organización. Arma el proveedor según ARCA_PROVIDER (503 si no se puede)
 
-    Backend->>Prisma: SELECT invoice + items (valida estado DRAFT)
-    Prisma-->>Backend: Factura y datos del receptor
-
-    Backend->>Backend: Snapshot de datos del emisor (Organization)
-    Backend->>Backend: Verifica o solicita Ticket de Acceso (TRA)
-    alt Token expirado o inexistente
-        Backend->>ARCA: LoginCMS con certificado y clave privada
-        ARCA-->>Backend: Token + Sign (válido por 12 horas)
-        Backend->>Prisma: Cachea ArcaCredential
+    Backend->>DB: BEGIN, SELECT ... FROM invoices FOR UPDATE
+    alt La factura no está en DRAFT
+        Backend-->>Frontend: 409 (no se llama al proveedor)
+    else Es un borrador
+        Backend->>DB: UPDATE status = PENDING, COMMIT (reserva)
     end
 
-    Backend->>ARCA: FECAESolicitar (Punto Venta, Tipo C, Concepto, Importe, Receptor)
-    alt ARCA Autoriza
-        ARCA-->>Backend: Resultado APROBADO, CAE asignado, Vencimiento CAE
-        Backend->>Prisma: UPDATE invoice SET status='AUTHORIZED', cae=..., authorized_at=NOW()
-        Backend->>Prisma: INSERT INTO audit_logs (invoice.authorized)
-        Backend-->>Frontend: 200 OK (Factura autorizada con CAE)
-        Frontend-->>Usuario: Muestra comprobante con sello fiscal y CAE
-    else ARCA Rechaza u Observa
-        ARCA-->>Backend: Resultado RECHAZADO, Motivo / Error
-        Backend->>Prisma: UPDATE invoice SET status='REJECTED', arca_response=motivo
-        Backend-->>Frontend: 422 Unprocessable Entity (Detalle del rechazo de ARCA)
-        Frontend-->>Usuario: Muestra aviso explicativo para corregir el borrador
+    Backend->>DB: BEGIN (hasta 30 s), pg_advisory_xact_lock(punto de venta, tipo)
+    Backend->>DB: último comprobante AUTORIZADO en la base
+    Backend->>Fiscal: getLastAuthorized, número = máximo de ambos + 1
+    Backend->>Fiscal: requestCae (Factura C, concepto, receptor, importes)
+    alt Autorizada (con o sin observaciones)
+        Fiscal-->>Backend: CAE y vencimiento
+        Backend->>DB: UPDATE AUTHORIZED, voucher_number, cae, cae_expiration, authorized_at
+        Backend->>DB: INSERT audit_logs (invoice.authorized), COMMIT
+        Backend-->>Frontend: 200 con la factura y el resultado fiscal
+        Frontend-->>Usuario: Muestra el CAE (con aviso "sin validez fiscal" si es simulado)
+    else Rechazada
+        Fiscal-->>Backend: Errores
+        Backend->>DB: UPDATE REJECTED, arca_response, COMMIT
+        Backend-->>Frontend: 200 con los motivos del rechazo
+    else Sin respuesta
+        Backend-->>Frontend: 202, la factura queda PENDING
     end
 ```
+
+Lo que este flujo todavía **no** hace: reconciliar una factura que quedó `PENDING` (paso 3 de `docs/02-atomicidad-concurrencia.md`), reintentar una `REJECTED`, ni autenticarse con el ticket de WSAA (eso lo hace el proveedor real, aún sin probar).
 
 ---
 
@@ -424,5 +432,5 @@ sequenceDiagram
 ## 4. Conclusiones Arquitectónicas
 
 1. **Simplicidad Operativa:** La arquitectura de monolito modular permitió a tres desarrolladores trabajar concurrentemente en módulos independientes sin incurrir en la sobrecarga operativa, de red y de despliegue de microservicios.
-2. **Robustez Transaccional:** La combinación de transacciones ACID en PostgreSQL con bloqueos pesimistas (`FOR UPDATE`) resolvió de forma nativa los problemas de concurrencia y sobrepagos planteados por la cátedra.
-3. **Resiliencia ante Terceros:** El desacoplamiento mediante contratos e interfaces en las integraciones externas (ARCA y BCRA) protege al sistema central de caídas o demoras en servicios gubernamentales.
+2. **Robustez Transaccional:** La combinación de transacciones ACID en PostgreSQL con bloqueos pesimistas (`FOR UPDATE`) cubre los cobros y la reserva del borrador al facturar. Los tests que ejercitan la concurrencia real requieren PostgreSQL y no se probaron en el entorno donde se escribió esta versión.
+3. **Desacople de ARCA:** La interfaz `FiscalProvider` permite cambiar entre el simulador, la librería y el cliente propio sin tocar el resto del sistema. Eso protege a la demo de la dependencia de ARCA, aunque no reemplaza la prueba real contra homologación.
