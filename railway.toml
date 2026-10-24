@@ -1,0 +1,14 @@
+# Backend en Railway. El servicio se conecta al repo y usa esta configuración.
+# La raíz del repo es el contexto de build: el Dockerfile necesita el lockfile
+# y los package.json de todo el workspace de pnpm.
+# Al arrancar el contenedor corre `prisma migrate deploy` y después la API.
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "backend/Dockerfile"
+# Solo se redespliega cuando cambia el backend o las dependencias.
+watchPatterns = ["backend/**", "pnpm-lock.yaml", "pnpm-workspace.yaml", "package.json"]
+
+[deploy]
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 5
