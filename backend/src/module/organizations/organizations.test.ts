@@ -136,6 +136,11 @@ describe.skipIf(!dbAvailable)("organizations (integration)", () => {
         const categories = await prisma.category.findMany({ where: { organizationId: res.body.id } });
         expect(categories.map((category: { name: string }) => category.name)).toContain("Cobro de facturas");
 
+        // Sin punto de venta no se puede crear ninguna factura: el alta deja el N° 1 listo
+        const pointsOfSale = await prisma.pointOfSale.findMany({ where: { organizationId: res.body.id } });
+        expect(pointsOfSale).toHaveLength(1);
+        expect(pointsOfSale[0]).toMatchObject({ number: 1, billingMethod: "CAE", isActive: true });
+
         const me = await request(app).get("/api/auth/me").set(as(tokenA));
         expect(me.body.organization.id).toBe(res.body.id);
         expect((await request(app).get("/api/clients").set(as(tokenA))).status).toBe(200);
@@ -203,7 +208,8 @@ describe.skipIf(!dbAvailable)("organizations (integration)", () => {
 
     it("no deja cambiar el CUIT si ya hay facturas autorizadas", async () => {
         const org = (await request(app).get("/api/organizations/me").set(as(tokenA))).body;
-        const pointOfSale = await prisma.pointOfSale.create({ data: { organizationId: org.id, number: 1 } });
+        // El alta de la organización ya creó el punto de venta N° 1
+        const pointOfSale = await prisma.pointOfSale.findFirstOrThrow({ where: { organizationId: org.id, number: 1 } });
         await prisma.invoice.create({
             data: {
                 organizationId: org.id,

@@ -64,7 +64,7 @@ La organización es del usuario logueado, por eso las rutas usan `me` en lugar d
 
 | Método y ruta | Request | Response |
 | --- | --- | --- |
-| `POST /api/organizations` | Ver cuerpo abajo | `201` con la organización. Crea también las categorías por defecto y registra el alta en la auditoría. `400` si algún campo no es válido. `409` si el usuario ya tiene una o si el CUIT ya está registrado. `401` si el usuario del token ya no existe. |
+| `POST /api/organizations` | Ver cuerpo abajo | `201` con la organización. Crea también las categorías por defecto y el punto de venta N° 1 (sin él no se pueden crear facturas), y registra el alta en la auditoría. `400` si algún campo no es válido. `409` si el usuario ya tiene una o si el CUIT ya está registrado. `401` si el usuario del token ya no existe. |
 | `GET /api/organizations/me` | | `200` con la organización. `403` si todavía no tiene. |
 | `PATCH /api/organizations/me` | Cualquier campo del cuerpo de alta | `200` con la organización actualizada. `400` si algún campo no es válido. `403` si todavía no tiene organización. `409` si el CUIT ya está registrado o si se intenta cambiar con facturas autorizadas. |
 
