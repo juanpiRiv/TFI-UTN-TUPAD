@@ -8,6 +8,7 @@ const navItems = [
   { to: '/facturas', label: 'Facturas' },
   { to: '/clientes', label: 'Clientes' },
   { to: '/categorias', label: 'Categorías' },
+  { to: '/puntos-de-venta', label: 'Puntos de venta' },
   { to: '/organizacion', label: 'Mi negocio' },
   { to: '/perfil', label: 'Mi perfil' },
 ]
