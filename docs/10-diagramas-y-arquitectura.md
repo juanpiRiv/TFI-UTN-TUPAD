@@ -4,7 +4,7 @@ Este documento da cumplimiento al requerimiento **F10-4 (Issue #79: docs(der): a
 
 Qué parte está implementada:
 - El DER coincide, tabla por tabla y columna por columna, con el esquema de Prisma. Lo que aparece en el esquema no siempre tiene pantalla o endpoint (por ejemplo, `PASSWORD_RESET_TOKEN`, `ACTIVITY` y `ARCA_CREDENTIAL` existen como tablas, pero todavía no hay recuperación de contraseña ni carga de actividades o credenciales).
-- El flujo B (cobro) está en `develop`. El flujo A (facturar) corresponde al PR #152, abierto al escribir esto, y funciona con el proveedor fiscal simulado.
+- Los dos flujos de secuencia están implementados. El de facturar funciona con el proveedor fiscal simulado.
 
 ---
 
@@ -340,7 +340,7 @@ graph TB
 
 ## 3. Diagramas de Secuencia de Flujos Críticos
 
-### Flujo A: Facturar un borrador (PR #152, con el proveedor simulado)
+### Flujo A: Facturar un borrador (con el proveedor simulado)
 
 ```mermaid
 sequenceDiagram

@@ -10,9 +10,9 @@
 - Riveros Valgañón, Nahuel Nicolás
 
 **Fecha:** Octubre 2026
-**Estado:** tercera entrega. Los datos de este informe son del 24/10/2026 y salen del código de la rama `develop` y de los issues y PRs del repositorio.
+**Estado:** tercera entrega. Describe el release que se publica en `main`. Los datos son del 24/10/2026 y salen del código y de los issues y PRs del repositorio.
 
-> Este informe distingue tres estados: **en `develop`** (ya integrado), **en revisión** (PR abierto, todavía sin mergear) y **pendiente** (sin PR). La integración real con ARCA todavía no se probó contra homologación.
+> Este informe describe lo que está integrado en el release de `main`. Lo pendiente está en la sección 3.2. La integración real con ARCA todavía no se probó contra homologación: lo que se ve funcionando usa el proveedor simulado.
 
 ---
 
@@ -38,7 +38,7 @@ Stack, según los `package.json` y el esquema del repositorio:
 | Formato y actualización de la propuesta | Se migró a Markdown: [`docs/01-propuesta.md`](./01-propuesta.md). | Hecho |
 | Factura, pago y movimiento no son lo mismo; los pagos parciales no deben duplicar ingresos | `Invoice`, `Payment` y `Transaction` son tablas separadas. Cada pago genera como máximo un movimiento (`payment_id` único). Reglas en [`docs/04-factura-cobro-y-pagos.md`](./04-factura-cobro-y-pagos.md). | Hecho |
 | DER y diccionario de datos | DER corregido y diccionario en [`docs/03-modelo-de-datos.md`](./03-modelo-de-datos.md). Esquema de Prisma en `backend/prisma/schema/` y diagramas en [`docs/10-diagramas-y-arquitectura.md`](./10-diagramas-y-arquitectura.md). | Hecho |
-| Atomicidad y concurrencia | Los cobros corren en una transacción con `SELECT ... FOR UPDATE` sobre la factura. Diseño en [`docs/02-atomicidad-concurrencia.md`](./02-atomicidad-concurrencia.md). La numeración al facturar (bloqueo consultivo por punto de venta) está en el PR #152. | Hecho para cobros; en revisión para facturar |
+| Atomicidad y concurrencia | Los cobros corren en una transacción con `SELECT ... FOR UPDATE` sobre la factura, y al facturar la numeración se toma con un bloqueo consultivo por punto de venta. Diseño en [`docs/02-atomicidad-concurrencia.md`](./02-atomicidad-concurrencia.md). | Hecho |
 | Dependencia de ARCA | Interfaz `FiscalProvider` con un cliente simulado y uno sobre la librería `facturas`, y el plan B de [`docs/06-plan-b-arca.md`](./06-plan-b-arca.md). El cliente propio está en el PR #141 (borrador). Evaluación en [`docs/arca/evaluacion-tecnica.md`](./arca/evaluacion-tecnica.md). | Parcial: falta la prueba real (ver 2.3) |
 | Cotización y multimoneda | Definición en [`docs/05-cotizacion.md`](./05-cotizacion.md). El backend consulta al BCRA y cada movimiento en dólares guarda su tipo de cambio. | Hecho |
 
@@ -57,45 +57,41 @@ Stack, según los `package.json` y el esquema del repositorio:
 | Pedido | Estado |
 | :--- | :--- |
 | Evaluación técnica de dos alternativas para ARCA, con decisión justificada | Hecho: se eligió la librería `facturas` como camino principal, el cliente propio como respaldo y un simulador para la demo ([evaluación](./arca/evaluacion-tecnica.md)). |
-| Interfaz propia para la facturación (`FiscalProvider`) | Hecho en `develop`, con tests de contrato. La elección por `ARCA_PROVIDER` está en el PR #151. |
+| Interfaz propia para la facturación (`FiscalProvider`) | Hecho, con tests de contrato. El proveedor se elige con `ARCA_PROVIDER`. |
 | Pruebas contra homologación | **Parcial.** Se probó `FEDummy`, el rechazo del WSAA a un certificado de prueba y un error 600 de WSFEv1. Hay un certificado de homologación emitido el 22/10, pero todavía no hubo una autenticación exitosa ni una emisión real (issue #138). |
-| Perfil de usuario y perfil fiscal de la organización | Hecho en `develop`. |
+| Perfil de usuario y perfil fiscal de la organización | Hecho. |
 | Relevamiento con usuarios reales | Hecho con 3 respuestas; las conclusiones aclaran qué está confirmado y qué es débil ([relevamiento](./07-relevamiento.md)). |
 
 ---
 
 ## 3. Alcance
 
-### 3.1. Funcionando en `develop`
+### 3.1. Funcionando en el release
 
 1. **Autenticación:** registro e inicio de sesión (Argon2id y JWT de 1 día), cambio de contraseña y perfil de usuario. El aislamiento por organización se aplica en las consultas del backend.
 2. **Organización:** alta y edición del perfil fiscal (CUIT, razón social, condición frente al IVA). Al crearla se generan las categorías por defecto.
 3. **Clientes:** alta, edición, baja lógica, búsqueda e historial de operaciones.
-4. **Categorías:** listar, crear y editar (PR #149).
+4. **Categorías:** listar, crear y editar.
 5. **Movimientos:** ingresos y egresos en ARS y USD, con filtros por fecha, tipo y categoría y sugerencia de cotización del BCRA.
 6. **Cobros:** pagos parciales o totales sobre facturas autorizadas, con control de saldo y de moneda, y adopción de un ingreso manual existente.
 7. **Dashboard:** resultado de caja, resultado de gestión y facturado contra cobrado, con gráficos de Recharts.
-8. **Facturas en borrador:** crear una factura con uno o más ítems, con subtotales y total calculados por el backend y los datos del receptor copiados; pantalla de alta y listado (PR #150). Todavía no se pueden editar.
-9. **Auditoría:** hay una tabla `audit_logs` y se registran altas de organización, movimientos, pagos y facturas creadas. El login y la autorización de facturas todavía no se auditan.
+8. **Facturas en borrador:** crear una factura con uno o más ítems, con subtotales y total calculados por el backend y los datos del receptor copiados; pantalla de alta y listado Todavía no se pueden editar.
+9. **Facturar:** el botón **Facturar** de un borrador pide el CAE al proveedor fiscal elegido con `ARCA_PROVIDER` y deja la factura autorizada, rechazada o pendiente. Hoy funciona con el **proveedor simulado**: el CAE no tiene validez fiscal y la pantalla lo avisa.
+10. **Auditoría:** hay una tabla `audit_logs` y se registran altas de organización, movimientos, pagos, facturas creadas y facturas autorizadas o rechazadas. El login todavía no se audita.
+11. **Despliegue (configuración):** `railway.toml` para el backend y la base, el workflow de Cloudflare Pages para el frontend y la guía [`docs/09-deploy.md`](./09-deploy.md). Los servicios públicos todavía no están creados.
 
-### 3.2. En revisión (PRs abiertos)
+### 3.2. Pendiente
 
-- **#151:** elegir el proveedor fiscal con `ARCA_PROVIDER`.
-- **#152:** botón **Facturar** con el proveedor simulado (autoriza, rechaza o queda pendiente).
-- **#148:** despliegue del backend en Railway y del frontend en Cloudflare Pages.
-
-### 3.3. Pendiente
-
-- Emisión real contra ARCA y los códigos de condición IVA del receptor, que no están verificados contra el catálogo oficial.
+- Emisión real contra ARCA (la primera prueba contra homologación, issue #138) y los códigos de condición IVA del receptor, que no están verificados contra el catálogo oficial.
 - Reconciliación de facturas que quedan pendientes y reenvío de las rechazadas.
 - PDF del comprobante (#55).
 - Recuperación de contraseña: existe la tabla, pero no el flujo.
 - Actividades y puntos de venta con pantalla propia (#26, #27).
-- Retirar los mocks de MSW (PR #144, hay que rehacerlo contra `develop`).
+- Retirar los mocks de MSW (PR #144, hay que rehacerlo contra `main`).
 - Pruebas E2E y de integración (#61 a #66) y revisión de seguridad (#66).
-- Despliegue con URLs públicas (#70 a #73): dependen de crear el proyecto en Railway.
+- Despliegue con URLs públicas (#70 a #73): la configuración está lista, falta crear el proyecto en Railway.
 
-### 3.4. Postergado a P1 / P2
+### 3.3. Postergado a P1 / P2
 
 | Funcionalidad | Issue | Por qué se posterga |
 | :--- | :--- | :--- |
@@ -116,12 +112,12 @@ El aislamiento entre organizaciones se resuelve en cada servicio, filtrando por 
 
 ## 5. Pruebas
 
-Sobre `develop` al 24/10/2026:
-- **Backend (Vitest y Supertest):** 202 tests pasan y 17 de integración se saltan cuando no hay PostgreSQL. Tres suites (`invoices`, `payments` y la de RN-06) necesitan `DATABASE_URL` y `JWT_SECRET` y fallan si faltan esas variables.
-- **Frontend (Vitest y Testing Library):** 48 tests pasan.
+En el release, al 24/10/2026:
+- **Backend (Vitest y Supertest):** 233 tests pasan y 17 de integración se saltan cuando no hay PostgreSQL. Tres suites (`invoices`, `payments` y la de RN-06) necesitan `DATABASE_URL` y `JWT_SECRET` y fallan si faltan esas variables.
+- **Frontend (Vitest y Testing Library):** 55 tests pasan.
 - Los tests que prueban concurrencia real (`FOR UPDATE`) requieren PostgreSQL local (`docker compose up -d`) y no se ejecutaron en el entorno donde se actualizó este informe.
 
-La ronda de QA general quedó registrada en el issue #74 y sus correcciones en #75. Los PRs abiertos suman tests propios: el #152 (facturar) agrega 20 en el backend y 7 en el frontend.
+La ronda de QA general quedó registrada en el issue #74 y sus correcciones en #75.
 
 ---
 

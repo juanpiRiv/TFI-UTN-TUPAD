@@ -14,7 +14,7 @@ Decirlo en el video, de entrada. Si no se aclara, parece que se emitió una fact
 
 ## Antes de grabar
 
-Este guion supone que ya están mergeados los PRs de creación de facturas (#150, ya está) y de facturar (#152). Si #152 no está, el recorrido se corta en el paso 6.
+Este guion describe el recorrido sobre el release de `main`.
 
 1. Levantar todo con el script del repositorio (`./scripts/dev.sh`) o, a mano, siguiendo la sección "Cómo levantar el proyecto" del [README](../README.md):
    - PostgreSQL en Docker (puerto 5433).
