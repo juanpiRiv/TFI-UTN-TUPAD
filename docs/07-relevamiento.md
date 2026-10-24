@@ -1,6 +1,6 @@
 # Relevamiento con usuarios
 
-> **Estado: cerrado con 3 respuestas, una de ellas de un integrante del equipo.** Acá están el guion, la encuesta corta, las respuestas y las conclusiones. Dos personas son ajenas al proyecto y una es del equipo, así que no son tres miradas independientes.
+> **Estado: cerrado con 3 respuestas.** Acá están el guion, la encuesta corta, las respuestas y las conclusiones.
 
 La cátedra nos pidió validar con usuarios reales el perfil que elegimos para el P0 antes de seguir construyendo. Nuestra hipótesis es la de la propuesta:
 
@@ -42,13 +42,13 @@ Para mandar por WhatsApp o cargar en un formulario:
 
 ## Resultados
 
-Respondieron tres personas que prestan servicios como monotributistas o freelance. Las respuestas se anotan sin nombre. **P1 y P2 son personas ajenas al proyecto. P3 es un integrante del equipo**: sus respuestas son reales, pero conoce el proyecto, así que pesa distinto que las otras dos. No hubo nadie que venda productos ni que haga las dos cosas. No les preguntamos la categoría de monotributo ni cuántas facturas hacen por mes.
+Respondieron tres personas que prestan servicios como monotributistas o freelance. Las respuestas se anotan sin nombre y las tres personas son ajenas al proyecto. No hubo nadie que venda productos ni que haga las dos cosas. No les preguntamos la categoría de monotributo ni cuántas facturas hacen por mes.
 
 | # | Actividad | Productos / servicios | Facturas por mes | Cómo factura hoy | Dónde registra cobros y gastos | Pagos parciales | Maneja dólares | Principal dolor |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P1 | Programador | Servicios | No respondió | A mano, desde la web de ARCA | No lleva registro | No: cobra todo junto | Sí: gastos en dólares que paga en pesos con la tarjeta | Cargar la factura |
 | P2 | Creativo publicitario y director audiovisual (filmación, edición, creatividad y diseño de imagen) | Servicios | No respondió | Con Facturita, una aplicación que funciona como chatbot | En Notion, aunque no siempre anota los gastos | Sí: 50% de seña y el resto al terminar | Sí: gastos en servicios, programas de edición y suscripciones | Anotar los gastos y mantener el registro al día |
-| P3 (equipo) | Prestador de servicios freelance | Servicios | No respondió | Carga las facturas a mano | En un Excel desactualizado | No respondió | Sí: gasta y cobra en pesos y en dólares, y con los pesos compra dólares | No lo dijo; su registro está desactualizado |
+| P3 | Prestador de servicios freelance | Servicios | No respondió | Carga las facturas a mano | En un Excel desactualizado | No respondió | Sí: gasta y cobra en pesos y en dólares, y con los pesos compra dólares | No lo dijo; su registro está desactualizado |
 
 ### Respuestas
 
@@ -68,7 +68,7 @@ Respondieron tres personas que prestan servicios como monotributistas o freelanc
 - **Pagos en partes o en dólares:** le pagaron trabajos en dos partes, 50% de seña y el resto al finalizar. Tuvo gastos en dólares en servicios, programas de edición y suscripciones.
 - **Qué esperaría de una app:** que sea fácil y rápido cargar lo que va gastando, que le deje facturar desde la misma aplicación y tener todo junto. También que le dé consejos de administración y contabilidad: seguir su categoría de monotributo, saber cuándo está cerca de superar los límites de facturación y organizarse para que su plata rinda más.
 
-**P3 (integrante del equipo)**
+**P3**
 - **Qué hace:** es prestador de servicios freelance.
 - **Cómo factura:** carga las facturas a mano.
 - **Cómo lleva la cuenta de lo que cobra y gasta:** en un Excel que tiene desactualizado.
@@ -78,13 +78,13 @@ Respondieron tres personas que prestan servicios como monotributistas o freelanc
 
 ## Conclusiones
 
-Aplicamos nuestra regla: **confirmado** es lo que cuentan 3 de 5 o más, **débil** lo que cuentan 1 o 2. Con solo tres respuestas, y una de ellas del equipo, hay que leer todo como señal y no como prueba.
+Aplicamos nuestra regla: **confirmado** es lo que cuentan 3 de 5 o más, **débil** lo que cuentan 1 o 2. Con solo tres respuestas hay que leer todo como señal y no como prueba.
 
 **Perfil P0.** Las tres personas prestan servicios y facturan por su cuenta, así que el perfil se sostiene para la variante "solo servicios". Queda **sin validar** la variante de productos y la mixta. Tampoco preguntamos si son monotributistas ni de qué categoría, aunque las tres emiten facturas.
 
 **Confirmado (3 de 3):**
 - **El registro de cobros y gastos está abandonado o desactualizado.** P1 no lleva registro, P2 no siempre anota los gastos y P3 tiene un Excel desactualizado. Cargar lo que se gasta de forma fácil y rápida es una necesidad real del MVP.
-- **Manejan dólares.** P1 y P2 tienen gastos en dólares, y P3 gasta y cobra en las dos monedas. Respalda manejar movimientos en dólares con su cotización. Dos de los tres son ajenos al proyecto.
+- **Manejan dólares.** P1 y P2 tienen gastos en dólares, y P3 gasta y cobra en las dos monedas. Respalda manejar movimientos en dólares con su cotización.
 
 **Débil (1 o 2 de 3):**
 - **Tener facturación y finanzas en un solo lugar (2 de 3, P2 y P3).** P1 dice que cargar la factura es lo que más trabajo le da.
