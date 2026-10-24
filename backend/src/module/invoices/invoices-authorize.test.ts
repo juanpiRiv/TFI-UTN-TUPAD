@@ -123,6 +123,39 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     });
   });
 
+  it("el detalle guarda y devuelve que la factura fue simulada (#135)", async () => {
+    const res = await post();
+
+    expect(res.body.invoice.simulated).toBe(true);
+    expect(updates()[1]!.arcaResponse).toMatchObject({ simulated: true });
+  });
+
+  it("con un proveedor real el detalle no marca la factura como simulada", async () => {
+    current.provider = {
+      name: "proveedor-real",
+      healthCheck: async () => ({ ok: true, detail: "" }),
+      getLastAuthorized: async () => ({ voucherNumber: 0 }),
+      requestCae: async () => ({
+        outcome: "AUTHORIZED" as const,
+        cae: "74123456789012",
+        caeExpiration: "20261104",
+        observations: [],
+        errors: [],
+        simulated: false,
+      }),
+    } satisfies FiscalProvider;
+    const res = await post();
+
+    expect(res.body.invoice.simulated).toBe(false);
+  });
+
+  it("un borrador no figura como simulado", async () => {
+    row.status = "DRAFT";
+    const detail = await request(app).get("/api/invoices/99").set("Authorization", `Bearer ${token}`);
+
+    expect(detail.body.simulated).toBe(false);
+  });
+
   it("devuelve 401 sin token", async () => {
     const res = await request(app).post("/api/invoices/99/authorize");
     expect(res.status).toBe(401);

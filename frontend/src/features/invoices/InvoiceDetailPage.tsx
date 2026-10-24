@@ -191,6 +191,15 @@ export function InvoiceDetailPage() {
         </div>
       </div>
 
+      {invoice.simulated && invoice.status === 'AUTHORIZED' && (
+        <p
+          role="note"
+          data-testid="simulated-legend"
+          className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900"
+        >
+          Comprobante de prueba, sin validez fiscal: lo generó el proveedor simulado.
+        </p>
+      )}
       {authorizeError && (
         <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
           {authorizeError}
@@ -216,11 +225,6 @@ export function InvoiceDetailPage() {
       {(fiscal?.outcome === 'AUTHORIZED' || fiscal?.outcome === 'AUTHORIZED_WITH_OBSERVATIONS') && (
         <div role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
           <p className="font-semibold">Factura autorizada. CAE: {authorize.data?.invoice.cae}</p>
-          {fiscal.simulated && (
-            <p className="mt-1">
-              Comprobante de prueba, sin validez fiscal: lo generó el proveedor simulado.
-            </p>
-          )}
           {fiscal.observations.map((item) => (
             <p key={`${item.code}-${item.message}`} className="mt-1">
               Observación {item.code}: {item.message}

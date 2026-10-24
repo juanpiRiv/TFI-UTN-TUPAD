@@ -78,6 +78,7 @@ export async function getInvoiceById(userId: number, invoiceId: number) {
       recipientName: true,
       concept: true,
       cae: true,
+      arcaResponse: true,
       issuerCuit: true,
       issuerLegalName: true,
       issuerTradeName: true,
@@ -165,6 +166,11 @@ export async function getInvoiceById(userId: number, invoiceId: number) {
     issueDate: issueDateStr,
     concept: invoice.concept,
     cae: invoice.cae,
+    // Si la autorizó el proveedor simulado: el CAE no tiene validez fiscal (#135).
+    simulated:
+      typeof invoice.arcaResponse === "object" &&
+      invoice.arcaResponse !== null &&
+      (invoice.arcaResponse as { simulated?: unknown }).simulated === true,
     // Datos del emisor al momento de facturar (null mientras sea borrador).
     issuer: invoice.issuerCuit
       ? {
