@@ -124,6 +124,9 @@ quien cierra el issue.
 
 ## Deploy del frontend
 
+El deploy completo (backend y base en Railway, frontend en Cloudflare) y
+dónde va cada secreto están en [`docs/09-deploy.md`](./09-deploy.md).
+
 El workflow [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml)
 publica el frontend en Cloudflare Pages cuando entra un cambio a `main`
 (o a mano desde Actions > Deploy frontend > Run workflow). Antes de
