@@ -78,6 +78,13 @@ export function createRoutes(queryClient: QueryClient): RouteObject[] {
                 })),
             },
             {
+              path: 'facturas/nueva',
+              lazy: () =>
+                import('@/features/invoices/NewInvoicePage').then((m) => ({
+                  Component: m.NewInvoicePage,
+                })),
+            },
+            {
               path: 'facturas/:id',
               lazy: () =>
                 import('@/features/invoices/InvoiceDetailPage').then((m) => ({
@@ -89,6 +96,13 @@ export function createRoutes(queryClient: QueryClient): RouteObject[] {
               lazy: () =>
                 import('@/features/categories/CategoriesPage').then((m) => ({
                   Component: m.CategoriesPage,
+                })),
+            },
+            {
+              path: 'perfil',
+              lazy: () =>
+                import('@/features/profile/ProfilePage').then((m) => ({
+                  Component: m.ProfilePage,
                 })),
             },
             {

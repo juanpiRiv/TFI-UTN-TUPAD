@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { authRouter } from './module/auth/auth.routes.js';
+import { userRouter } from './module/users/user.routes.js';
 import { organizationsRouter } from './module/organizations/organizations.routes.js';
 import { categoriesRouter } from './module/categories/categories.routes.js';
 import { clientsRouter } from './module/clients/clients.routes.js';
@@ -25,6 +26,7 @@ app.get("/test", (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/users", userRouter);
 app.use("/api/organizations", organizationsRouter);
 app.use("/api/categories", categoriesRouter);
 app.use("/api/clients", clientsRouter);

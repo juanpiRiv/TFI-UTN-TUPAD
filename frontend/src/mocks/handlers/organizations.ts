@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import { isValidCuit } from '@/features/organizations/schemas'
+import { isValidCuit, organizationTaxConditions } from '@/features/organizations/schemas'
 import type { Organization } from '@/features/organizations/types'
 import { API_URL } from '@/lib/api'
 import { db, nextId, nowIso, saveDb } from '../db'
@@ -16,11 +16,14 @@ function validate(body: OrganizationBody, partial: boolean): FieldDetail[] {
   if ((!partial || body.legalName !== undefined) && !body.legalName?.trim()) {
     details.push({ field: 'legalName', message: 'Required' })
   }
+  if ((!partial || body.baseCurrency !== undefined) && body.baseCurrency !== 'ARS') {
+    details.push({ field: 'baseCurrency', message: 'Base currency must be ARS' })
+  }
   if (
-    (!partial || body.baseCurrency !== undefined) &&
-    !['ARS', 'USD'].includes(body.baseCurrency ?? '')
+    (!partial || body.taxCondition !== undefined) &&
+    !(organizationTaxConditions as readonly string[]).includes(body.taxCondition ?? '')
   ) {
-    details.push({ field: 'baseCurrency', message: 'Invalid currency' })
+    details.push({ field: 'taxCondition', message: 'Invalid tax condition' })
   }
   return details
 }
