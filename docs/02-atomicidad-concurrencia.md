@@ -181,8 +181,8 @@ Van en la suite de integración (Vitest y Supertest contra un PostgreSQL real, n
 | Pagos simultáneos que superan el total | Factura de $1000 y dos pagos de $600 con `Promise.all` | Uno se guarda y el otro devuelve 422. Cobrado: $600 |
 | Pago sin movimiento | Forzar un error después de crear el `Payment` | No queda ni el pago ni el movimiento |
 | Doble "Facturar" | Dos POST a `/invoices/:id/authorize` con `Promise.all` | Uno llama a ARCA, el otro devuelve 409 |
-| Dos facturas del mismo punto de venta a la vez | `ArcaClient` simulado que valida la correlatividad | Números consecutivos, sin rechazos |
-| ARCA no responde | `ArcaClient` simulado que autoriza y corta la conexión | Queda en `PENDING` y la reconciliación la pasa a `AUTHORIZED` con el CAE correcto |
+| Dos facturas del mismo punto de venta a la vez | `ArcaSimulatedClient` (la implementación simulada de `FiscalProvider`) que valida la correlatividad | Números consecutivos, sin rechazos |
+| ARCA no responde | `ArcaSimulatedClient` (la implementación simulada de `FiscalProvider`) que autoriza y corta la conexión | Queda en `PENDING` y la reconciliación la pasa a `AUTHORIZED` con el CAE correcto |
 | Renovación simultánea del ticket | Dos llamadas con el ticket vencido | Una sola llamada a `LoginCms` |
 | Edición simultánea | Dos `PATCH` con el mismo `updated_at` | El segundo devuelve 409 |
 | La cotización cambia después de registrar | Movimiento en USD y después una cotización nueva | El movimiento conserva su tipo de cambio original |

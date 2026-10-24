@@ -7,7 +7,7 @@ Oscar, esto es lo que hicimos para decidir cómo hablar con ARCA. Empezamos por 
 | Pedido | Dónde está |
 |---|---|
 | Comparar un cliente propio con una librería | Secciones 2, 3 y 4 |
-| Una interfaz propia para ARCA (`FiscalProvider`) | Sección 6 y el código de `feature/arca-fiscal-provider` |
+| Una interfaz propia para ARCA (`FiscalProvider`) | Sección 6 y el código de `backend/src/module/arca/` |
 | Decisión justificada | Sección 6 |
 | Evidencia trazable | Sección 5 (respuestas reales guardadas) y sección 8 (fuentes oficiales) |
 | Qué no está probado | Sección 7 |
@@ -102,7 +102,7 @@ Es una decisión nuestra, no algo que diga ARCA.
 
 - **Prueba real con el certificado:** algoritmo de firma (SHA-1 o SHA-256), formato de fechas del pedido, resultados reales de factura aprobada, rechazada y parcial, y los catálogos de ARCA. Está en el issue #138.
 - **Punto de venta:** no verificamos qué tipo corresponde a un monotributista; lo vamos a consultar a ARCA.
-- **Interfaz `FiscalProvider`:** A y B no se comportan igual ante un error 600 o una falla del login (A lanza una excepción, B devuelve un resultado indeterminado), y falta correr la suite de contrato sobre los dos. Falta también elegir el proveedor por configuración (`ARCA_PROVIDER`) y mostrar la leyenda "sin validez fiscal" cuando se use el simulador. Son los issues #134, #135 y #136.
+- **Interfaz `FiscalProvider`:** la suite de contrato ya corre sobre el simulador y sobre B (contra una simulación local). Falta correrla sobre A y unificar su comportamiento con B ante un error 600 o una falla del login (A lanza una excepción, B devuelve un resultado indeterminado). Falta también elegir el proveedor por configuración (`ARCA_PROVIDER`) y mostrar la leyenda "sin validez fiscal" cuando se use el simulador. Son los issues #134, #135 y #136.
 - **Edición del manual:** hay dos (4.7 y 4.8), y la 4.8 vuelve obligatorio `CondicionIVAReceptorId`. No pudimos confirmar cuál rige hoy ni desde cuándo.
 - **Mediciones:** la latencia sale de muy pocas capturas de un solo día, y no medimos horas de trabajo.
 
@@ -124,6 +124,5 @@ Las páginas indicadas son las que citamos en la evaluación original. Qué edic
 
 ## Dónde está el código
 
-- `feature/arca-fiscal-provider`: la interfaz, el simulador y los tests de contrato.
-- `feature/arca-sdk-client`: B, apilada sobre la anterior.
-- `spike/arca-directo`: A, queda como respaldo, sin PR.
+- `backend/src/module/arca/`: la interfaz `FiscalProvider`, el simulador, los tests de contrato y el adaptador sobre la librería (B).
+- `spike/arca-directo`: A, queda como respaldo y sigue en un PR en borrador.
