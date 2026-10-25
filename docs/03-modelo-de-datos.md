@@ -266,7 +266,7 @@ Por ahora cada usuario tiene una sola organización (su actividad como monotribu
 | organization_id | int | no | Organización dueña. |
 | arca_activity_code | varchar(20) | sí | Código de actividad según el nomenclador de ARCA. |
 | description | varchar(255) | no | Descripción de la actividad. |
-| activity_kind | enum | no | `GOODS` o `SERVICES`. Sirve para sugerir el concepto de la factura. |
+| activity_kind | enum | no | `GOODS`, `SERVICES` o `BOTH`. Sirve para sugerir el concepto de la factura. |
 | is_primary | boolean | no | Actividad principal. Una sola por organización: lo exige un índice único parcial. |
 | is_active | boolean | no | Baja lógica. |
 

@@ -92,7 +92,7 @@ erDiagram
         int organization_id FK
         string arca_activity_code
         string description
-        enum activity_kind "GOODS | SERVICES"
+        enum activity_kind "GOODS | SERVICES | BOTH"
         bool is_primary
         bool is_active
         datetime created_at
