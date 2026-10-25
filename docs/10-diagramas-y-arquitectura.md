@@ -439,7 +439,7 @@ sequenceDiagram
 | Snapshot del emisor al pasar a pendiente | Los datos del emisor se copian a la factura cuando deja de ser borrador, no al crearla: un borrador puede quedar días y los datos de la organización podrían cambiar antes de facturar. |
 | Numeración de comprobantes | El número es el mayor entre el último que informa el proveedor y el último autorizado en la base, más uno, bajo un bloqueo por punto de venta. El simulador vive en memoria, así que se adelanta con lo que ya hay en la base. |
 | Punto de venta N° 1 al crear la organización | Una organización nueva no podía crear facturas por no tener punto de venta. El alta deja el N° 1; el número real de ARCA se carga después. |
-| Despliegue: Railway y Cloudflare | Se evaluó Fly.io pero no tiene plan gratuito. Backend y PostgreSQL van juntos en Railway, y el frontend en Cloudflare Pages desde un workflow de GitHub Actions. |
+| Despliegue: Render y Cloudflare | Se evaluó Fly.io (sin plan gratuito) y Railway, pero el backend se desplegó en Render con su base PostgreSQL, y el frontend en Cloudflare Pages desde un workflow de GitHub Actions. |
 | Facturas rechazadas | Hoy una factura `REJECTED` no se puede corregir ni reenviar, porque todavía no hay edición de borradores. Es una limitación conocida, no una decisión de diseño. |
 
 ---

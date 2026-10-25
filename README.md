@@ -35,7 +35,7 @@ Plataforma web orientada inicialmente a **monotributistas que venden productos, 
 | **Seguridad** | JWT, bcrypt / Argon2, HTTPS |
 | **Integraciones** | ARCA Web Services (WSAA/WSFEv1), APIs Banco Central (BCRA), Kapso / WhatsApp |
 | **Testing** | Vitest, Jest, Supertest, Postman |
-| **Infraestructura** | Cloudflare Pages (Frontend), Railway (Backend), Railway / Supabase (Database) |
+| **Infraestructura** | Cloudflare Pages (Frontend), Render (Backend y Database) |
 | **Gestión** | Git, GitHub, GitHub Projects |
 
 ---
@@ -111,7 +111,7 @@ Toda la documentación está en Markdown dentro del repo, así se puede leer dir
 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Fechas de control y qué pasa a P1 si la integración con ARCA se atrasa |
 | [Relevamiento con usuarios](./docs/07-relevamiento.md) | Guion de entrevistas y resultados (en curso) |
 | [Contrato de la API](./docs/08-contrato-api.md) | Endpoints que espera el frontend: rutas, datos que se mandan y reciben, errores y preguntas abiertas |
-| [Deploy](./docs/09-deploy.md) | Dónde vive cada pieza (Railway y Cloudflare), dónde van los secretos y el paso a paso para publicarlo |
+| [Deploy](./docs/09-deploy.md) | Dónde vive cada pieza (Render y Cloudflare), dónde van los secretos y el paso a paso para publicarlo |
 | [Diagramas y Arquitectura](./docs/10-diagramas-y-arquitectura.md) | DER con las tablas del esquema de Prisma, arquitectura del sistema y secuencias de los flujos de facturar y cobrar |
 | [Informe Final](./docs/11-informe-final.md) | Informe de cierre: estado de cada devolución docente, qué está hecho y qué está pendiente, pruebas y conclusiones |
 | [Guion de la Demo](./docs/12-guion-demo.md) | Guion paso a paso del recorrido de la demo, con lo que funciona hoy y lo que queda simulado |

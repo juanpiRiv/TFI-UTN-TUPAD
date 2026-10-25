@@ -45,9 +45,42 @@ jobs:
           pnpm --filter frontend test
           pnpm --filter frontend build
 
+      # El proyecto de Pages tiene que existir en la cuenta de los secrets. Si no está, se crea: así el workflow
+      # no depende de un paso manual y no falla con "The Pages project does not exist".
+      - name: Crear el proyecto de Pages si no existe
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'tfi-tupad' }}
+        run: |
+          status=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PAGES_PROJECT")
+          if [ "$status" = "200" ]; then
+            echo "El proyecto $PAGES_PROJECT ya existe."
+          elif [ "$status" = "404" ]; then
+            echo "El proyecto $PAGES_PROJECT no existe en esta cuenta: se crea."
+            pnpm dlx wrangler@4 pages project create "$PAGES_PROJECT" --production-branch=main
+          else
+            echo "No se pudo consultar el proyecto (HTTP $status): revisar el token y el ID de la cuenta."
+            exit 1
+          fi
+
+      # wrangler-action intenta instalar wrangler con `pnpm add` en la raíz del workspace y pnpm lo rechaza
+      # (ERR_PNPM_ADDING_TO_ROOT). Con `pnpm dlx` no se toca el workspace.
       - name: Publicar en Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy frontend/dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'tfi-tupad' }} --branch=main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'tfi-tupad' }}
+        run: pnpm dlx wrangler@4 pages deploy frontend/dist --project-name="$PAGES_PROJECT" --branch=main
+
+      # Deja anotada en el resumen de la corrida la dirección pública del sitio (no es un dato secreto).
+      - name: Anotar la dirección del sitio
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'tfi-tupad' }}
+        run: |
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PAGES_PROJECT" \
+            | python3 -c "import json,sys;r=json.load(sys.stdin).get('result') or {};print('Sitio: https://%s' % r.get('subdomain'));print('Dominios:', r.get('domains'))" | tee -a "$GITHUB_STEP_SUMMARY"
