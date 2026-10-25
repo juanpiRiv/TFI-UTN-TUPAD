@@ -5,9 +5,13 @@ import { cn } from '@/lib/cn'
 const navItems = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/movimientos', label: 'Movimientos' },
+  { to: '/facturas', label: 'Facturas' },
   { to: '/clientes', label: 'Clientes' },
   { to: '/categorias', label: 'Categorías' },
+  { to: '/puntos-de-venta', label: 'Puntos de venta' },
+  { to: '/actividades', label: 'Actividades' },
   { to: '/organizacion', label: 'Mi negocio' },
+  { to: '/perfil', label: 'Mi perfil' },
 ]
 
 type AppLayoutProps = {

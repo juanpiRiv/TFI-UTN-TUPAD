@@ -70,17 +70,22 @@ cd backend
 docker compose up -d                    # Postgres en el puerto 5433
 cp .env-template .env                   # completar JWT_SECRET (openssl rand -hex 32)
 pnpm exec prisma migrate deploy         # crea las tablas
+pnpm db:seed                            # carga datos de prueba iniciales (opcional)
 pnpm dev                                # API en http://localhost:3000
 
 # 3. Frontend, en otra terminal y desde la raíz
 pnpm dev                                # app en http://localhost:5173
 ```
 
+El seed crea un usuario de prueba (`demo@monotributo.com` / `Password123!`), una organización monotributista, punto de venta, actividad económica, clientes y categorías. También se puede ejecutar desde la raíz con `pnpm db:seed`.
+
 Si no se usa Prisma, la base también se puede crear con `psql -d <base> -f database/schema.sql`.
 
-Hoy el backend tiene registro, inicio de sesión y `/me`. El resto de los endpoints se simulan en el frontend con MSW: se prenden con `VITE_USE_MOCKS=true` en `frontend/.env.local` (ver [README del frontend](./frontend/README.md#mocks)).
+El backend implementa autenticación, usuarios, organizaciones, categorías, clientes, movimientos, dashboard, cotización del BCRA, facturas (borrador y facturar con el proveedor fiscal simulado) y cobros. El frontend se conecta de manera directa a la API real. Opcionalmente, se pueden simular módulos aislados con MSW especificándolos con `VITE_MOCK_MODULES` en `frontend/.env.local` (ver [README del frontend](./frontend/README.md#mocks)).
 
 Controles: `pnpm lint`, `pnpm test` y `pnpm build` desde la raíz.
+
+*Testing de integración:* Los tests unitarios corren automáticamente con `pnpm test` (mockeando base de datos). Los tests de integración que prueban concurrencia real y bloqueos pesimistas (`SELECT ... FOR UPDATE` en `payments` y RN-06 en `transactions`) requieren PostgreSQL local (`docker compose up -d`) y se ejecutan con `pnpm --filter backend test:integration` (o `pnpm test` en backend con la base activa). Si la base no está levantada, `pnpm test` saltea las suites de integración automáticamente para no fallar.
 
 ---
 
@@ -106,6 +111,10 @@ Toda la documentación está en Markdown dentro del repo, así se puede leer dir
 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Fechas de control y qué pasa a P1 si la integración con ARCA se atrasa |
 | [Relevamiento con usuarios](./docs/07-relevamiento.md) | Guion de entrevistas y resultados (en curso) |
 | [Contrato de la API](./docs/08-contrato-api.md) | Endpoints que espera el frontend: rutas, datos que se mandan y reciben, errores y preguntas abiertas |
+| [Deploy](./docs/09-deploy.md) | Dónde vive cada pieza (Railway y Cloudflare), dónde van los secretos y el paso a paso para publicarlo |
+| [Diagramas y Arquitectura](./docs/10-diagramas-y-arquitectura.md) | DER con las tablas del esquema de Prisma, arquitectura del sistema y secuencias de los flujos de facturar y cobrar |
+| [Informe Final](./docs/11-informe-final.md) | Informe de cierre: estado de cada devolución docente, qué está hecho y qué está pendiente, pruebas y conclusiones |
+| [Guion de la Demo](./docs/12-guion-demo.md) | Guion paso a paso del recorrido de la demo, con lo que funciona hoy y lo que queda simulado |
 | [Frontend](./frontend/README.md) | Cómo levantar el frontend, variables, mocks, estructura, rutas, sesión y capturas |
 | [Backlog](./docs/BACKLOG.md) | Tareas por fase hasta la entrega final y camino crítico |
 | [Guía de contribución](./docs/CONTRIBUTING.md) | Ramas, convención de issues y PRs, labels, módulos y tablero |
@@ -118,10 +127,24 @@ Estado de lo que pidió la cátedra para esta revisión:
 
 | # | Pedido | Dónde está | Estado |
 | :--- | :--- | :--- | :--- |
-| 1 | Relevamiento breve con usuarios reales y perfil P0 elegido | [Relevamiento](./docs/07-relevamiento.md) | En curso: guion y encuesta corta listos para monotributistas del perfil P0. Faltan las respuestas |
+| 1 | Relevamiento breve con usuarios reales y perfil P0 elegido | [Relevamiento](./docs/07-relevamiento.md) | Hecho con 3 respuestas de personas ajenas al proyecto: guion, encuesta corta, respuestas y conclusiones |
 | 2 | Modelo ER inicial con Organization, Client, Transaction, Invoice, InvoiceItem y Payment | [Modelo de datos](./docs/03-modelo-de-datos.md), `backend/prisma/` y [`database/schema.sql`](./database/schema.sql) | Hecho. El esquema de Prisma, sus migraciones y el SQL coinciden con el documento |
 | 3 | Reglas de factura contra cobro y pagos parciales | [Factura, cobro y pagos parciales](./docs/04-factura-cobro-y-pagos.md) | Hecho |
 | 4 | Definición de la cotización usada | [Cotización](./docs/05-cotizacion.md) | Hecho |
 | 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | En curso. Funciona de punta a punta en el frontend: registro e inicio de sesión contra el backend real, y organización, clientes, movimientos y dashboard simulados con MSW siguiendo el contrato de la API. En el backend están auth y el esquema; organizaciones está en una rama sin mergear y faltan clientes, categorías, movimientos y dashboard. Capturas en el [README del frontend](./frontend/README.md#capturas) |
 | 6 | Spike de homologación WSAA y WSFEv1 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Pendiente: falta el certificado de homologación |
 | 7 | Qué pasa a P1 si ARCA se atrasa | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Hecho |
+
+## ✅ Tercera entrega (23/10)
+
+Estado de lo que se pidió para esta revisión:
+
+| # | Pedido | Dónde está | Estado |
+| :--- | :--- | :--- | :--- |
+| 1 | Evaluación técnica de dos alternativas para integrar ARCA (cliente propio o librería) con decisión justificada | [Evaluación técnica](./docs/arca/evaluacion-tecnica.md) y [Plan B de ARCA](./docs/06-plan-b-arca.md) | Hecho. Elegimos la librería `facturas` como camino principal, el cliente propio como respaldo y un cliente simulado para la demo |
+| 2 | Interfaz propia para la facturación electrónica (`FiscalProvider`) | `backend/src/module/arca/` | Hecho: la interfaz, el cliente simulado, el cliente sobre la librería y los tests de contrato |
+| 3 | Pruebas contra homologación | [Evaluación técnica](./docs/arca/evaluacion-tecnica.md) | Parcial: sin certificado de homologación solo se pudo probar `FEDummy`, el rechazo del WSAA a un certificado de prueba y un error 600 de WSFEv1. No hubo autenticación exitosa ni emisión real |
+| 4 | Perfil de usuario y perfil fiscal de la organización | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | Hecho |
+| 5 | Relevamiento con usuarios reales | [Relevamiento](./docs/07-relevamiento.md) | Hecho con 3 respuestas de personas ajenas al proyecto. Las conclusiones aclaran qué está confirmado y qué es débil |
+
+Lo que sigue pendiente (certificado de homologación, emisión real, leyenda de comprobante de prueba, mocks de MSW por retirar) está en los [issues del repositorio](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues).

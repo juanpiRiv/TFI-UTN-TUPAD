@@ -471,7 +471,7 @@ paso obligatorio antes de hablar con cualquier otro servicio.
 renovarlo solo cuando esté por vencer, en vez de pedirlo en cada llamada.
 **Criterios de cierre:**
 - [ ] El sistema reutiliza el ticket mientras sea válido.
-- [ ] Se renueva automáticamente antes de vencer.
+- [ ] Se renueva cuando venció (o con el margen que acepte el WSAA, a verificar en homologación) y se guarda en la base, no en memoria.
 **Prioridad:** P0
 **Área:** ARCA, Backend
 **Dependencias:** Implementar la autenticación WSAA.
@@ -516,8 +516,9 @@ subtotales y total, guardada como borrador antes de mandarla a autorizar.
 
 ### [F6-2] Definir los estados de una factura
 **Descripción:** Modelar el ciclo de vida: borrador, pendiente de
-autorización, autorizada, rechazada. Una vez rechazada o autorizada, no
-puede volver para atrás.
+autorización, autorizada, rechazada. Una vez autorizada, no puede volver
+para atrás. Una rechazada se corrige y se reenvía (un rechazo no consume
+número de comprobante). "Aprobada con observaciones" es autorizada, con su CAE.
 **Criterios de cierre:**
 - [ ] Los estados posibles están definidos en el schema (enum).
 - [ ] Las transiciones inválidas están bloqueadas en el backend, no solo en el frontend.
@@ -629,7 +630,7 @@ todavía) para poder descargarlo o mandarlo al cliente.
 
 ## Fase 7: Integración ARCA completa
 
-### [F7-1] Armar el servicio que arma y firma el request a WSFEv1
+### [F7-1] Armar el servicio que arma el request a WSFEv1
 **Descripción:** Encapsular en un solo módulo la construcción del
 request de autorización (FECAESolicitar) a partir de una factura en
 estado pendiente, reutilizando lo aprendido en el spike.

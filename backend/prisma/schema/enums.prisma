@@ -51,6 +51,7 @@ enum BillingMethod {
 enum ActivityKind {
     GOODS
     SERVICES
+    BOTH
 }
 
 enum MovementType {

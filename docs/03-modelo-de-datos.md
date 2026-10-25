@@ -141,6 +141,13 @@ erDiagram
         string recipient_name
         string recipient_address
         enum recipient_tax_condition
+        string issuer_cuit
+        string issuer_legal_name
+        string issuer_trade_name
+        string issuer_address
+        enum issuer_tax_condition
+        string issuer_gross_income_number
+        date issuer_activity_start_date
         enum currency
         decimal fiscal_exchange_rate
         date service_from
@@ -237,7 +244,7 @@ Por ahora cada usuario tiene una sola organización (su actividad como monotribu
 | monotributo_category | varchar(10) | sí | Categoría de monotributo. Informativo. |
 | activity_start_date | date | sí | Inicio de actividades. Va impreso en la factura, obligatorio antes de facturar. |
 | gross_income_number | varchar(50) | sí | Número de ingresos brutos. |
-| base_currency | enum | no | Moneda en la que se muestran los totales. Por defecto `ARS` (RF-06). |
+| base_currency | enum | no | Moneda en la que se muestran los totales. En el P0 es siempre `ARS`: la base lo exige con un `CHECK`. Los movimientos en USD siguen admitidos con su cotización. |
 | is_active | boolean | no | Baja lógica. |
 
 ### ArcaCredential
@@ -259,8 +266,8 @@ Por ahora cada usuario tiene una sola organización (su actividad como monotribu
 | organization_id | int | no | Organización dueña. |
 | arca_activity_code | varchar(20) | sí | Código de actividad según el nomenclador de ARCA. |
 | description | varchar(255) | no | Descripción de la actividad. |
-| activity_kind | enum | no | `GOODS` o `SERVICES`. Sirve para sugerir el concepto de la factura. |
-| is_primary | boolean | no | Actividad principal. |
+| activity_kind | enum | no | `GOODS`, `SERVICES` o `BOTH`. Sirve para sugerir el concepto de la factura. |
+| is_primary | boolean | no | Actividad principal. Una sola por organización: lo exige un índice único parcial. |
 | is_active | boolean | no | Baja lógica. |
 
 ### PointOfSale
@@ -323,6 +330,7 @@ Al crear la organización se crean categorías por defecto, entre ellas "Cobro d
 | concept | enum | no | `PRODUCTOS` (1), `SERVICIOS` (2) o `PRODUCTOS_Y_SERVICIOS` (3). Cómo se elige está en [Factura, cobro y pagos parciales](./04-factura-cobro-y-pagos.md#concepto-de-la-factura). |
 | issue_date | date | no | Fecha del comprobante. |
 | recipient_doc_type, recipient_doc_number, recipient_name, recipient_address, recipient_tax_condition | varios | sí | Copia de los datos del receptor. Se completan al crear la factura y son obligatorios para pedir la autorización. Si después se edita el cliente, la factura no cambia. |
+| issuer_cuit, issuer_legal_name, issuer_trade_name, issuer_address, issuer_tax_condition, issuer_gross_income_number, issuer_activity_start_date | varios | sí | Copia de los datos del emisor (la organización). Se completan cuando la factura pasa de borrador a pendiente, no al crearla: un borrador puede quedar días y los datos podrían cambiar. Si después se edita la organización, la factura no cambia. El domicilio sale de `commercial_address` de la organización. Fuera de borrador la base exige `issuer_cuit`, `issuer_legal_name` y `issuer_tax_condition`; los demás pueden quedar vacíos si la organización no los cargó. |
 | currency | enum | no | En el P0 siempre `ARS`. |
 | fiscal_exchange_rate | decimal(18,6) | no | `1` para pesos. Para moneda extranjera, la cotización que exige ARCA (ver [Cotización](./05-cotizacion.md)). |
 | service_from, service_to, payment_due_date | date | sí | Obligatorios si el concepto incluye servicios. |
@@ -389,6 +397,9 @@ Además de las claves y los índices únicos, van estas restricciones. Las que P
 | --- | --- |
 | `amount > 0` en `payments` y `transactions`; `quantity > 0` y `unit_price >= 0` en `invoice_items`; `total_amount >= 0` en `invoices` | RN-03 |
 | `status = 'AUTHORIZED'` si y solo si `cae` no es nulo | RN-08 y RN-09 |
+| Fuera de `DRAFT`, `issuer_cuit`, `issuer_legal_name` e `issuer_tax_condition` no son nulos (`invoices_issuer_required_after_draft`) | Snapshot del emisor (#95) |
+| `organizations.base_currency = 'ARS'` (`organizations_base_currency_ars`) | Moneda base fija en el P0 (#96) |
+| Índice único parcial `activities_one_primary_per_org` sobre `organization_id` donde `is_primary` | Una sola actividad principal (#99) |
 | `currency = 'ARS' OR exchange_rate IS NOT NULL` en `transactions` y `payments` | RN-05 |
 | `transactions.payment_id` y `transactions.category_id` con `ON DELETE RESTRICT` | Que no quede un ingreso suelto si alguien borra un pago, ni un movimiento sin categoría |
 | `payments.invoice_id` e `invoices.point_of_sale_id` con `ON DELETE RESTRICT` | Historia fiscal (RN-11) |
@@ -404,5 +415,7 @@ El esquema de Prisma del backend coincide con este documento. Lo que faltaba en 
 | Borrado de un pago | `ON DELETE RESTRICT` en `transactions.payment_id` |
 | Coherencia entre estado y CAE | `CHECK` `invoices_cae_only_when_authorized` |
 | Tipo de cambio obligatorio en moneda extranjera | `CHECK` `transactions_exchange_rate_required` y `payments_exchange_rate_required` |
+
+La migración `p0_model_adjustments` (devolución 2) agregó el snapshot del emisor, la moneda base fija en `ARS` y el índice de actividad principal. Queda fuera de esa migración quitar `payments.exchange_rate` y obligar a nivel de base que pago y factura tengan la misma moneda (#97 se resuelve hoy en el backend con un 422).
 
 El script `database/schema.sql` se genera a partir de este esquema, así que dice lo mismo.

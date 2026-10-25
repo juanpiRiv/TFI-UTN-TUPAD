@@ -1,0 +1,53 @@
+name: Deploy frontend
+
+# Publica el frontend en Cloudflare Pages cuando cambia main.
+# Para correrlo a mano: pestaña Actions > Deploy frontend > Run workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - frontend/**
+      - pnpm-lock.yaml
+      - .github/workflows/deploy-frontend.yml
+  workflow_dispatch:
+
+# Un deploy a la vez; si entra otro, se espera al que está corriendo.
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VITE_API_URL: ${{ vars.VITE_API_URL }}
+      # Vacío (lo normal) = el sitio usa la API de VITE_API_URL. Con módulos, esos se simulan con MSW.
+      VITE_MOCK_MODULES: ${{ vars.VITE_MOCK_MODULES }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint, tests y build
+        run: |
+          pnpm --filter frontend lint
+          pnpm --filter frontend test
+          pnpm --filter frontend build
+
+      - name: Publicar en Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend/dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'tfi-tupad' }} --branch=main

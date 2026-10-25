@@ -27,6 +27,7 @@ export type RegisterInput = Omit<z.output<typeof registerSchema>, 'confirmPasswo
 
 export type User = {
   id: number
+  name: string | null
   email: string
   createdAt: string
 }

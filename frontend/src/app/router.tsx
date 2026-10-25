@@ -64,10 +64,59 @@ export function createRoutes(queryClient: QueryClient): RouteObject[] {
                 })),
             },
             {
+              path: 'clientes/:id',
+              lazy: () =>
+                import('@/features/clients/ClientDetailPage').then((m) => ({
+                  Component: m.ClientDetailPage,
+                })),
+            },
+            {
+              path: 'facturas',
+              lazy: () =>
+                import('@/features/invoices/InvoicesPage').then((m) => ({
+                  Component: m.InvoicesPage,
+                })),
+            },
+            {
+              path: 'facturas/nueva',
+              lazy: () =>
+                import('@/features/invoices/NewInvoicePage').then((m) => ({
+                  Component: m.NewInvoicePage,
+                })),
+            },
+            {
+              path: 'facturas/:id',
+              lazy: () =>
+                import('@/features/invoices/InvoiceDetailPage').then((m) => ({
+                  Component: m.InvoiceDetailPage,
+                })),
+            },
+            {
               path: 'categorias',
               lazy: () =>
                 import('@/features/categories/CategoriesPage').then((m) => ({
                   Component: m.CategoriesPage,
+                })),
+            },
+            {
+              path: 'perfil',
+              lazy: () =>
+                import('@/features/profile/ProfilePage').then((m) => ({
+                  Component: m.ProfilePage,
+                })),
+            },
+            {
+              path: 'puntos-de-venta',
+              lazy: () =>
+                import('@/features/points-of-sale/PointsOfSalePage').then((m) => ({
+                  Component: m.PointsOfSalePage,
+                })),
+            },
+            {
+              path: 'actividades',
+              lazy: () =>
+                import('@/features/activities/ActivitiesPage').then((m) => ({
+                  Component: m.ActivitiesPage,
                 })),
             },
             {

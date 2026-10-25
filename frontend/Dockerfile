@@ -10,7 +10,7 @@
 #     --build-arg VITE_API_URL=https://api.ejemplo.com \
 #     -t tfi-frontend .
 #
-# Para una build de desarrollo con MSW: --build-arg VITE_USE_MOCKS=true
+# Para una build de desarrollo con MSW en modulos puntuales: --build-arg VITE_MOCK_MODULES=categories,organizations
 
 FROM node:22-bookworm-slim AS build
 ENV PNPM_HOME=/pnpm
@@ -26,8 +26,8 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 
 COPY frontend ./frontend
 ARG VITE_API_URL
-ARG VITE_USE_MOCKS
-ENV VITE_API_URL=${VITE_API_URL} VITE_USE_MOCKS=${VITE_USE_MOCKS}
+ARG VITE_MOCK_MODULES
+ENV VITE_API_URL=${VITE_API_URL} VITE_MOCK_MODULES=${VITE_MOCK_MODULES}
 RUN pnpm --filter frontend build
 
 FROM nginx:1.29-alpine AS runtime

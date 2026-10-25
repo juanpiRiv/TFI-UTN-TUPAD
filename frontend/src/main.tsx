@@ -9,7 +9,8 @@ import { setUnauthorizedHandler } from './lib/api'
 import './index.css'
 
 async function enableMocks(): Promise<void> {
-  if (import.meta.env.VITE_USE_MOCKS !== 'true') return
+  const mockModules = import.meta.env.VITE_MOCK_MODULES
+  if (!mockModules || mockModules.trim() === '') return
   const { startMockWorker } = await import('./mocks/browser')
   await startMockWorker()
 }

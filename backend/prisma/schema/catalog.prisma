@@ -12,6 +12,9 @@ model Activity {
     organization Organization @relation(fields: [organizationId], references: [id])
 
     @@index([organizationId])
+    // Una sola actividad principal por organización (#99). Índice parcial: Prisma lo declara con
+    // previewFeatures = ["partialIndexes"]; si solo estuviera en el SQL, la próxima migración lo borraría.
+    @@unique([organizationId], map: "activities_one_primary_per_org", where: { isPrimary: true })
     @@map("activities")
 }
 
