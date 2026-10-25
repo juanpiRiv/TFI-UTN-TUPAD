@@ -24,8 +24,8 @@ export function AppLayout({ organizationName, userEmail, onLogout }: AppLayoutPr
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
-    <div className="min-h-dvh md:flex">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
+    <div className="min-h-dvh md:flex print:block">
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden print:hidden">
         <span className="font-semibold text-brand-700">Gestión financiera</span>
         <button
           type="button"
@@ -41,7 +41,7 @@ export function AppLayout({ organizationName, userEmail, onLogout }: AppLayoutPr
       <aside
         id="main-nav"
         className={cn(
-          'border-b border-slate-200 bg-white md:sticky md:top-0 md:flex md:h-dvh md:w-60 md:shrink-0 md:flex-col md:border-r md:border-b-0',
+          'border-b border-slate-200 bg-white md:sticky md:top-0 md:flex md:h-dvh md:w-60 md:shrink-0 md:flex-col md:border-r md:border-b-0 print:hidden',
           menuOpen ? 'block' : 'hidden md:flex',
         )}
       >
@@ -83,7 +83,7 @@ export function AppLayout({ organizationName, userEmail, onLogout }: AppLayoutPr
         </div>
       </aside>
 
-      <main className="mx-auto w-full max-w-6xl min-w-0 px-4 py-6 md:px-8">
+      <main className="mx-auto w-full max-w-6xl min-w-0 px-4 py-6 md:px-8 print:max-w-none print:p-0">
         <Outlet />
       </main>
     </div>

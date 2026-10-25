@@ -6,7 +6,7 @@ import { resetDb } from '@/mocks/db'
 import { server } from '@/mocks/node'
 
 // Lazy route chunks (Recharts is big) can take a while to load when files run in parallel.
-configure({ asyncUtilTimeout: 5000 })
+configure({ asyncUtilTimeout: 10000 })
 
 // jsdom does not implement ResizeObserver, which Recharts uses to size the charts.
 globalThis.ResizeObserver ??= class {

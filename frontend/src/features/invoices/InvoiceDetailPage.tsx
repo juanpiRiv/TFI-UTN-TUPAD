@@ -200,6 +200,14 @@ export function InvoiceDetailPage() {
           Comprobante de prueba, sin validez fiscal: lo generó el proveedor simulado.
         </p>
       )}
+      <div className="flex justify-end">
+        <Link
+          to={`/facturas/${invoice.invoiceId}/comprobante`}
+          className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          {invoice.status === 'DRAFT' ? 'Vista previa del comprobante' : 'Ver comprobante'}
+        </Link>
+      </div>
       {authorizeError && (
         <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
           {authorizeError}

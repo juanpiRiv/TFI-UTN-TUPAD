@@ -59,6 +59,12 @@ export async function listInvoices(userId: number) {
   });
 }
 
+/** Fecha de la base (columna date) como AAAA-MM-DD, o null si no tiene. */
+function toDateString(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+}
+
 /**
  * Consulta el detalle de una factura por su ID, incluyendo cliente, pagos y saldos.
  */
@@ -76,8 +82,17 @@ export async function getInvoiceById(userId: number, invoiceId: number) {
       voucherNumber: true,
       issueDate: true,
       recipientName: true,
+      recipientDocType: true,
+      recipientDocNumber: true,
+      recipientTaxCondition: true,
+      recipientAddress: true,
       concept: true,
+      serviceFrom: true,
+      serviceTo: true,
+      paymentDueDate: true,
+      pointOfSale: { select: { number: true } },
       cae: true,
+      caeExpiration: true,
       arcaResponse: true,
       issuerCuit: true,
       issuerLegalName: true,
@@ -186,6 +201,19 @@ export async function getInvoiceById(userId: number, invoiceId: number) {
         }
       : null,
     recipientName: invoice.recipientName ?? invoice.client?.name ?? "Consumidor Final",
+    // Datos del receptor copiados a la factura: lo que se imprime en el comprobante.
+    recipient: {
+      name: invoice.recipientName ?? invoice.client?.name ?? "Consumidor Final",
+      docType: invoice.recipientDocType ?? null,
+      docNumber: invoice.recipientDocNumber ?? null,
+      taxCondition: invoice.recipientTaxCondition ?? null,
+      address: invoice.recipientAddress ?? null,
+    },
+    pointOfSale: invoice.pointOfSale?.number ?? null,
+    caeExpiration: toDateString(invoice.caeExpiration),
+    serviceFrom: toDateString(invoice.serviceFrom),
+    serviceTo: toDateString(invoice.serviceTo),
+    paymentDueDate: toDateString(invoice.paymentDueDate),
     client: invoice.client,
     totalAmount: totalAmount.toFixed(2),
     totalPaid: totalPaid.toFixed(2),

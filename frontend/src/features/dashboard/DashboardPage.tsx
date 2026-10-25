@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/States'
 import { cn } from '@/lib/cn'
 import { currentMonthRange, formatDate, formatMoney, type Currency } from '@/lib/format'
 import { CategoryChart } from './CategoryChart'
+import { GettingStarted } from './GettingStarted'
 import { useDashboardSummary } from './queries'
 
 function TotalCard({
@@ -65,6 +66,7 @@ export function DashboardPage() {
         title="Dashboard"
         description={`Resumen financiero y de facturación del ${formatDate(period.from)} al ${formatDate(period.to)}.`}
       />
+      <GettingStarted />
       <div className="mb-6 grid max-w-md grid-cols-2 gap-3">
         <Input
           id="period-from"
