@@ -10,5 +10,7 @@ dockerfilePath = "backend/Dockerfile"
 watchPatterns = ["backend/**", "pnpm-lock.yaml", "pnpm-workspace.yaml", "package.json"]
 
 [deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5

@@ -122,6 +122,10 @@ quien cierra el issue.
   gh auth refresh -s project -s read:project
   ```
 
+## Integración continua
+
+El workflow [`ci.yml`](../.github/workflows/ci.yml) corre en cada PR hacia `develop` o `main`: instala, migra una base PostgreSQL propia del job (no la de desarrollo), y corre `pnpm lint`, `pnpm build` y `pnpm test`, incluidos los tests de integración. Para repetirlo en tu máquina: `docker compose up -d` en `backend/`, `pnpm --filter backend exec prisma migrate deploy` y `pnpm test` (con `DATABASE_URL`, `JWT_SECRET` y `ARCA_PROVIDER=simulated` en `backend/.env`). Los PRs usan la plantilla de [`.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLATE.md).
+
 ## Deploy del frontend
 
 El deploy completo (backend y base en Railway, frontend en Cloudflare) y

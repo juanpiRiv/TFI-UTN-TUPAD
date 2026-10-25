@@ -429,7 +429,22 @@ sequenceDiagram
 
 ---
 
-## 4. Conclusiones Arquitectónicas
+## 4. Decisiones que cambiaron durante el desarrollo
+
+| Decisión | Qué pasó y por qué |
+| :--- | :--- |
+| Mocks del frontend a backend real | Empezamos con MSW para diseñar las pantallas y el contrato de la API. En la devolución de la segunda entrega, Oscar pidió reemplazarlos por módulos reales. Hoy `VITE_MOCK_MODULES` (vacío por defecto) decide qué módulos se simulan; el resto va a la API. |
+| ARCA: de un cliente propio a una interfaz con tres opciones | El certificado de homologación tardó y no se podía depender de ARCA para avanzar. Se definió `FiscalProvider` y tres implementaciones elegidas con `ARCA_PROVIDER`: la librería `facturas` (camino principal), el cliente propio (respaldo, PR #141) y un simulador para desarrollo y demo. La evaluación está en `docs/arca/evaluacion-tecnica.md`. |
+| Moneda base fija en ARS | El modelo permitía ARS o USD, pero los cálculos suponían ARS. Para el P0 la moneda base es siempre ARS (la API y la base lo exigen), los movimientos en USD siguen admitidos con su cotización, y un pago debe tener la moneda de su factura. |
+| Snapshot del emisor al pasar a pendiente | Los datos del emisor se copian a la factura cuando deja de ser borrador, no al crearla: un borrador puede quedar días y los datos de la organización podrían cambiar antes de facturar. |
+| Numeración de comprobantes | El número es el mayor entre el último que informa el proveedor y el último autorizado en la base, más uno, bajo un bloqueo por punto de venta. El simulador vive en memoria, así que se adelanta con lo que ya hay en la base. |
+| Punto de venta N° 1 al crear la organización | Una organización nueva no podía crear facturas por no tener punto de venta. El alta deja el N° 1; el número real de ARCA se carga después. |
+| Despliegue: Railway y Cloudflare | Se evaluó Fly.io pero no tiene plan gratuito. Backend y PostgreSQL van juntos en Railway, y el frontend en Cloudflare Pages desde un workflow de GitHub Actions. |
+| Facturas rechazadas | Hoy una factura `REJECTED` no se puede corregir ni reenviar, porque todavía no hay edición de borradores. Es una limitación conocida, no una decisión de diseño. |
+
+---
+
+## 5. Conclusiones Arquitectónicas
 
 1. **Simplicidad Operativa:** La arquitectura de monolito modular permitió a tres desarrolladores trabajar concurrentemente en módulos independientes sin incurrir en la sobrecarga operativa, de red y de despliegue de microservicios.
 2. **Robustez Transaccional:** La combinación de transacciones ACID en PostgreSQL con bloqueos pesimistas (`FOR UPDATE`) cubre los cobros y la reserva del borrador al facturar. Los tests que ejercitan la concurrencia real requieren PostgreSQL y no se probaron en el entorno donde se escribió esta versión.
