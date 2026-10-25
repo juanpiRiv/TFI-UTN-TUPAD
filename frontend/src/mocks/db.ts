@@ -3,6 +3,7 @@ import type { Category } from '@/features/categories/schemas'
 import type { Client } from '@/features/clients/schemas'
 import type { Organization } from '@/features/organizations/types'
 import type { StoredTransaction } from './handlers/transactions'
+import type { PointOfSale } from '@/features/points-of-sale/schemas'
 import type { Activity } from '@/features/activities/schemas'
 
 /** Users only exist in tests: in the browser, auth is handled by the real backend. */
@@ -12,6 +13,7 @@ export type MockDb = {
   lastId: number
   users: MockUser[]
   organizations: Organization[]
+  pointsOfSale: PointOfSale[]
   activities: Activity[]
   clients: Client[]
   categories: Category[]
@@ -24,8 +26,9 @@ function emptyDb(): MockDb {
   return {
     lastId: 0,
     users: [],
-    activities: [],
     organizations: [],
+    pointsOfSale: [],
+    activities: [],
     clients: [],
     categories: [],
     transactions: [],

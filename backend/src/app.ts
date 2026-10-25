@@ -13,6 +13,7 @@ import { invoicesRouter } from './module/invoices/invoices.routes.js';
 import { paymentsRouter } from './module/payments/payments.routes.js';
 import { errorHandler } from './middlewares/error-handler.js';
 import { env } from './config/env.js';
+import { pointsOfSaleRouter } from './module/point-of-sale/points-of-sale.routes.js';
 import { activitiesRouter } from './module/activities/activities.routes.js';
 
 
@@ -34,6 +35,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/organizations", organizationsRouter);
+app.use("/api/points-of-sale", pointsOfSaleRouter);
 app.use("/api/activities", activitiesRouter);
 app.use("/api/categories", categoriesRouter);
 app.use("/api/clients", clientsRouter);

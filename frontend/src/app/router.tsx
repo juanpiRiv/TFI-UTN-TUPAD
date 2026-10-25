@@ -106,6 +106,13 @@ export function createRoutes(queryClient: QueryClient): RouteObject[] {
                 })),
             },
             {
+              path: 'puntos-de-venta',
+              lazy: () =>
+                import('@/features/points-of-sale/PointsOfSalePage').then((m) => ({
+                  Component: m.PointsOfSalePage,
+                })),
+            },
+            {
               path: 'actividades',
               lazy: () =>
                 import('@/features/activities/ActivitiesPage').then((m) => ({
