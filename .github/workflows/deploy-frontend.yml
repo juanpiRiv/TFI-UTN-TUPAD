@@ -45,9 +45,11 @@ jobs:
           pnpm --filter frontend test
           pnpm --filter frontend build
 
+      # wrangler-action intenta instalar wrangler con `pnpm add` en la raíz del workspace y pnpm lo rechaza
+      # (ERR_PNPM_ADDING_TO_ROOT). Con `pnpm dlx` no se toca el workspace.
       - name: Publicar en Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy frontend/dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'tfi-tupad' }} --branch=main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'tfi-tupad' }}
+        run: pnpm dlx wrangler@4 pages deploy frontend/dist --project-name="$PAGES_PROJECT" --branch=main
