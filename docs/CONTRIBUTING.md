@@ -128,7 +128,7 @@ El workflow [`ci.yml`](../.github/workflows/ci.yml) corre en cada PR hacia `deve
 
 ## Deploy del frontend
 
-El deploy completo (backend y base en Railway, frontend en Cloudflare) y
+El deploy completo (backend y base en Render, frontend en Cloudflare) y
 dónde va cada secreto están en [`docs/09-deploy.md`](./09-deploy.md).
 
 El workflow [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml)
