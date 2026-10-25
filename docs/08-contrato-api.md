@@ -64,7 +64,7 @@ La organización es del usuario logueado, por eso las rutas usan `me` en lugar d
 
 | Método y ruta | Request | Response |
 | --- | --- | --- |
-| `POST /api/organizations` | Ver cuerpo abajo | `201` con la organización. Crea también las categorías por defecto y registra el alta en la auditoría. `400` si algún campo no es válido. `409` si el usuario ya tiene una o si el CUIT ya está registrado. `401` si el usuario del token ya no existe. |
+| `POST /api/organizations` | Ver cuerpo abajo | `201` con la organización. Crea también las categorías por defecto y el punto de venta N° 1 (sin él no se pueden crear facturas), y registra el alta en la auditoría. `400` si algún campo no es válido. `409` si el usuario ya tiene una o si el CUIT ya está registrado. `401` si el usuario del token ya no existe. |
 | `GET /api/organizations/me` | | `200` con la organización. `403` si todavía no tiene. |
 | `PATCH /api/organizations/me` | Cualquier campo del cuerpo de alta | `200` con la organización actualizada. `400` si algún campo no es válido. `403` si todavía no tiene organización. `409` si el CUIT ya está registrado o si se intenta cambiar con facturas autorizadas. |
 
@@ -216,7 +216,7 @@ Cómo autoriza (docs/02, sección 4): reserva el borrador (`DRAFT` → `PENDING`
 - `concept` es `PRODUCTOS`, `SERVICIOS` o `PRODUCTOS_Y_SERVICIOS`. Si incluye servicios, `serviceFrom`, `serviceTo` y `paymentDueDate` son obligatorias.
 - `voucherType` (solo `FACTURA_C`) y `currency` (solo `ARS`) son opcionales y valen eso por defecto en el P0.
 - El total y los subtotales los calcula siempre el backend (`cantidad × precio`, redondeado a dos decimales); si el cuerpo trae un total, se ignora. Cantidad hasta 3 decimales y mayor a cero, precio hasta 2 decimales y no negativo, total mayor a cero.
-- La factura guarda una copia del nombre, documento y condición frente al IVA del cliente. Se registra `invoice.created` en la auditoría.
+- La factura guarda una copia del nombre, documento y condición frente al IVA del cliente. Al facturar (`authorize`) guarda también una copia de los datos del emisor, que el detalle devuelve en `issuer` (`cuit`, `legalName`, `tradeName`, `address`, `taxCondition`, `grossIncomeNumber`, `activityStartDate`); es `null` mientras sea borrador. El detalle devuelve además `simulated`: `true` si la autorizó el proveedor simulado (el CAE no tiene validez fiscal y la pantalla lo avisa) y `false` en cualquier otro caso; sale de `arca_response.simulated`. Se registra `invoice.created` en la auditoría.
 
 ## Cobros
 

@@ -24,7 +24,13 @@ const draft: InvoiceDetail = {
   commercialStatus: 'PENDING',
   payments: [],
 }
-const authorized: InvoiceDetail = { ...draft, status: 'AUTHORIZED', voucherNumber: 1, cae: '74123456789012' }
+const authorized: InvoiceDetail = {
+  ...draft,
+  status: 'AUTHORIZED',
+  voucherNumber: 1,
+  cae: '74123456789012',
+  simulated: true,
+}
 
 const fiscal = (over: object = {}) => ({
   outcome: 'AUTHORIZED',
@@ -82,6 +88,39 @@ describe('botón Facturar de un borrador (Issue #59)', () => {
     // Ya autorizada: aparece el formulario de cobro y desaparece el botón
     expect(await screen.findByRole('heading', { name: 'Registrar nuevo cobro' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Facturar' })).not.toBeInTheDocument()
+  })
+
+  it('una factura autorizada muestra los datos del emisor del momento de la autorización', async () => {
+    current = {
+      ...authorized,
+      issuer: { cuit: '20000000001', legalName: 'Recorrido SAS', taxCondition: 'MONOTRIBUTO' },
+    }
+    renderApp('/facturas/1')
+
+    expect(await screen.findByTestId('invoice-issuer')).toHaveTextContent('Recorrido SAS')
+    expect(screen.getByTestId('invoice-issuer')).toHaveTextContent('CUIT 20000000001')
+  })
+
+  it('una factura autorizada por el simulador muestra siempre la leyenda de comprobante de prueba', async () => {
+    current = authorized
+    renderApp('/facturas/1')
+
+    expect(await screen.findByTestId('simulated-legend')).toHaveTextContent(/sin validez fiscal/i)
+  })
+
+  it('con un proveedor real no aparece la leyenda', async () => {
+    current = { ...authorized, simulated: false }
+    renderApp('/facturas/1')
+
+    await screen.findByRole('heading', { name: 'Registrar nuevo cobro' })
+    expect(screen.queryByTestId('simulated-legend')).not.toBeInTheDocument()
+  })
+
+  it('un borrador no muestra emisor', async () => {
+    renderApp('/facturas/1')
+
+    await screen.findByRole('button', { name: 'Facturar' })
+    expect(screen.queryByTestId('invoice-issuer')).not.toBeInTheDocument()
   })
 
   it('si se cancela la confirmación no llama a la API', async () => {

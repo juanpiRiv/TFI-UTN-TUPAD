@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
 import { buildCaeRequest } from "../arca/cae-request.js";
+import { serviceDatesError } from "../arca/service-dates.js";
 import type { CaeResult, FiscalProvider } from "../arca/fiscal-provider.js";
 import { ArcaSimulatedClient } from "../arca/simulated/arca-simulated-client.js";
 import { getInvoiceById } from "./invoices.service.js";
@@ -22,7 +23,19 @@ export async function authorizeInvoice(
   invoiceId: number,
   createProvider: () => FiscalProvider,
 ) {
-  const org = await prisma.organization.findUnique({ where: { userId }, select: { id: true, cuit: true } });
+  const org = await prisma.organization.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      cuit: true,
+      legalName: true,
+      tradeName: true,
+      commercialAddress: true,
+      taxCondition: true,
+      grossIncomeNumber: true,
+      activityStartDate: true,
+    },
+  });
   if (!org) throw new AppError(403, "Organization required");
 
   // Antes de tocar nada: si el proveedor no se puede armar, la factura queda como estaba.
@@ -43,11 +56,36 @@ export async function authorizeInvoice(
     if (current.status !== "DRAFT") {
       throw new AppError(409, `Solo se puede facturar un borrador (estado actual: ${current.status})`);
     }
-    return tx.invoice.update({
+    const reservedInvoice = await tx.invoice.update({
       where: { id: invoiceId },
-      data: { status: "PENDING" },
+      // El emisor se copia acá, cuando deja de ser borrador (#95): un borrador puede quedar días y los
+      // datos de la organización podrían cambiar antes de facturar.
+      data: {
+        status: "PENDING",
+        issuerCuit: org.cuit,
+        issuerLegalName: org.legalName,
+        issuerTradeName: org.tradeName,
+        issuerAddress: org.commercialAddress,
+        issuerTaxCondition: org.taxCondition,
+        issuerGrossIncomeNumber: org.grossIncomeNumber,
+        issuerActivityStartDate: org.activityStartDate,
+      },
       include: { pointOfSale: true },
     });
+
+    // Un borrador de servicios sin fechas no se puede pedir a ARCA: se rechaza acá, antes de salir de
+    // borrador. Si no, la factura quedaría REJECTED y, sin edición, ya no se podría corregir.
+    const missing = serviceDatesError(
+      buildCaeRequest({
+        cuit: org.cuit,
+        pointOfSaleNumber: reservedInvoice.pointOfSale.number,
+        voucherNumber: 1,
+        invoice: reservedInvoice,
+      }),
+    );
+    if (missing) throw new AppError(400, missing);
+
+    return reservedInvoice;
   });
 
   // Paso 2: numerar y autorizar, de a una por punto de venta y tipo de comprobante.
