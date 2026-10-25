@@ -267,7 +267,7 @@ Cubre RF-29 y RF-30. Reglas en [Factura, cobro y pagos parciales](./04-factura-c
 
 | Endpoint | Respuesta |
 | --- | --- |
-| `GET /health` | `200` con `{ "status": "ok" }`, sin autenticación y sin tocar la base. Lo usa el healthcheck de Railway. |
+| `GET /health` | `200` con `{ "status": "ok" }`, sin autenticación y sin tocar la base. Lo usa el healthcheck del servicio de despliegue (Render). |
 
 ## Cotización sugerida
 

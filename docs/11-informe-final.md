@@ -78,7 +78,7 @@ Stack, según los `package.json` y el esquema del repositorio:
 8. **Facturas en borrador:** crear una factura con uno o más ítems, con subtotales y total calculados por el backend y los datos del receptor copiados; pantalla de alta y listado Todavía no se pueden editar.
 9. **Facturar:** el botón **Facturar** de un borrador pide el CAE al proveedor fiscal elegido con `ARCA_PROVIDER` y deja la factura autorizada, rechazada o pendiente. Hoy funciona con el **proveedor simulado**: el CAE no tiene validez fiscal y la pantalla lo avisa.
 10. **Auditoría:** hay una tabla `audit_logs` y se registran altas de organización, movimientos, pagos, facturas creadas y facturas autorizadas o rechazadas. El login todavía no se audita.
-11. **Despliegue (configuración):** `railway.toml` para el backend y la base, el workflow de Cloudflare Pages para el frontend y la guía [`docs/09-deploy.md`](./09-deploy.md). Los servicios públicos todavía no están creados.
+11. **Despliegue:** el backend está en línea en Render (`https://tfi-utn-tupad.onrender.com`, con su base PostgreSQL y el proveedor de ARCA simulado) y el frontend se publica en Cloudflare Pages con un workflow de GitHub Actions. Guía y estado verificado en [`docs/09-deploy.md`](./09-deploy.md).
 
 ### 3.2. Pendiente
 
@@ -89,7 +89,7 @@ Stack, según los `package.json` y el esquema del repositorio:
 - Actividades y puntos de venta con pantalla propia (#26, #27).
 - Retirar los mocks de MSW (PR #144, hay que rehacerlo contra `main`).
 - Pruebas E2E y de integración (#61 a #66) y revisión de seguridad (#66).
-- Despliegue con URLs públicas (#70 a #73): la configuración está lista, falta crear el proyecto en Railway.
+- Despliegue completo (#72 y #73): el backend ya responde en Render; falta que Cloudflare publique el frontend (el primer deploy falló y se corrigió en un hotfix), permitir el sitio en `CORS_ORIGIN`, cargar `VITE_API_URL` y probar el recorrido de punta a punta.
 
 ### 3.3. Postergado a P1 / P2
 
