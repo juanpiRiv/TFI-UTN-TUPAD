@@ -71,6 +71,8 @@ describe.skipIf(!dbAvailable)("activities (integration)", () => {
         await prisma.auditLog.deleteMany({ where: { userId: { in: userIds } } });
         await prisma.activity.deleteMany({ where: { organizationId: { in: orgIds } } });
         await prisma.category.deleteMany({ where: { organizationId: { in: orgIds } } });
+        // Desde #164 el alta de la organización crea el punto de venta N° 1
+        await prisma.pointOfSale.deleteMany({ where: { organizationId: { in: orgIds } } });
         await prisma.organization.deleteMany({ where: { id: { in: orgIds } } });
         await prisma.user.deleteMany({ where: { id: { in: userIds } } });
     });
