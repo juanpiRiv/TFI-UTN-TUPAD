@@ -69,6 +69,8 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     recipientDocType: "CUIT",
     recipientDocNumber: "30712345678",
     recipientTaxCondition: "RESPONSABLE_INSCRIPTO",
+    recipientAddress: null,
+    caeExpiration: null,
     currency: "ARS",
     fiscalExchangeRate: "1",
     serviceFrom: null,
@@ -77,7 +79,6 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     totalAmount: "215.02",
     status: "DRAFT",
     cae: null,
-    caeExpiration: null,
     pointOfSale: { id: 3, number: 3 },
   });
 
@@ -154,6 +155,38 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     const detail = await request(app).get("/api/invoices/99").set("Authorization", `Bearer ${token}`);
 
     expect(detail.body.simulated).toBe(false);
+  });
+
+  it("el detalle trae lo necesario para armar el comprobante (receptor, punto de venta, fechas y vencimiento del CAE)", async () => {
+    row.concept = "SERVICIOS";
+    row.serviceFrom = new Date("2026-10-01T00:00:00.000Z");
+    row.serviceTo = new Date("2026-10-31T00:00:00.000Z");
+    row.paymentDueDate = new Date("2026-11-23T00:00:00.000Z");
+    const res = await post();
+
+    expect(res.body.invoice).toMatchObject({
+      pointOfSale: 3,
+      serviceFrom: "2026-10-01",
+      serviceTo: "2026-10-31",
+      paymentDueDate: "2026-11-23",
+      recipient: {
+        name: "Estudio García",
+        docType: "CUIT",
+        docNumber: "30712345678",
+        taxCondition: "RESPONSABLE_INSCRIPTO",
+        address: null,
+      },
+    });
+    expect(res.body.invoice.caeExpiration).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("en un borrador el vencimiento del CAE y el número no existen todavía", async () => {
+    row.status = "DRAFT";
+    const detail = await request(app).get("/api/invoices/99").set("Authorization", `Bearer ${token}`);
+
+    expect(detail.body.caeExpiration).toBeNull();
+    expect(detail.body.voucherNumber).toBeNull();
+    expect(detail.body.serviceFrom).toBeNull();
   });
 
   it("devuelve 401 sin token", async () => {

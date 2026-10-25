@@ -85,6 +85,13 @@ export function createRoutes(queryClient: QueryClient): RouteObject[] {
                 })),
             },
             {
+              path: 'facturas/:id/comprobante',
+              lazy: () =>
+                import('@/features/invoices/InvoiceReceiptPage').then((m) => ({
+                  Component: m.InvoiceReceiptPage,
+                })),
+            },
+            {
               path: 'facturas/:id',
               lazy: () =>
                 import('@/features/invoices/InvoiceDetailPage').then((m) => ({

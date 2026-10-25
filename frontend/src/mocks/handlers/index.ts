@@ -3,6 +3,7 @@ import { categoryHandlers } from './categories'
 import { clientHandlers } from './clients'
 import { dashboardHandlers } from './dashboard'
 import { exchangeRateHandlers } from './exchange-rates'
+import { invoiceHandlers } from './invoices'
 import { organizationHandlers } from './organizations'
 import { transactionHandlers } from './transactions'
 
@@ -17,4 +18,5 @@ export const domainHandlers: RequestHandler[] = [
   ...transactionHandlers,
   ...exchangeRateHandlers,
   ...dashboardHandlers,
+  ...invoiceHandlers,
 ]

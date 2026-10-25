@@ -47,6 +47,32 @@ export const invoiceDetailSchema = z.object({
     .nullable()
     .optional(),
   recipientName: z.string().optional(),
+  // Datos del receptor copiados a la factura, y lo demás que se imprime en el comprobante.
+  recipient: z
+    .object({
+      name: z.string(),
+      docType: z.string().nullable().optional(),
+      docNumber: z.string().nullable().optional(),
+      taxCondition: z.string().nullable().optional(),
+      address: z.string().nullable().optional(),
+    })
+    .optional(),
+  pointOfSale: z.number().nullable().optional(),
+  caeExpiration: z.string().nullable().optional(),
+  serviceFrom: z.string().nullable().optional(),
+  serviceTo: z.string().nullable().optional(),
+  paymentDueDate: z.string().nullable().optional(),
+  items: z
+    .array(
+      z.object({
+        id: z.number(),
+        description: z.string(),
+        quantity: z.string(),
+        unitPrice: z.string(),
+        subtotal: z.string(),
+      }),
+    )
+    .optional(),
   client: z
     .object({
       id: z.number(),

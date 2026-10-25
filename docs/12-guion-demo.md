@@ -32,7 +32,7 @@ Este guion describe el recorrido sobre el release de `main`.
 - Aclarar que la autorización con ARCA es simulada (ver arriba).
 
 ### 0:45 a 1:30: ingreso y organización
-- Iniciar sesión con `demo@monotributo.com`.
+- Iniciar sesión con `demo@monotributo.com`. En el inicio aparece la lista de **Primeros pasos** (negocio, primer cliente, primera factura, facturar y primer cobro): mostrar cómo se va tildando a medida que se avanza.
 - Abrir **Organización** (`/organizacion`) y mostrar CUIT, razón social y condición frente al IVA.
 
 ### 1:30 a 2:30: clientes y categorías
@@ -49,6 +49,7 @@ Este guion describe el recorrido sobre el release de `main`.
 - Elegir el cliente "Estudio Contable García & Asoc.", concepto **Servicios** (se proponen el mes de la factura y el vencimiento a 30 días) y un ítem: "Consultoría técnica mensual", cantidad 1, precio 250000. Mostrar el total estimado y aclarar que el backend lo vuelve a calcular.
 - **Crear borrador**. En el detalle se ve el estado **Borrador** y que todavía no se puede cobrar.
 - **Facturar** y confirmar. Se ve el CAE y el aviso "Comprobante de prueba, sin validez fiscal". Decir que acá, con el proveedor real, se pediría el CAE a ARCA.
+- **Ver comprobante**: se abre la vista con el emisor, el receptor, los ítems, el total y el CAE con su vencimiento. **Imprimir o guardar como PDF** abre el diálogo del navegador (el menú y los botones no salen en la hoja).
 
 ### 5:15 a 6:30: cobro parcial
 - En la factura autorizada, **Importe a cobrar**: 100000 y **Registrar cobro**. El estado pasa a **Cobrada en parte** y el saldo baja a $ 150.000,00.
