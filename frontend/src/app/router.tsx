@@ -113,6 +113,13 @@ export function createRoutes(queryClient: QueryClient): RouteObject[] {
                 })),
             },
             {
+              path: 'actividades',
+              lazy: () =>
+                import('@/features/activities/ActivitiesPage').then((m) => ({
+                  Component: m.ActivitiesPage,
+                })),
+            },
+            {
               path: 'organizacion',
               lazy: () =>
                 import('@/features/organizations/OrganizationPage').then((m) => ({

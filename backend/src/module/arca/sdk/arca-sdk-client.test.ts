@@ -104,7 +104,9 @@ describe.skipIf(!hasOpenssl())('ArcaSdkClient contra SIMULACION LOCAL', () => {
 
   runFiscalProviderContract('ArcaSdkClient (SIMULACION LOCAL)', {
     createHarness: () => ({
-      provider: client(300),
+      // 1,5 s y no 300 ms: bajo la carga de la suite entera, 300 ms vencía en llamadas normales (no solo en el
+      // escenario TIMEOUT, que igual espera ese tiempo porque el simulador no responde).
+      provider: client(1500),
       cuit: CUIT_FALSO,
       dedupesByKey: false,
       force: (scenario) => {

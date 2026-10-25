@@ -165,6 +165,10 @@ describe.skipIf(!dbAvailable)("payments module (Real PostgreSQL integration test
         issueDate: new Date("2026-10-01"),
         totalAmount: new Prisma.Decimal("1000.00"),
         status: "AUTHORIZED",
+        // Fuera de borrador la base exige los datos del emisor (#95)
+        issuerCuit: "20000000001",
+        issuerLegalName: "Emisor de prueba",
+        issuerTaxCondition: "MONOTRIBUTO",
         cae: "12345678901234",
       },
     });
@@ -211,6 +215,10 @@ describe.skipIf(!dbAvailable)("payments module (Real PostgreSQL integration test
         issueDate: new Date("2026-10-01"),
         totalAmount: new Prisma.Decimal("500.00"),
         status: "AUTHORIZED",
+        // Fuera de borrador la base exige los datos del emisor (#95)
+        issuerCuit: "20000000001",
+        issuerLegalName: "Emisor de prueba",
+        issuerTaxCondition: "MONOTRIBUTO",
         cae: "12345678901235",
       },
     });
@@ -260,6 +268,10 @@ describe.skipIf(!dbAvailable)("payments module (Real PostgreSQL integration test
         issueDate: new Date("2026-10-01"),
         totalAmount: new Prisma.Decimal("100.00"),
         status: "AUTHORIZED",
+        // Fuera de borrador la base exige los datos del emisor (#95)
+        issuerCuit: "20000000001",
+        issuerLegalName: "Emisor de prueba",
+        issuerTaxCondition: "MONOTRIBUTO",
         cae: "12345678901236",
       },
     });
@@ -315,6 +327,10 @@ describe.skipIf(!dbAvailable)("payments module (Real PostgreSQL integration test
         issueDate: new Date("2026-10-01"),
         totalAmount: new Prisma.Decimal("100.00"),
         status: "AUTHORIZED",
+        // Fuera de borrador la base exige los datos del emisor (#95)
+        issuerCuit: "20000000001",
+        issuerLegalName: "Emisor de prueba",
+        issuerTaxCondition: "MONOTRIBUTO",
         cae: "12345678901237",
       },
     });
@@ -364,6 +380,10 @@ describe.skipIf(!dbAvailable)("payments module (Real PostgreSQL integration test
         issueDate: new Date("2026-10-01"),
         totalAmount: new Prisma.Decimal("300.00"),
         status: "AUTHORIZED",
+        // Fuera de borrador la base exige los datos del emisor (#95)
+        issuerCuit: "20000000001",
+        issuerLegalName: "Emisor de prueba",
+        issuerTaxCondition: "MONOTRIBUTO",
         cae: "12345678901238",
       },
     });
@@ -418,6 +438,10 @@ describe.skipIf(!dbAvailable)("payments module (Real PostgreSQL integration test
         issueDate: new Date("2026-10-01"),
         totalAmount: new Prisma.Decimal("1000.00"),
         status: "AUTHORIZED",
+        // Fuera de borrador la base exige los datos del emisor (#95)
+        issuerCuit: "20000000001",
+        issuerLegalName: "Emisor de prueba",
+        issuerTaxCondition: "MONOTRIBUTO",
         cae: "12345678901239",
       },
     });
@@ -447,6 +471,10 @@ describe.skipIf(!dbAvailable)("payments module (Real PostgreSQL integration test
         issueDate: new Date("2026-10-01"),
         totalAmount: new Prisma.Decimal("500.00"),
         status: "AUTHORIZED",
+        // Fuera de borrador la base exige los datos del emisor (#95)
+        issuerCuit: "20000000001",
+        issuerLegalName: "Emisor de prueba",
+        issuerTaxCondition: "MONOTRIBUTO",
         cae: "12345678901240",
       },
     });
@@ -462,6 +490,10 @@ describe.skipIf(!dbAvailable)("payments module (Real PostgreSQL integration test
         issueDate: new Date("2026-10-01"),
         totalAmount: new Prisma.Decimal("500.00"),
         status: "AUTHORIZED",
+        // Fuera de borrador la base exige los datos del emisor (#95)
+        issuerCuit: "20000000001",
+        issuerLegalName: "Emisor de prueba",
+        issuerTaxCondition: "MONOTRIBUTO",
         cae: "12345678901241",
       },
     });
@@ -519,6 +551,10 @@ describe.skipIf(!dbAvailable)("payments module (Real PostgreSQL integration test
         issueDate: new Date("2026-10-10"),
         totalAmount: new Prisma.Decimal("100.00"),
         status: "AUTHORIZED",
+        // Fuera de borrador la base exige los datos del emisor (#95)
+        issuerCuit: "20000000001",
+        issuerLegalName: "Emisor de prueba",
+        issuerTaxCondition: "MONOTRIBUTO",
         cae: "12345678901242",
       },
     });
@@ -577,6 +613,10 @@ describe.skipIf(!dbAvailable)("payments module (Real PostgreSQL integration test
         issueDate: new Date("2026-10-01"),
         totalAmount: new Prisma.Decimal("100.00"),
         status: "AUTHORIZED",
+        // Fuera de borrador la base exige los datos del emisor (#95)
+        issuerCuit: "20000000001",
+        issuerLegalName: "Emisor de prueba",
+        issuerTaxCondition: "MONOTRIBUTO",
         cae: "12345678901243",
       },
     });
@@ -590,6 +630,10 @@ describe.skipIf(!dbAvailable)("payments module (Real PostgreSQL integration test
         issueDate: new Date("2026-10-01"),
         totalAmount: new Prisma.Decimal("100.00"),
         status: "AUTHORIZED",
+        // Fuera de borrador la base exige los datos del emisor (#95)
+        issuerCuit: "20000000001",
+        issuerLegalName: "Emisor de prueba",
+        issuerTaxCondition: "MONOTRIBUTO",
         cae: "12345678901244",
       },
     });

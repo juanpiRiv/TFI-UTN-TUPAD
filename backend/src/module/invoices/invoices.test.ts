@@ -76,6 +76,10 @@ describe.skipIf(!dbAvailable)("invoices module integration tests", () => {
         currency: "ARS",
         totalAmount: 50000.0,
         status: "AUTHORIZED",
+        // Fuera de borrador la base exige los datos del emisor (#95)
+        issuerCuit: "20000000001",
+        issuerLegalName: "Emisor de prueba",
+        issuerTaxCondition: "MONOTRIBUTO",
         cae: "74000000000001",
         items: {
           create: [

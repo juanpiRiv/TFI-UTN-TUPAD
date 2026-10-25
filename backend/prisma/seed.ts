@@ -168,6 +168,12 @@ async function main() {
     where: { organizationId: organization.id, docNumber: "27289876540" },
   });
 
+  // Las facturas de servicios llevan período del servicio y vencimiento del pago (docs/04)
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+  const monthEnd = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0));
+  const dueDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 30));
+
   if (pos && clientAcme && clientGarcia) {
     // Factura 1: Autorizada y con saldo pendiente de $ 150.000,00 ARS (para probar cobro total y parcial)
     const existingAuthorized = await prisma.invoice.findFirst({
@@ -188,6 +194,9 @@ async function main() {
           voucherType: "FACTURA_C",
           voucherNumber: 1,
           concept: "SERVICIOS",
+          serviceFrom: monthStart,
+          serviceTo: monthEnd,
+          paymentDueDate: dueDate,
           issueDate: today,
           recipientDocType: clientAcme.docType,
           recipientDocNumber: clientAcme.docNumber,
@@ -198,6 +207,14 @@ async function main() {
           fiscalExchangeRate: 1,
           totalAmount: 150000.0,
           status: "AUTHORIZED",
+          // Fuera de borrador la factura trae copiados los datos del emisor (#95)
+          issuerCuit: organization.cuit,
+          issuerLegalName: organization.legalName,
+          issuerTradeName: organization.tradeName,
+          issuerAddress: organization.commercialAddress,
+          issuerTaxCondition: organization.taxCondition,
+          issuerGrossIncomeNumber: organization.grossIncomeNumber,
+          issuerActivityStartDate: organization.activityStartDate,
           cae: "74321098765432",
           caeExpiration: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
           authorizedAt: today,
@@ -216,13 +233,15 @@ async function main() {
       console.log("🧾 Factura autorizada N° 0001-00000001 creada ($ 150.000,00 ARS)");
     }
 
-    // Factura 2: En borrador (DRAFT) para verificar que no admite cobros
+    // Factura 2: En borrador (DRAFT) para verificar que no admite cobros.
+    // Un borrador no tiene número: lo asigna ARCA al autorizar. Las semillas viejas le ponían el 2, y eso
+    // chocaba con la siguiente factura que se autoriza, así que se lo quitamos.
+    await prisma.invoice.updateMany({
+      where: { pointOfSaleId: pos.id, voucherType: "FACTURA_C", voucherNumber: 2, status: "DRAFT" },
+      data: { voucherNumber: null },
+    });
     const existingDraft = await prisma.invoice.findFirst({
-      where: {
-        pointOfSaleId: pos.id,
-        voucherType: "FACTURA_C",
-        voucherNumber: 2,
-      },
+      where: { organizationId: organization.id, status: "DRAFT", clientId: clientGarcia.id },
     });
 
     if (!existingDraft) {
@@ -233,8 +252,10 @@ async function main() {
           pointOfSaleId: pos.id,
           clientId: clientGarcia.id,
           voucherType: "FACTURA_C",
-          voucherNumber: 2,
           concept: "SERVICIOS",
+          serviceFrom: monthStart,
+          serviceTo: monthEnd,
+          paymentDueDate: dueDate,
           issueDate: today,
           recipientDocType: clientGarcia.docType,
           recipientDocNumber: clientGarcia.docNumber,
@@ -257,7 +278,7 @@ async function main() {
           },
         },
       });
-      console.log("📝 Factura borrador N° 0001-00000002 creada ($ 45.000,00 ARS)");
+      console.log("📝 Factura borrador (sin número) creada ($ 45.000,00 ARS)");
     }
   }
 
