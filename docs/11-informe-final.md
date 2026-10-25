@@ -89,7 +89,7 @@ Stack, según los `package.json` y el esquema del repositorio:
 - Actividades y puntos de venta con pantalla propia (#26, #27).
 - Retirar los mocks de MSW (PR #144, hay que rehacerlo contra `main`).
 - Pruebas E2E y de integración (#61 a #66) y revisión de seguridad (#66).
-- Despliegue completo (#72 y #73): el backend ya responde en Render; falta que Cloudflare publique el frontend (el primer deploy falló y se corrigió en un hotfix), permitir el sitio en `CORS_ORIGIN`, cargar `VITE_API_URL` y probar el recorrido de punta a punta.
+- Probar el sistema desplegado de punta a punta (#73): el backend responde en Render y el frontend está publicado en Cloudflare Pages; falta recorrer el flujo completo desde el navegador y cargar los datos de prueba en la base.
 
 ### 3.3. Postergado a P1 / P2
 

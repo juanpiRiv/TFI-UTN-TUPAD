@@ -6,15 +6,16 @@ Dónde vive cada pieza, quién configura qué y los pasos para dejarlo andando. 
 |---|---|---|
 | Backend (API) | Render, servicio web `tfi-utn-tupad`: `https://tfi-utn-tupad.onrender.com` | Render lo construye desde [`backend/Dockerfile`](../backend/Dockerfile) |
 | Base de datos | PostgreSQL conectada al servicio por `DATABASE_URL` | Las migraciones de Prisma corren solas al arrancar el backend |
-| Frontend | Cloudflare Pages, proyecto `tfi-tupad` | [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml), en cada push a `main` |
+| Frontend | Cloudflare Pages, proyecto `tfi-tupad`: `https://tfi-tupad-95d.pages.dev` | [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml), en cada push a `main` |
 
 ## Estado verificado (25/10/2026)
 
-- `GET /health` responde `200` con `{"status":"ok"}`. Los endpoints privados responden `401` sin token, y un login con credenciales falsas responde `401` (la consulta a la base se ejecuta: no es un error de conexión).
-- El backend corre con `ARCA_PROVIDER=simulated`: las facturas se autorizan con el proveedor simulado y la pantalla lo avisa. No hacen falta credenciales de ARCA.
-- **El servicio gratuito se duerme** tras un rato sin uso: el primer pedido tardó unos 30 segundos en despertarlo. Conviene abrirlo un par de minutos antes de la demo.
+- **Backend (Render):** `GET /health` responde `200` con `{"status":"ok"}`. Los endpoints privados responden `401` sin token, y un login con credenciales falsas responde `401` (la consulta a la base se ejecuta: no es un error de conexión). Corre con `ARCA_PROVIDER=simulated`: las facturas se autorizan con el proveedor simulado y la pantalla lo avisa. No hacen falta credenciales de ARCA.
+- **Frontend (Cloudflare Pages):** publicado en `https://tfi-tupad-95d.pages.dev` (responde `200`, y la URL del backend quedó incluida en el sitio). **La dirección no es `tfi-tupad.pages.dev`**: ese nombre ya lo tiene otra cuenta de Cloudflare, así que Pages le agregó un sufijo al crear el proyecto en la cuenta de los secrets.
+- **El servicio gratuito de Render se duerme** tras un rato sin uso: el primer pedido tardó unos 30 segundos en despertarlo. Conviene abrirlo un par de minutos antes de la demo.
 - La base **no tiene los datos de prueba** (el usuario `demo@monotributo.com` no existe). Para la demo hay que cargarlos (ver más abajo) o registrar un usuario nuevo.
-- **CORS:** el backend no devolvió el encabezado `Access-Control-Allow-Origin` para `https://tfi-tupad.pages.dev`, así que el navegador va a bloquear los pedidos del sitio hasta que `CORS_ORIGIN` lo incluya (ver las variables).
+- **CORS:** hoy el backend le contesta a cualquier origen (devuelve el origen que le llega). Funciona con el sitio, pero conviene dejar `CORS_ORIGIN=https://tfi-tupad-95d.pages.dev` para que solo ese sitio pueda usar la API desde un navegador.
+- **Lo que falta verificar:** el recorrido completo desde el navegador (ingreso, cliente, factura, cobro y dashboard) sobre el sitio publicado.
 
 ## Dónde viven los secretos
 
@@ -26,7 +27,7 @@ Cada secreto vive en un solo lugar, el de quien lo usa. Nunca van al repositorio
 |---|---|---|---|
 | `DATABASE_URL` | Conexión a PostgreSQL | La URL de la base (en Render, la interna si el servicio y la base están en la misma región) | Sí |
 | `JWT_SECRET` | Firma de los tokens de sesión, 32 caracteres o más | Generarlo con `openssl rand -hex 32` | Sí |
-| `CORS_ORIGIN` | Orígenes permitidos, separados por coma | `https://tfi-tupad.pages.dev` (y `http://localhost:5173` si se quiere probar el frontend local contra esta API) | Sí |
+| `CORS_ORIGIN` | Orígenes permitidos, separados por coma | `https://tfi-tupad-95d.pages.dev` (y `http://localhost:5173` si se quiere probar el frontend local contra esta API) | Sí |
 | `PORT` | Puerto de la API | Lo inyecta Render, no se carga | Sí |
 | `NODE_ENV` | Ambiente | Lo fija el Dockerfile en `production`, no se carga | Sí |
 | `ARCA_MODE` | `homologacion` (por defecto) o `produccion` | Variable normal, opcional | Sí |
@@ -68,7 +69,7 @@ Lo creó Brian, dueño de la cuenta. Estos son los datos que hay que saber para 
 ## Después: conectar el frontend
 
 1. Probar que el backend responde en su URL pública (`/health`).
-2. Confirmar que `CORS_ORIGIN` incluye `https://tfi-tupad.pages.dev`.
+2. Confirmar que `CORS_ORIGIN` incluye `https://tfi-tupad-95d.pages.dev`.
 3. En GitHub (Settings → Secrets and variables → Actions → Variables), cargar `VITE_API_URL` con la URL del backend. `VITE_MOCK_MODULES` se deja sin definir, para que el sitio use la API real.
 4. Relanzar el workflow del frontend (Actions → Deploy frontend → Run workflow): las variables `VITE_*` se incorporan al construir el sitio, no al leerlo, así que cambiarlas exige volver a publicar.
 5. Probar el recorrido completo en las URLs publicadas: ingreso, cliente, movimiento, factura, pago y dashboard.
