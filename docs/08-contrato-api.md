@@ -186,6 +186,33 @@ Cada movimiento de la respuesta trae, además de sus campos, la categoría y el 
 }
 ```
 
+## Actividades
+
+Las actividades bajo las que factura el monotributista. Una organización puede tener varias; una sola es la principal (la base lo exige con un índice único parcial).
+
+| Endpoint | Cuerpo | Respuesta |
+| --- | --- | --- |
+| `GET /api/activities?includeInactive=` | | `200` con la lista (por defecto solo las activas, la principal primero). |
+| `GET /api/activities/:id` | | `200` con la actividad. `404` si no existe en la organización. |
+| `POST /api/activities` | `{ description, kind, arcaActivityCode?, isPrimary? }` | `201` con la actividad. `400` si algún campo no es válido. `409` si choca con la actividad principal. |
+| `PATCH /api/activities/:id` | Cualquier campo del alta, o `{ "isActive": false }` para darla de baja | `200` con la actividad. `404` si no existe. `409` si choca con la actividad principal. |
+
+- `kind` es `GOODS` (productos), `SERVICES` (servicios) o `BOTH` (ambas). `arcaActivityCode` es el código del nomenclador de ARCA (6 dígitos) y es opcional.
+- La primera actividad que se carga queda como principal. Marcar otra como principal desmarca la anterior en la misma transacción.
+
+## Puntos de venta
+
+Los puntos de venta habilitados en ARCA para web service. Hacen falta para emitir cualquier comprobante. El alta de la organización crea el N° 1 por defecto.
+
+| Endpoint | Cuerpo | Respuesta |
+| --- | --- | --- |
+| `GET /api/points-of-sale?includeInactive=` | | `200` con la lista (por defecto solo los activos). |
+| `GET /api/points-of-sale/:id` | | `200` con el punto de venta. `404` si no existe en la organización. |
+| `POST /api/points-of-sale` | `{ number, address? }` | `201` con el punto de venta. `400` si el número no está entre 1 y 99999. `409` si ya existe ese número en la organización. |
+| `PATCH /api/points-of-sale/:id` | `{ number?, address?, isActive? }` (al menos uno) | `200` con el punto de venta. `404` si no existe. `409` si el número ya existe. |
+
+- El método de facturación no se expone: en el P0 siempre es CAE (WSFEv1). El número es único por organización.
+
 ## Facturas
 
 Cubre RF-22 y RF-23. El backend crea facturas en borrador, las consulta y las autoriza con el proveedor fiscal que indique `ARCA_PROVIDER` (hoy se prueba con el simulado).

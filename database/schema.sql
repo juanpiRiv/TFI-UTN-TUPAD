@@ -493,3 +493,8 @@ ALTER TABLE "invoices" ADD CONSTRAINT "invoices_issuer_required_after_draft"
 ALTER TABLE "organizations" ADD CONSTRAINT "organizations_base_currency_ars"
   CHECK ("base_currency" = 'ARS');
 
+-- ===== Migracion 20261024215903_activity_kind_both =====
+
+-- AlterEnum
+ALTER TYPE "ActivityKind" ADD VALUE 'BOTH';
+
