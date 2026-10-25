@@ -10,3 +10,4 @@ invoicesRouter.use(requireAuth);
 invoicesRouter.get("/", invoicesController.listInvoices);
 invoicesRouter.post("/", invoicesController.createInvoice);
 invoicesRouter.get("/:invoiceId", invoicesController.getInvoiceById);
+invoicesRouter.post("/:invoiceId/authorize", invoicesController.authorize);

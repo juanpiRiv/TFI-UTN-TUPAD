@@ -131,6 +131,16 @@ export class ArcaSimulatedClient implements FiscalProvider {
       : { ok: false, detail: sim('cliente simulado configurado como no disponible') }
   }
 
+  /**
+   * Adelanta el último número autorizado de una secuencia (nunca lo retrocede). Existe porque el
+   * simulador vive en memoria: al reiniciar el proceso, la base ya tiene comprobantes que él no conoce.
+   * Un proveedor real no lo necesita: ARCA es quien sabe el último número.
+   */
+  seedLastAuthorized(params: LastAuthorizedParams, voucherNumber: number): void {
+    const key = sequenceKey(params)
+    if (voucherNumber > (this.lastByKey.get(key) ?? 0)) this.lastByKey.set(key, voucherNumber)
+  }
+
   async getLastAuthorized(params: LastAuthorizedParams): Promise<{ voucherNumber: number }> {
     return { voucherNumber: this.lastByKey.get(sequenceKey(params)) ?? 0 }
   }

@@ -50,6 +50,11 @@ El saldo pendiente (RF-30) es el total menos la suma de los pagos no anulados.
 9. El total lo calcula siempre el backend sumando los ítems. Lo que manda el frontend como total se ignora.
 10. La moneda del pago debe coincidir exactamente con la moneda de la factura (en el P0 todas las facturas se emiten en ARS). Si difieren, se rechaza la operación con código 422.
 11. La fecha del pago (`paymentDate`) no puede ser una fecha futura ni anterior a la fecha de emisión (`issueDate`) de la factura.
+12. Al pasar de borrador a pendiente (al pulsar Facturar) se copian los datos del emisor (CUIT, razón social, nombre de fantasía, domicilio comercial, condición frente al IVA, ingresos brutos e inicio de actividades). Si después se edita la organización, la factura autorizada no cambia.
+
+## Ítems de la factura y lo que se manda a ARCA
+
+Los ítems (`InvoiceItem`: descripción, cantidad, precio y subtotal) son un dato **interno**: sirven para armar el total y para mostrar y, más adelante, imprimir el comprobante. **No son lo que ARCA recibe.** Para una Factura C, el pedido de CAE (`FECAESolicitar`) lleva solo los totales: importe total, neto igual al total e IVA en cero, más el concepto, las fechas del servicio, el documento y la condición frente al IVA del receptor, la moneda y la cotización. Por eso la función que arma el pedido (`buildCaeRequest`, en `backend/src/module/arca/cae-request.ts`) no recorre los ítems ni asume una relación uno a uno con ningún dato de ARCA; solo usa `total_amount`, que el backend calculó sumando los ítems.
 
 ## Ejemplo con pagos parciales
 

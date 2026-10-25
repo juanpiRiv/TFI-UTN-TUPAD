@@ -1,0 +1,64 @@
+name: CI
+
+# Lint, build y tests en cada PR, con una base PostgreSQL propia (no la de desarrollo).
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+# Si se empuja otro commit al mismo PR, se cancela la corrida anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tfi
+          POSTGRES_PASSWORD: tfi
+          POSTGRES_DB: tfi_finanzas_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tfi -d tfi_finanzas_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://tfi:tfi@localhost:5432/tfi_finanzas_test
+      ARCA_PROVIDER: simulated
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # Clave descartable de esta corrida: no es un secreto del repositorio.
+      - name: Generar JWT_SECRET de la corrida
+        run: echo "JWT_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Migrar la base de test
+        run: pnpm --filter backend exec prisma migrate deploy
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+
+      - name: Tests (incluye los de integración contra PostgreSQL)
+        run: pnpm test

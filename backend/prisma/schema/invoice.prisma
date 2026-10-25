@@ -18,6 +18,16 @@ model Invoice {
     recipientAddress      String?       @map("recipient_address") @db.VarChar(255)
     recipientTaxCondition TaxCondition? @map("recipient_tax_condition")
 
+    // Datos del emisor copiados cuando la factura deja de ser borrador (#95): si la organización cambia
+    // después, el comprobante no se reconstruye con datos nuevos. La base exige los obligatorios fuera de DRAFT.
+    issuerCuit              String?       @map("issuer_cuit") @db.Char(11)
+    issuerLegalName         String?       @map("issuer_legal_name") @db.VarChar(255)
+    issuerTradeName         String?       @map("issuer_trade_name") @db.VarChar(255)
+    issuerAddress           String?       @map("issuer_address") @db.VarChar(255)
+    issuerTaxCondition      TaxCondition? @map("issuer_tax_condition")
+    issuerGrossIncomeNumber String?       @map("issuer_gross_income_number") @db.VarChar(50)
+    issuerActivityStartDate DateTime?     @map("issuer_activity_start_date") @db.Date
+
     currency           Currency  @default(ARS)
     fiscalExchangeRate Decimal   @default(1) @map("fiscal_exchange_rate") @db.Decimal(18, 6)
     serviceFrom        DateTime? @map("service_from") @db.Date

@@ -122,7 +122,14 @@ quien cierra el issue.
   gh auth refresh -s project -s read:project
   ```
 
+## Integración continua
+
+El workflow [`ci.yml`](../.github/workflows/ci.yml) corre en cada PR hacia `develop` o `main`: instala, migra una base PostgreSQL propia del job (no la de desarrollo), y corre `pnpm lint`, `pnpm build` y `pnpm test`, incluidos los tests de integración. Para repetirlo en tu máquina: `docker compose up -d` en `backend/`, `pnpm --filter backend exec prisma migrate deploy` y `pnpm test` (con `DATABASE_URL`, `JWT_SECRET` y `ARCA_PROVIDER=simulated` en `backend/.env`). Los PRs usan la plantilla de [`.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLATE.md).
+
 ## Deploy del frontend
+
+El deploy completo (backend y base en Railway, frontend en Cloudflare) y
+dónde va cada secreto están en [`docs/09-deploy.md`](./09-deploy.md).
 
 El workflow [`deploy-frontend.yml`](../.github/workflows/deploy-frontend.yml)
 publica el frontend en Cloudflare Pages cuando entra un cambio a `main`
@@ -138,9 +145,9 @@ cargar por quien administra la cuenta de Cloudflare, nunca en el repo:
 | Secret | `CLOUDFLARE_ACCOUNT_ID` | Identificador de la cuenta |
 | Variable | `CLOUDFLARE_PAGES_PROJECT` | Nombre del proyecto en Pages (por defecto `tfi-tupad`) |
 | Variable | `VITE_API_URL` | URL pública del backend |
-| Variable | `VITE_USE_MOCKS` | `false` cuando el backend esté desplegado (por defecto `true`) |
+| Variable | `VITE_MOCK_MODULES` | Módulos a simular con MSW (vacío = usa la API real, que es lo normal) |
 
 El proyecto de Pages tiene que existir antes del primer deploy
 (`wrangler pages project create tfi-tupad --production-branch=main`).
-Mientras `VITE_USE_MOCKS` sea `true`, el sitio publicado usa datos
-simulados.
+Si `VITE_MOCK_MODULES` tiene módulos, el sitio publicado simula esos
+módulos con datos de prueba; vacío usa siempre `VITE_API_URL`.

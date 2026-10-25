@@ -39,8 +39,8 @@ if [ ! -f backend/.env ]; then
 fi
 
 if [ ! -f frontend/.env.local ]; then
-  printf 'VITE_API_URL=http://localhost:3000\nVITE_USE_MOCKS=true\n' > frontend/.env.local
-  echo "frontend/.env.local creado (mocks MSW prendidos)"
+  printf 'VITE_API_URL=http://localhost:3000\n# Para simular modulos especificos: VITE_MOCK_MODULES=categories,organizations\n' > frontend/.env.local
+  echo "frontend/.env.local creado (conectado al backend real)"
 fi
 
 # ── 4. Base de datos ────────────────────────────────────────────────

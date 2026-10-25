@@ -31,6 +31,21 @@ export const invoiceDetailSchema = z.object({
   issueDate: z.string().optional(),
   concept: z.string().optional(),
   cae: z.string().nullable().optional(),
+  // true si la autorizó el proveedor simulado: el CAE no tiene validez fiscal.
+  simulated: z.boolean().optional(),
+  // Datos del emisor al momento de facturar; null mientras sea borrador.
+  issuer: z
+    .object({
+      cuit: z.string(),
+      legalName: z.string(),
+      tradeName: z.string().nullable().optional(),
+      address: z.string().nullable().optional(),
+      taxCondition: z.string(),
+      grossIncomeNumber: z.string().nullable().optional(),
+      activityStartDate: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   recipientName: z.string().optional(),
   client: z
     .object({
@@ -44,6 +59,19 @@ export const invoiceDetailSchema = z.object({
   pendingBalance: z.string(),
   commercialStatus: z.enum(['PENDING', 'PARTIALLY_PAID', 'PAID']),
   payments: z.array(paymentItemSchema),
+})
+
+const fiscalMessageSchema = z.object({ code: z.number(), message: z.string() })
+
+/** Respuesta de POST /api/invoices/:id/authorize: la factura y qué dijo el proveedor fiscal. */
+export const authorizeResultSchema = z.object({
+  invoice: invoiceDetailSchema,
+  fiscal: z.object({
+    outcome: z.enum(['AUTHORIZED', 'AUTHORIZED_WITH_OBSERVATIONS', 'REJECTED', 'INDETERMINATE']),
+    simulated: z.boolean(),
+    observations: z.array(fiscalMessageSchema),
+    errors: z.array(fiscalMessageSchema),
+  }),
 })
 
 export const invoiceListItemSchema = z.object({
@@ -87,6 +115,7 @@ export const createPaymentFormSchema = z.object({
 
 export type PaymentItem = z.infer<typeof paymentItemSchema>
 export type InvoiceDetail = z.infer<typeof invoiceDetailSchema>
+export type AuthorizeResult = z.infer<typeof authorizeResultSchema>
 export type InvoiceListItem = z.infer<typeof invoiceListItemSchema>
 export type CreatePaymentFormData = z.infer<typeof createPaymentFormSchema>
 

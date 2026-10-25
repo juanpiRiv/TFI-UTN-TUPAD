@@ -26,6 +26,11 @@ app.get("/test", (_req, res) => {
     res.json({ status: 'ok' });
 });
 
+// Para el healthcheck de Railway: dice que el proceso responde, sin tocar la base.
+app.get("/health", (_req, res) => {
+    res.json({ status: 'ok' });
+});
+
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/organizations", organizationsRouter);
