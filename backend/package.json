@@ -15,7 +15,8 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "arca:smoke": "tsx --env-file=.env scripts/arca-smoke.ts"
+    "arca:smoke": "tsx --env-file=.env scripts/arca-smoke.ts",
+    "arca:e2e": "tsx --env-file=.env scripts/arca-e2e.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
