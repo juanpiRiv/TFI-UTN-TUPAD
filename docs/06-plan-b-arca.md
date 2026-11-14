@@ -42,9 +42,14 @@ Se completa solo con lo que pasó de verdad. Si algo se bloquea, se anota el men
 | 22/10/2026 | WSASS, Nuevo Certificado con el alias `tfi-tupad` | Rechazado: `El Nombre simbólico del DN sólo puede contener números y/o letras.` | n/a |
 | 22/10/2026 | WSASS, Nuevo Certificado con un alias alfanumérico y el CSR | Certificado emitido, válido del 22/10/2026 al 21/10/2028. Guardado fuera del repositorio | n/a |
 | 22/10/2026 | WSASS, Crear autorización a servicio (`wsfe`) con el alias del certificado | Autorización creada por el titular del CUIT. **No se guardó el mensaje exacto que devolvió ARCA**; queda pendiente confirmarla en WSASS, Autorizaciones | n/a |
-| 22/10/2026 | Alta del punto de venta para web service | Pendiente: el tipo para monotributista NO está verificado; se consulta a `wsfev1@arca.gov.ar` | n/a |
+| 22/10/2026 | Alta del punto de venta para web service | Sin evidencia del alta. El 14/11 se comprobó que los puntos de venta 1 y 2 aceptan comprobantes | n/a |
+| 14/11/2026 | `loginCms` con el certificado propio, firma SHA-1 de la librería | OK: primer ticket de acceso real | [Emisión en homologación](./arca/respuestas-reales/C-emision-homologacion-14-11-2026.txt) |
+| 14/11/2026 | `FECompUltimoAutorizado` Factura C en los puntos de venta 1 y 2 | OK, próximo número 1 en los dos. `FEParamGetPtosVenta` devuelve lista vacía | [Emisión en homologación](./arca/respuestas-reales/C-emision-homologacion-14-11-2026.txt) |
+| 14/11/2026 | `FEParamGetCondicionIvaReceptor` clase C | OK: 1, 4, 5 y 6 coinciden con el código | [Emisión en homologación](./arca/respuestas-reales/C-emision-homologacion-14-11-2026.txt) |
+| 14/11/2026 | `FECAESolicitar` desde la aplicación, Factura C por $ 1500, consumidor final, puntos de venta 1 y 2 | OK: CAE reales, comprobantes 1 y luego 2 en cada punto de venta, `Resultado A` | [Emisión en homologación](./arca/respuestas-reales/C-emision-homologacion-14-11-2026.txt) |
+| 14/11/2026 | `FECompConsultar` de los comprobantes 1 | OK: `Resultado A` y `CodAutorizacion` igual al CAE guardado | [Emisión en homologación](./arca/respuestas-reales/C-emision-homologacion-14-11-2026.txt) |
 
-Todo lo posterior a la autenticación (ticket real, `FECompUltimoAutorizado`, `FECAESolicitar`) queda sin probar hasta correr la primera prueba real con el certificado. Las pruebas contra el simulador local no cuentan como pruebas contra ARCA.
+Con la prueba del 14/11 quedó verificada la cadena certificado, WSAA, ticket, `FECompUltimoAutorizado` y `FECAESolicitar` contra homologación, con CAE reales. Falta probar el concepto servicios (con fechas de servicio) y un receptor identificado con CUIT o DNI. Las pruebas contra el simulador local no cuentan como pruebas contra ARCA.
 
 ### Cómo se tramita el certificado de homologación
 

@@ -6,7 +6,7 @@
  *   3. los códigos de condición de IVA del receptor son los que usa el código.
  *
  * Uso (desde backend/, con las variables ARCA_* cargadas en backend/.env):
- *   pnpm arca:smoke [puntoDeVenta]
+ *   pnpm arca:smoke [1,2]        (puntos de venta separados por coma; por defecto 1,2)
  *
  * No imprime certificados, claves, tokens ni firmas.
  */
@@ -43,9 +43,11 @@ async function main() {
   }
 
   const credentials = loadArcaCredentialsFromEnv(process.env)
-  const salesPoint = Number(process.argv[2] ?? process.env.ARCA_SMOKE_POINT_OF_SALE ?? '1')
-  if (!Number.isInteger(salesPoint) || salesPoint < 1) {
-    console.error('El punto de venta tiene que ser un entero positivo.')
+  const salesPoints = (process.argv[2] ?? process.env.ARCA_SMOKE_POINT_OF_SALE ?? '1,2')
+    .split(',')
+    .map((value) => Number(value.trim()))
+  if (salesPoints.length === 0 || salesPoints.some((value) => !Number.isInteger(value) || value < 1)) {
+    console.error('Los puntos de venta tienen que ser enteros positivos separados por coma, por ejemplo 1,2.')
     process.exit(1)
   }
 
@@ -59,21 +61,27 @@ async function main() {
     logger: { log: () => {} },
   })
 
-  console.log(`Ambiente: homologación (wswhomo). CUIT terminado en ...${credentials.cuit.slice(-4)}. Punto de venta consultado: ${salesPoint}.\n`)
+  console.log(`Ambiente: homologación (wswhomo). CUIT terminado en ...${credentials.cuit.slice(-4)}. Puntos de venta a probar: ${salesPoints.join(', ')}.\n`)
 
   const status = await step('FEDummy (estado del servicio, sin autenticación)', () => client.wsfe.getServerStatus())
   if (status) console.log(`      ${JSON.stringify(status)}`)
 
-  // Primer uso autenticado: acá el SDK arma el TRA, lo firma y llama al WSAA.
-  const next = await step('WSAA + FECompUltimoAutorizado (primer ticket de acceso real)', () =>
-    client.wsfe.getNextVoucherNumber({ salesPoint, voucherType: FACTURA_C }),
-  )
-  if (next !== undefined) console.log(`      Próximo número de Factura C en el punto de venta ${salesPoint}: ${next}`)
+  // Primer uso autenticado: acá el SDK arma el TRA, lo firma y llama al WSAA. Se prueba cada punto de venta por separado.
+  const nextNumbers: Array<number | undefined> = []
+  for (const salesPoint of salesPoints) {
+    const next = await step(`WSAA + FECompUltimoAutorizado, punto de venta ${salesPoint}`, () =>
+      client.wsfe.getNextVoucherNumber({ salesPoint, voucherType: FACTURA_C }),
+    )
+    nextNumbers.push(next)
+    if (next !== undefined) console.log(`      Próximo número de Factura C en el punto de venta ${salesPoint}: ${next}`)
+  }
 
-  const points = await step('FEParamGetPtosVenta (puntos de venta del contribuyente)', () => client.wsfe.getSalesPoints())
+  const points = await step('FEParamGetPtosVenta (lista de puntos de venta que informa ARCA)', () => client.wsfe.getSalesPoints())
   if (points) {
     for (const point of points) console.log(`      ${JSON.stringify(point)}`)
-    if (points.length === 0) console.log('      No hay ningún punto de venta habilitado para web service: hay que darlo de alta en ARCA.')
+    if (points.length === 0) {
+      console.log('      ARCA no lista ninguno. En homologación puede pasar aunque el número exista: lo que vale es que FECompUltimoAutorizado no dé error.')
+    }
   }
 
   const conditions = await step('FEParamGetCondicionIvaReceptor (clase C)', () =>
@@ -81,7 +89,7 @@ async function main() {
   )
   if (conditions) for (const condition of conditions) console.log(`      ${JSON.stringify(condition)}`)
 
-  const failed = [status, next, points, conditions].some((value) => value === undefined)
+  const failed = [status, points, conditions, ...nextNumbers].some((value) => value === undefined)
   console.log(failed ? '\nHubo errores: ver arriba.' : '\nTodo respondió. Se puede intentar una emisión de prueba.')
   process.exit(failed ? 2 : 0)
 }

@@ -6,13 +6,15 @@
  * Antes hay que levantar el backend (pnpm dev) y haber corrido `pnpm arca:smoke` sin errores.
  *
  * Uso (desde backend/):
- *   pnpm arca:e2e <numeroDePuntoDeVenta>
+ *   pnpm arca:e2e [1,2]      (puntos de venta separados por coma; por defecto 1,2)
  *
- * Emite UNA factura de prueba por ejecución, en homologación, sin validez fiscal.
+ * Emite UNA factura de prueba por cada punto de venta indicado, en homologación, sin validez fiscal.
  * Imprime solo el resultado (estado, CAE, observaciones): nunca tokens ni credenciales.
  */
 const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
 const AMOUNT = 1500
+
+type PointOfSaleRow = { id: number; number: number }
 
 function fail(message: string): never {
   console.error(message)
@@ -42,6 +44,67 @@ function expectStatus(label: string, actual: number, expected: number[], body: u
   fail(`ERROR ${label}: HTTP ${actual}\n      ${JSON.stringify(body)}`)
 }
 
+/** Devuelve el id del punto de venta con ese número: lo crea o, si la organización ya lo tiene, lo reutiliza. */
+async function ensurePointOfSale(token: string, number: number): Promise<number> {
+  const created = await call<PointOfSaleRow>('POST', '/api/points-of-sale', token, { number })
+  if (created.status !== 409) {
+    expectStatus(`Punto de venta ${number} creado`, created.status, [201], created.body)
+    return created.body.id
+  }
+  const list = await call<PointOfSaleRow[] | { items?: PointOfSaleRow[] }>('GET', '/api/points-of-sale', token)
+  const rows = Array.isArray(list.body) ? list.body : (list.body.items ?? [])
+  const existing = rows.find((row) => row.number === number)
+  if (!existing) fail(`ERROR Punto de venta ${number}: ya existe pero no se pudo listar (HTTP ${list.status})`)
+  console.log(`OK    Punto de venta ${number} ya existía en la organización: se reutiliza`)
+  return existing.id
+}
+
+/** Crea un borrador de Factura C, la factura y devuelve si ARCA (o el simulador) la autorizó. */
+async function issueOne(token: string, number: number): Promise<boolean> {
+  console.log(`\n=== Punto de venta ${number} ===`)
+  const pointOfSaleId = await ensurePointOfSale(token, number)
+
+  const draft = await call<{ invoiceId: number }>('POST', '/api/invoices', token, {
+    pointOfSaleId,
+    concept: 'PRODUCTOS',
+    issueDate: new Date().toISOString().slice(0, 10),
+    items: [{ description: 'Prueba de homologación', quantity: 1, unitPrice: AMOUNT }],
+  })
+  expectStatus(`Borrador de Factura C por $ ${AMOUNT}`, draft.status, [201], draft.body)
+
+  const result = await call<{ invoice?: Record<string, unknown>; fiscal?: Record<string, unknown>; error?: string }>(
+    'POST',
+    `/api/invoices/${draft.body.invoiceId}/authorize`,
+    token,
+  )
+  const fiscal = result.body.fiscal ?? {}
+  const invoice = result.body.invoice ?? {}
+  console.log(`\nFacturar: HTTP ${result.status}`)
+  console.log(
+    JSON.stringify(
+      {
+        estadoFactura: invoice.status,
+        numeroDeComprobante: invoice.voucherNumber,
+        cae: invoice.cae,
+        vencimientoCae: invoice.caeExpiration,
+        resultado: fiscal.outcome,
+        simulado: fiscal.simulated,
+        observaciones: fiscal.observations,
+        errores: fiscal.errors,
+        error: result.body.error,
+      },
+      null,
+      2,
+    ),
+  )
+
+  const ok = result.status === 200 && fiscal.outcome === 'AUTHORIZED'
+  if (!ok) console.log(`\nPunto de venta ${number}: NO autorizada.`)
+  else if (fiscal.simulated) console.log(`\nPunto de venta ${number}: autorizada por el proveedor SIMULADO (no llegó a ARCA).`)
+  else console.log(`\nPunto de venta ${number}: autorizada por ARCA en homologación.`)
+  return ok
+}
+
 async function main() {
   const url = new URL(BASE_URL)
   if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(url.hostname)) {
@@ -52,9 +115,11 @@ async function main() {
   const cuit = process.env.ARCA_CUIT?.trim()
   if (!cuit || !/^\d{11}$/.test(cuit)) fail('Falta ARCA_CUIT (11 dígitos): tiene que ser el CUIT del certificado.')
 
-  const pointOfSale = Number(process.argv[2] ?? process.env.ARCA_SMOKE_POINT_OF_SALE)
-  if (!Number.isInteger(pointOfSale) || pointOfSale < 1) {
-    fail('Indicá el número de punto de venta habilitado para web service: pnpm arca:e2e <numero>')
+  const pointsOfSale = (process.argv[2] ?? process.env.ARCA_SMOKE_POINT_OF_SALE ?? '1,2')
+    .split(',')
+    .map((value) => Number(value.trim()))
+  if (pointsOfSale.some((value) => !Number.isInteger(value) || value < 1)) {
+    fail('Indicá los puntos de venta habilitados, separados por coma: pnpm arca:e2e 1,2')
   }
 
   const health = await call('GET', '/health')
@@ -87,65 +152,12 @@ async function main() {
     expectStatus('Organización creada con el CUIT de ARCA_CUIT', org.status, [201], org.body)
   }
 
-  // Al crear la organización ya puede venir un punto de venta (el N° 1): si el número ya existe, se reutiliza.
-  let pointOfSaleId: number
-  const created = await call<{ id: number }>('POST', '/api/points-of-sale', token, { number: pointOfSale })
-  if (created.status === 409) {
-    const list = await call<Array<{ id: number; number: number }> | { items?: Array<{ id: number; number: number }> }>(
-      'GET',
-      '/api/points-of-sale',
-      token,
-    )
-    const rows = Array.isArray(list.body) ? list.body : (list.body.items ?? [])
-    const existing = rows.find((row) => row.number === pointOfSale)
-    if (!existing) fail(`ERROR Punto de venta ${pointOfSale}: ya existe pero no se pudo listar (HTTP ${list.status})`)
-    pointOfSaleId = existing.id
-    console.log(`OK    Punto de venta ${pointOfSale} ya existía en la organización: se reutiliza`)
-  } else {
-    expectStatus(`Punto de venta ${pointOfSale} creado`, created.status, [201], created.body)
-    pointOfSaleId = created.body.id
+  let allOk = true
+  for (const number of pointsOfSale) {
+    const ok = await issueOne(token, number)
+    allOk = allOk && ok
   }
-
-  const today = new Date().toISOString().slice(0, 10)
-  const draft = await call<{ invoiceId: number }>('POST', '/api/invoices', token, {
-    pointOfSaleId,
-    concept: 'PRODUCTOS',
-    issueDate: today,
-    items: [{ description: 'Prueba de homologación', quantity: 1, unitPrice: AMOUNT }],
-  })
-  expectStatus(`Borrador de Factura C por $ ${AMOUNT}`, draft.status, [201], draft.body)
-
-  const result = await call<{ invoice?: Record<string, unknown>; fiscal?: Record<string, unknown>; error?: string }>(
-    'POST',
-    `/api/invoices/${draft.body.invoiceId}/authorize`,
-    token,
-  )
-  console.log(`\nFacturar: HTTP ${result.status}`)
-  const fiscal = result.body.fiscal ?? {}
-  const invoice = result.body.invoice ?? {}
-  console.log(
-    JSON.stringify(
-      {
-        estadoFactura: invoice.status,
-        numeroDeComprobante: invoice.voucherNumber,
-        cae: invoice.cae,
-        vencimientoCae: invoice.caeExpiration,
-        resultado: fiscal.outcome,
-        simulado: fiscal.simulated,
-        observaciones: fiscal.observations,
-        errores: fiscal.errors,
-        error: result.body.error,
-      },
-      null,
-      2,
-    ),
-  )
-
-  if (result.status === 200 && fiscal.outcome === 'AUTHORIZED') {
-    console.log(fiscal.simulated ? '\nAutorizada por el proveedor SIMULADO (no llegó a ARCA).' : '\nAutorizada por ARCA en homologación.')
-    return
-  }
-  process.exit(2)
+  process.exit(allOk ? 0 : 2)
 }
 
 main().catch((error) => fail(error instanceof Error ? error.message : String(error)))
