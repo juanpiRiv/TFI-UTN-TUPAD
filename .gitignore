@@ -18,6 +18,8 @@ node_modules/
 *.crt
 *.pem
 *.pfx
+*.cer
+*.der
 *.csr
 *.p12
 

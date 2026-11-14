@@ -336,6 +336,24 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
+  it("devuelve 409 sin reservar la factura si el CUIT del certificado no es el de la organización", async () => {
+    current.provider = Object.assign(new ArcaSimulatedClient(), { issuerCuit: "30000000008" });
+    const requestCae = vi.spyOn(current.provider as ArcaSimulatedClient, "requestCae");
+    const res = await post();
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/CUIT de la organización/i);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(requestCae).not.toHaveBeenCalled();
+  });
+
+  it("autoriza si el CUIT del certificado es el de la organización", async () => {
+    current.provider = Object.assign(new ArcaSimulatedClient(), { issuerCuit: org.cuit });
+    const res = await post();
+
+    expect(res.status).toBe(200);
+  });
+
   it("rechaza un ID de factura inválido", async () => {
     const res = await request(app).post("/api/invoices/abc/authorize").set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(400);

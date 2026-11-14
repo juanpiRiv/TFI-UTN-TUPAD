@@ -47,6 +47,12 @@ export async function authorizeInvoice(
     throw new AppError(503, `El proveedor fiscal no está disponible: ${reason}`);
   }
 
+  // Un certificado solo puede emitir por su propio CUIT. Si no coincide, se corta antes de reservar:
+  // después de pasar a PENDING la factura quedaría trabada, porque solo se factura un borrador.
+  if (provider.issuerCuit !== undefined && provider.issuerCuit !== org.cuit) {
+    throw new AppError(409, "El CUIT de la organización no coincide con el del certificado de ARCA configurado");
+  }
+
   // Paso 1: reservar. Si ya no es borrador (doble clic, otra pestaña) responde 409 sin llamar a ARCA.
   const reserved = await prisma.$transaction(async (tx) => {
     const rows = await tx.$queryRaw<{ id: number; status: string }[]>`

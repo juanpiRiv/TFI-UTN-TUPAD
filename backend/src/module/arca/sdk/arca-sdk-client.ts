@@ -65,6 +65,10 @@ export class ArcaSdkClient implements FiscalProvider {
     }
   }
 
+  get issuerCuit(): string {
+    return this.cuit
+  }
+
   async healthCheck(): Promise<{ ok: boolean; detail: string }> {
     // FEDummy: no requiere autenticacion (Manual WSFEv1 V4.8, PDF p.125; confirmado con respuesta real).
     try {
