@@ -67,7 +67,7 @@ export function InvoiceReceiptPage() {
             Borrador: todavía no se facturó y no tiene validez
           </p>
         )}
-        {invoice.simulated && !isDraft && (
+        {(invoice.simulated || invoice.testEnvironment) && !isDraft && (
           <p data-testid="receipt-simulated" className="mb-4 rounded border border-amber-400 bg-amber-50 px-3 py-2 text-center text-sm font-semibold text-amber-900">
             Comprobante de prueba, sin validez fiscal
           </p>

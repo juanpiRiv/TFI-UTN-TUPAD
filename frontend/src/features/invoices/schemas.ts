@@ -33,6 +33,8 @@ export const invoiceDetailSchema = z.object({
   cae: z.string().nullable().optional(),
   // true si la autorizó el proveedor simulado: el CAE no tiene validez fiscal.
   simulated: z.boolean().optional(),
+  // true si es de prueba: la generó el simulador o se emitió en homologación. No tiene validez fiscal.
+  testEnvironment: z.boolean().optional(),
   // Datos del emisor al momento de facturar; null mientras sea borrador.
   issuer: z
     .object({

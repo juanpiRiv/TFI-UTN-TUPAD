@@ -98,6 +98,13 @@ describe('comprobante para ver e imprimir (Issue #55)', () => {
     expect(await screen.findByTestId('receipt-simulated')).toHaveTextContent(/sin validez fiscal/i)
   })
 
+  it('un comprobante emitido en homologación muestra la leyenda aunque no sea simulado', async () => {
+    serve({ ...authorized, simulated: false, testEnvironment: true })
+    renderApp('/facturas/7/comprobante')
+
+    expect(await screen.findByTestId('receipt-simulated')).toHaveTextContent(/sin validez fiscal/i)
+  })
+
   it('con un proveedor real no aparece la leyenda', async () => {
     serve({ ...authorized, simulated: false })
     renderApp('/facturas/7/comprobante')

@@ -122,6 +122,8 @@ export async function authorizeInvoice(
       const arcaResponse = {
         provider: provider.name,
         simulated: outcome.simulated,
+        // Dónde se emitió: en homologación el CAE es real pero no tiene validez fiscal.
+        environment: provider.environment ?? null,
         outcome: outcome.outcome,
         observations: outcome.observations.map(({ code, message }) => ({ code, message })),
         errors: outcome.errors.map(({ code, message }) => ({ code, message })),

@@ -131,6 +131,39 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     expect(updates()[1]!.arcaResponse).toMatchObject({ simulated: true });
   });
 
+  const realProvider = (environment: "homologacion" | "produccion") =>
+    ({
+      name: "proveedor-real",
+      environment,
+      healthCheck: async () => ({ ok: true, detail: "" }),
+      getLastAuthorized: async () => ({ voucherNumber: 0 }),
+      requestCae: async () => ({
+        outcome: "AUTHORIZED" as const,
+        cae: "74123456789012",
+        caeExpiration: "20261104",
+        observations: [],
+        errors: [],
+        simulated: false,
+      }),
+    }) satisfies FiscalProvider;
+
+  it("emitida en homologación guarda el ambiente y se marca como de prueba aunque no sea simulada", async () => {
+    current.provider = realProvider("homologacion");
+    const res = await post();
+
+    expect(updates()[1]!.arcaResponse).toMatchObject({ simulated: false, environment: "homologacion" });
+    expect(res.body.invoice.simulated).toBe(false);
+    expect(res.body.invoice.testEnvironment).toBe(true);
+  });
+
+  it("emitida en producción no se marca como de prueba", async () => {
+    current.provider = realProvider("produccion");
+    const res = await post();
+
+    expect(updates()[1]!.arcaResponse).toMatchObject({ simulated: false, environment: "produccion" });
+    expect(res.body.invoice.testEnvironment).toBe(false);
+  });
+
   it("con un proveedor real el detalle no marca la factura como simulada", async () => {
     current.provider = {
       name: "proveedor-real",

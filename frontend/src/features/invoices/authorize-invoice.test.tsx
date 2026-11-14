@@ -108,6 +108,13 @@ describe('botón Facturar de un borrador (Issue #59)', () => {
     expect(await screen.findByTestId('simulated-legend')).toHaveTextContent(/sin validez fiscal/i)
   })
 
+  it('una factura emitida en homologación muestra la leyenda aunque no sea simulada', async () => {
+    current = { ...authorized, simulated: false, testEnvironment: true }
+    renderApp('/facturas/1')
+
+    expect(await screen.findByTestId('simulated-legend')).toHaveTextContent(/sin validez fiscal.*homologación/i)
+  })
+
   it('con un proveedor real no aparece la leyenda', async () => {
     current = { ...authorized, simulated: false }
     renderApp('/facturas/1')

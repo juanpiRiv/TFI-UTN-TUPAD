@@ -50,10 +50,12 @@ export class ArcaSdkClient implements FiscalProvider {
   readonly name = 'arca-sdk(facturas)'
   private readonly client: ArcaClient
   private readonly cuit: string
+  private readonly arcaEnvironment: 'test' | 'production'
 
   constructor(options: ArcaSdkClientOptions) {
     if (!CUIT.test(options.cuit)) throw new ArcaSdkInputError('cuit tiene que tener 11 digitos', { field: 'cuit' })
     this.cuit = options.cuit
+    this.arcaEnvironment = options.environment ?? 'test'
     const sink = options.log ?? (() => {})
     const config = {
       taxId: options.cuit,
@@ -73,6 +75,10 @@ export class ArcaSdkClient implements FiscalProvider {
 
   get issuerCuit(): string {
     return this.cuit
+  }
+
+  get environment(): 'homologacion' | 'produccion' {
+    return this.arcaEnvironment === 'production' ? 'produccion' : 'homologacion'
   }
 
   async healthCheck(): Promise<{ ok: boolean; detail: string }> {

@@ -186,6 +186,12 @@ export async function getInvoiceById(userId: number, invoiceId: number) {
       typeof invoice.arcaResponse === "object" &&
       invoice.arcaResponse !== null &&
       (invoice.arcaResponse as { simulated?: unknown }).simulated === true,
+    // Emitida en homologación: el CAE es real, pero el comprobante no tiene validez fiscal.
+    testEnvironment:
+      typeof invoice.arcaResponse === "object" &&
+      invoice.arcaResponse !== null &&
+      ((invoice.arcaResponse as { simulated?: unknown }).simulated === true ||
+        (invoice.arcaResponse as { environment?: unknown }).environment === "homologacion"),
     // Datos del emisor al momento de facturar (null mientras sea borrador).
     issuer: invoice.issuerCuit
       ? {

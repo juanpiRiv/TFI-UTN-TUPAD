@@ -191,13 +191,15 @@ export function InvoiceDetailPage() {
         </div>
       </div>
 
-      {invoice.simulated && invoice.status === 'AUTHORIZED' && (
+      {(invoice.simulated || invoice.testEnvironment) && invoice.status === 'AUTHORIZED' && (
         <p
           role="note"
           data-testid="simulated-legend"
           className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900"
         >
-          Comprobante de prueba, sin validez fiscal: lo generó el proveedor simulado.
+          {invoice.simulated
+            ? 'Comprobante de prueba, sin validez fiscal: lo generó el proveedor simulado.'
+            : 'Comprobante de prueba, sin validez fiscal: se emitió en el ambiente de homologación de ARCA.'}
         </p>
       )}
       <div className="flex justify-end">
