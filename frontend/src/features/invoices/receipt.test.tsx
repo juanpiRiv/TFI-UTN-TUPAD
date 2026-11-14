@@ -49,6 +49,7 @@ const authorized: InvoiceDetail = {
   pendingBalance: '215.02',
   commercialStatus: 'PENDING',
   payments: [],
+  qrUrl: 'https://www.afip.gob.ar/fe/qr/?p=eyJ2ZXIiOjF9',
 }
 
 describe('comprobante para ver e imprimir (Issue #55)', () => {
@@ -70,12 +71,13 @@ describe('comprobante para ver e imprimir (Issue #55)', () => {
     renderApp('/facturas/7/comprobante')
 
     const receipt = await screen.findByTestId('receipt')
-    expect(within(receipt).getByText('Factura C')).toBeInTheDocument()
-    expect(within(receipt).getByText(/Cód\. 011/)).toBeInTheDocument()
-    expect(within(receipt).getByText('0003-00000007')).toBeInTheDocument()
+    expect(within(receipt).getByText('FACTURA')).toBeInTheDocument()
+    expect(within(receipt).getByText(/COD\. 011/)).toBeInTheDocument()
+    expect(within(receipt).getByText('0003')).toBeInTheDocument()
+    expect(within(receipt).getByText('00000007')).toBeInTheDocument()
     expect(within(receipt).getByText('24/10/2026')).toBeInTheDocument()
     // Emisor, tomado de la copia que guarda la factura
-    expect(within(receipt).getByText('Recorrido SAS')).toBeInTheDocument()
+    expect(within(receipt).getAllByText('Recorrido SAS').length).toBeGreaterThan(0)
     expect(within(receipt).getByText(/20000000001/)).toBeInTheDocument()
     expect(within(receipt).getByText('Av. Siempre Viva 742')).toBeInTheDocument()
     // Receptor
@@ -128,7 +130,7 @@ describe('comprobante para ver e imprimir (Issue #55)', () => {
     const receipt = await screen.findByTestId('receipt')
     expect(within(receipt).getByTestId('receipt-draft')).toHaveTextContent(/borrador/i)
     expect(within(receipt).queryByText('74123456789012')).not.toBeInTheDocument()
-    expect(within(receipt).queryByText('0003-00000007')).not.toBeInTheDocument()
+    expect(within(receipt).queryByText('00000007')).not.toBeInTheDocument()
   })
 
   it('el botón imprime con el navegador', async () => {
@@ -148,6 +150,87 @@ describe('comprobante para ver e imprimir (Issue #55)', () => {
     await screen.findByTestId('receipt')
     expect(screen.getByRole('navigation', { name: 'Principal' }).closest('aside')).toHaveClass('print:hidden')
     expect(screen.getByRole('button', { name: /Imprimir o guardar como PDF/ }).closest('[data-print="hide"]')).not.toBeNull()
+  })
+
+  it('sigue el formato oficial de la Factura C de ARCA', async () => {
+    serve(authorized)
+    renderApp('/facturas/7/comprobante')
+
+    const receipt = await screen.findByTestId('receipt')
+    expect(within(receipt).getByText('ORIGINAL')).toBeInTheDocument()
+    expect(within(receipt).getByText('C')).toBeInTheDocument()
+    expect(within(receipt).getByText('COD. 011')).toBeInTheDocument()
+    expect(receipt).toHaveTextContent('Punto de Venta: 0003')
+    expect(receipt).toHaveTextContent('Comp. Nro: 00000007')
+    expect(receipt).toHaveTextContent('Fecha de Emisión: 24/10/2026')
+    expect(receipt).toHaveTextContent('Domicilio Comercial: Av. Siempre Viva 742')
+    expect(receipt).toHaveTextContent('Condición frente al IVA: Responsable Monotributo')
+    expect(receipt).toHaveTextContent('CUIT: 20000000001')
+    expect(receipt).toHaveTextContent('Ingresos Brutos: 901-123456-7')
+    expect(receipt).toHaveTextContent('Fecha de Inicio de Actividades: 01/03/2020')
+    expect(receipt).toHaveTextContent('Condición de venta: Contado')
+    expect(receipt).toHaveTextContent('CUIT/DNI: 30712345678')
+    expect(receipt).toHaveTextContent('Importe Otros Tributos: $ 0,00')
+    expect(receipt).toHaveTextContent('Importe Total: $ 215,02')
+    expect(receipt).toHaveTextContent('Pág. 1/1')
+    expect(within(receipt).getByRole('columnheader', { name: 'U. Medida' })).toBeInTheDocument()
+  })
+
+  it('con servicios muestra el período facturado; con productos no', async () => {
+    serve(authorized)
+    const view = renderApp('/facturas/7/comprobante')
+    const period = await screen.findByTestId('receipt-period')
+    expect(period).toHaveTextContent('Período Facturado Desde: 01/10/2026')
+    expect(period).toHaveTextContent('Hasta: 31/10/2026')
+    expect(period).toHaveTextContent('Fecha de Vto. para el pago: 23/11/2026')
+    view.unmount()
+
+    serve({ ...authorized, concept: 'PRODUCTOS', serviceFrom: null, serviceTo: null, paymentDueDate: null })
+    renderApp('/facturas/7/comprobante')
+    await screen.findByTestId('receipt')
+    expect(screen.queryByTestId('receipt-period')).not.toBeInTheDocument()
+  })
+
+  it('autorizada: muestra Comprobante Autorizado, el CAE y el QR', async () => {
+    serve(authorized)
+    renderApp('/facturas/7/comprobante')
+
+    const receipt = await screen.findByTestId('receipt')
+    expect(within(receipt).getByText('Comprobante Autorizado')).toBeInTheDocument()
+    expect(receipt).toHaveTextContent('CAE N°: 74123456789012')
+    expect(receipt).toHaveTextContent('Fecha de Vto. de CAE: 04/11/2026')
+    const qr = within(receipt).getByTestId('receipt-qr')
+    expect(qr).toHaveAttribute('aria-label', 'Código QR de ARCA para verificar el comprobante')
+    expect(qr.querySelector('svg')).not.toBeNull()
+  })
+
+  it('sin qrUrl no hay QR', async () => {
+    serve({ ...authorized, qrUrl: null })
+    renderApp('/facturas/7/comprobante')
+
+    await screen.findByTestId('receipt')
+    expect(screen.queryByTestId('receipt-qr')).not.toBeInTheDocument()
+  })
+
+  it('un borrador no muestra QR ni Comprobante Autorizado aunque venga qrUrl', async () => {
+    serve({ ...authorized, status: 'DRAFT', voucherNumber: null, cae: null, caeExpiration: null, issuer: null })
+    renderApp('/facturas/7/comprobante')
+
+    await screen.findByTestId('receipt-draft')
+    expect(screen.queryByTestId('receipt-qr')).not.toBeInTheDocument()
+    expect(screen.queryByText('Comprobante Autorizado')).not.toBeInTheDocument()
+  })
+
+  it('un consumidor final sin identificar no muestra número de documento', async () => {
+    serve({
+      ...authorized,
+      recipient: { name: 'Consumidor Final', docType: 'SIN_IDENTIFICAR', docNumber: null, taxCondition: 'CONSUMIDOR_FINAL', address: null },
+    })
+    renderApp('/facturas/7/comprobante')
+
+    const receipt = await screen.findByTestId('receipt')
+    expect(within(receipt).getByText('Consumidor Final', { selector: 'p' })).toBeInTheDocument()
+    expect(receipt).not.toHaveTextContent('CUIT/DNI')
   })
 
   it('el detalle de la factura ofrece ver el comprobante', async () => {

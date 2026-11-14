@@ -61,6 +61,8 @@ export const invoiceDetailSchema = z.object({
     .optional(),
   pointOfSale: z.number().nullable().optional(),
   caeExpiration: z.string().nullable().optional(),
+  // URL que va dentro del QR de ARCA; null si no está autorizada por ARCA o la generó el simulador.
+  qrUrl: z.string().nullable().optional(),
   serviceFrom: z.string().nullable().optional(),
   serviceTo: z.string().nullable().optional(),
   paymentDueDate: z.string().nullable().optional(),
