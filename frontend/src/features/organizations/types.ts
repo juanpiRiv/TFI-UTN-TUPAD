@@ -19,3 +19,13 @@ export type Organization = {
   createdAt: string
   updatedAt: string
 }
+
+/** ARCA credential status. The private key never comes back from the server. */
+export type ArcaCredentialStatus =
+  | { configured: false }
+  | {
+      configured: true
+      environment: 'HOMOLOGACION'
+      certificateExpiresAt: string
+      updatedAt: string
+    }

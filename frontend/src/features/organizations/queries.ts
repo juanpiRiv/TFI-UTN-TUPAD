@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { authKeys } from '@/features/auth/queries'
 import { categoryKeys } from '@/features/categories/queries'
 import type { Me } from '@/features/auth/schemas'
@@ -30,4 +30,30 @@ export function useCreateOrganization() {
 export function useUpdateOrganization() {
   const syncMe = useSyncMe()
   return useMutation({ mutationFn: organizationsApi.updateOrganization, onSuccess: syncMe })
+}
+
+export const arcaCredentialKeys = {
+  all: ['arca-credential'] as const,
+}
+
+export function useArcaCredential() {
+  return useQuery({
+    queryKey: arcaCredentialKeys.all,
+    queryFn: ({ signal }) => organizationsApi.getArcaCredential(signal),
+  })
+}
+
+function useInvalidateArcaCredential() {
+  const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ queryKey: arcaCredentialKeys.all })
+}
+
+export function useSaveArcaCredential() {
+  const invalidate = useInvalidateArcaCredential()
+  return useMutation({ mutationFn: organizationsApi.saveArcaCredential, onSuccess: invalidate })
+}
+
+export function useDeleteArcaCredential() {
+  const invalidate = useInvalidateArcaCredential()
+  return useMutation({ mutationFn: organizationsApi.deleteArcaCredential, onSuccess: invalidate })
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { useOrganization } from '@/features/auth/queries'
+import { ArcaCredentialCard } from './ArcaCredentialCard'
 import { OrganizationForm } from './OrganizationForm'
 import { useUpdateOrganization } from './queries'
 
@@ -28,6 +29,7 @@ export function OrganizationPage() {
           onSuccess={() => setSaved(true)}
         />
       </div>
+      <ArcaCredentialCard />
     </>
   )
 }
