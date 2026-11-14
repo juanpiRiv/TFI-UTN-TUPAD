@@ -21,6 +21,8 @@ export interface CreateFiscalProviderOptions {
   credentials?: ArcaCredentials
   /** Por defecto homologación: producción hay que pedirla de forma explícita. */
   mode?: ArcaMode
+  /** Producción con `sdk` emite comprobantes con validez fiscal: además de `mode` hay que confirmarlo acá. */
+  allowProduction?: boolean
   /** Solo para tests: pisa opciones del cliente sobre la librería. */
   overrides?: Partial<ArcaSdkClientOptions>
 }
@@ -50,6 +52,9 @@ export function createFiscalProvider(
     case 'sdk': {
       if (!options.credentials) {
         throw new Error('ARCA_PROVIDER=sdk necesita las credenciales (CUIT, certificado y clave) de la organización.')
+      }
+      if (options.mode === 'produccion' && !options.allowProduction) {
+        throw new Error('ARCA_MODE=produccion con el proveedor sdk emite comprobantes con validez fiscal y está bloqueado. Para habilitarlo hay que confirmarlo de forma explícita (ARCA_ALLOW_PRODUCTION=true).')
       }
       return new ArcaSdkClient({
         ...options.credentials,

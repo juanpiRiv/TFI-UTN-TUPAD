@@ -1,0 +1,80 @@
+import { readFileSync } from 'node:fs'
+import type { ArcaCredentials } from './provider-factory.js'
+
+/** Variables de entorno que alimentan las credenciales fiscales de prueba. */
+export interface ArcaCredentialEnv {
+  ARCA_CUIT?: string | undefined
+  ARCA_CERT_PATH?: string | undefined
+  ARCA_KEY_PATH?: string | undefined
+  ARCA_CERT_PEM?: string | undefined
+  ARCA_KEY_PEM?: string | undefined
+}
+
+type ReadFile = (path: string) => string
+
+const CUIT = /^\d{11}$/
+
+/**
+ * Los PEM que vienen en una variable de entorno suelen traer los saltos de línea escritos como `\n`.
+ * Se normalizan para que la librería los pueda leer.
+ */
+function normalizePem(pem: string): string {
+  return pem.replace(/\\n/g, '\n').trim()
+}
+
+function readPem(path: string, read: ReadFile, name: string): string {
+  try {
+    return read(path)
+  } catch {
+    // El mensaje no incluye el contenido del archivo ni el error del sistema: solo la variable que falló.
+    throw new Error(`No se pudo leer el archivo que indica ${name}.`)
+  }
+}
+
+/**
+ * Arma las credenciales de ARCA a partir de variables de entorno. Sirve para probar contra
+ * homologación con un certificado propio, sin pasar por la tabla ArcaCredential.
+ *
+ * Acepta el certificado y la clave como rutas (ARCA_CERT_PATH y ARCA_KEY_PATH) o como texto PEM
+ * (ARCA_CERT_PEM y ARCA_KEY_PEM). Nunca incluye el contenido de los PEM en los mensajes de error.
+ */
+export function loadArcaCredentialsFromEnv(vars: ArcaCredentialEnv, read: ReadFile = (p) => readFileSync(p, 'utf8')): ArcaCredentials {
+  const cuit = vars.ARCA_CUIT?.trim()
+  if (!cuit || !CUIT.test(cuit)) {
+    throw new Error('ARCA_CUIT es obligatoria y tiene que tener 11 dígitos.')
+  }
+
+  const hasPaths = Boolean(vars.ARCA_CERT_PATH?.trim() || vars.ARCA_KEY_PATH?.trim())
+  const hasPem = Boolean(vars.ARCA_CERT_PEM?.trim() || vars.ARCA_KEY_PEM?.trim())
+  if (hasPaths && hasPem) {
+    throw new Error('Definí el certificado y la clave como rutas (ARCA_CERT_PATH y ARCA_KEY_PATH) o como PEM (ARCA_CERT_PEM y ARCA_KEY_PEM), no las dos formas a la vez.')
+  }
+
+  let certificatePem: string
+  let privateKeyPem: string
+  if (hasPem) {
+    if (!vars.ARCA_CERT_PEM?.trim() || !vars.ARCA_KEY_PEM?.trim()) {
+      throw new Error('Faltan ARCA_CERT_PEM o ARCA_KEY_PEM: hacen falta las dos.')
+    }
+    certificatePem = normalizePem(vars.ARCA_CERT_PEM)
+    privateKeyPem = normalizePem(vars.ARCA_KEY_PEM)
+  } else {
+    if (!vars.ARCA_CERT_PATH?.trim() || !vars.ARCA_KEY_PATH?.trim()) {
+      throw new Error('Faltan ARCA_CERT_PATH o ARCA_KEY_PATH: hacen falta las dos.')
+    }
+    certificatePem = normalizePem(readPem(vars.ARCA_CERT_PATH.trim(), read, 'ARCA_CERT_PATH'))
+    privateKeyPem = normalizePem(readPem(vars.ARCA_KEY_PATH.trim(), read, 'ARCA_KEY_PATH'))
+  }
+
+  if (!certificatePem.includes('BEGIN CERTIFICATE')) {
+    throw new Error('El certificado no parece un PEM (falta la cabecera BEGIN CERTIFICATE).')
+  }
+  if (privateKeyPem.includes('ENCRYPTED')) {
+    throw new Error('La clave privada está cifrada con contraseña: la librería necesita una clave sin cifrar.')
+  }
+  if (!/BEGIN (RSA )?PRIVATE KEY/.test(privateKeyPem)) {
+    throw new Error('La clave privada no parece un PEM sin cifrar (falta la cabecera BEGIN PRIVATE KEY).')
+  }
+
+  return { cuit, certificatePem, privateKeyPem }
+}
