@@ -167,6 +167,10 @@ export async function authorizeInvoice(
     }, AUTHORIZE_TRANSACTION);
   } catch (error) {
     if (error instanceof AppError) throw error;
+    // Solo el tipo y el mensaje: nunca el objeto completo, para no arrastrar certificados ni firmas al log.
+    const name = error instanceof Error ? error.name : "Error";
+    const reason = error instanceof Error ? error.message : String(error);
+    console.error(`[arca] falló la autorización de la factura ${invoiceId}: ${name}: ${reason}`);
     // La factura queda PENDING: puede que ARCA haya contestado y falló nuestra base.
     throw new AppError(502, "No se pudo completar la autorización con ARCA. La factura quedó pendiente.");
   }

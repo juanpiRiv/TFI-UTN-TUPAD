@@ -60,29 +60,55 @@ async function main() {
   const health = await call('GET', '/health')
   expectStatus('Backend local responde', health.status, [200], health.body)
 
-  const stamp = Date.now()
-  const password = `E2e-${stamp}-Aa1!`
-  const register = await call<{ token: string }>('POST', '/api/auth/register', undefined, {
-    email: `arca-e2e-${stamp}@test.local`,
-    password,
-  })
-  expectStatus('Usuario de prueba creado', register.status, [201], register.body)
-  const token = register.body.token
+  // Usuario fijo de prueba: así el recorrido se puede repetir sin chocar con el CUIT, que es único.
+  const email = 'arca-e2e@test.local'
+  const password = process.env.E2E_PASSWORD ?? 'E2e-Arca-Test-1!'
+  let token: string
+  const register = await call<{ token: string }>('POST', '/api/auth/register', undefined, { email, password })
+  if (register.status === 409) {
+    const login = await call<{ token: string }>('POST', '/api/auth/login', undefined, { email, password })
+    expectStatus('Usuario de prueba ya existía: inicio de sesión', login.status, [200], login.body)
+    token = login.body.token
+  } else {
+    expectStatus('Usuario de prueba creado', register.status, [201], register.body)
+    token = register.body.token
+  }
 
-  const org = await call<{ id: number }>('POST', '/api/organizations', token, {
-    cuit,
-    legalName: 'Prueba E2E ARCA',
-    taxCondition: 'MONOTRIBUTO',
-    baseCurrency: 'ARS',
-  })
-  expectStatus('Organización creada con el CUIT de ARCA_CUIT', org.status, [201], org.body)
+  const mine = await call<{ id?: number }>('GET', '/api/organizations/me', token)
+  if (mine.status === 200 && mine.body.id) {
+    console.log('OK    La organización de prueba ya existía: se reutiliza')
+  } else {
+    const org = await call<{ id: number }>('POST', '/api/organizations', token, {
+      cuit,
+      legalName: 'Prueba E2E ARCA',
+      taxCondition: 'MONOTRIBUTO',
+      baseCurrency: 'ARS',
+    })
+    expectStatus('Organización creada con el CUIT de ARCA_CUIT', org.status, [201], org.body)
+  }
 
-  const pos = await call<{ id: number }>('POST', '/api/points-of-sale', token, { number: pointOfSale })
-  expectStatus(`Punto de venta ${pointOfSale} creado`, pos.status, [201], pos.body)
+  // Al crear la organización ya puede venir un punto de venta (el N° 1): si el número ya existe, se reutiliza.
+  let pointOfSaleId: number
+  const created = await call<{ id: number }>('POST', '/api/points-of-sale', token, { number: pointOfSale })
+  if (created.status === 409) {
+    const list = await call<Array<{ id: number; number: number }> | { items?: Array<{ id: number; number: number }> }>(
+      'GET',
+      '/api/points-of-sale',
+      token,
+    )
+    const rows = Array.isArray(list.body) ? list.body : (list.body.items ?? [])
+    const existing = rows.find((row) => row.number === pointOfSale)
+    if (!existing) fail(`ERROR Punto de venta ${pointOfSale}: ya existe pero no se pudo listar (HTTP ${list.status})`)
+    pointOfSaleId = existing.id
+    console.log(`OK    Punto de venta ${pointOfSale} ya existía en la organización: se reutiliza`)
+  } else {
+    expectStatus(`Punto de venta ${pointOfSale} creado`, created.status, [201], created.body)
+    pointOfSaleId = created.body.id
+  }
 
   const today = new Date().toISOString().slice(0, 10)
   const draft = await call<{ invoiceId: number }>('POST', '/api/invoices', token, {
-    pointOfSaleId: pos.body.id,
+    pointOfSaleId,
     concept: 'PRODUCTOS',
     issueDate: today,
     items: [{ description: 'Prueba de homologación', quantity: 1, unitPrice: AMOUNT }],
