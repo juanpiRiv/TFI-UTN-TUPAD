@@ -3,6 +3,7 @@ import { AppError } from "../../lib/error.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import { getOrganizationByUserId } from "../transactions/transactions.service.js";
 import type { CreateInvoiceInput } from "./invoices.schemas.js";
+import { buildAfipQrUrl } from "../arca/afip-qr.js";
 
 /**
  * Lista todas las facturas de la organización con su estado comercial y saldos calculados.
@@ -84,6 +85,7 @@ export async function getInvoiceById(userId: number, invoiceId: number) {
       recipientName: true,
       recipientDocType: true,
       recipientDocNumber: true,
+      fiscalExchangeRate: true,
       recipientTaxCondition: true,
       recipientAddress: true,
       concept: true,
@@ -216,6 +218,8 @@ export async function getInvoiceById(userId: number, invoiceId: number) {
       address: invoice.recipientAddress ?? null,
     },
     pointOfSale: invoice.pointOfSale?.number ?? null,
+    // Dirección que va dentro del QR del comprobante (RG 4892). Solo para facturas autorizadas por ARCA.
+    qrUrl: qrUrlFor(invoice, issueDateStr),
     caeExpiration: toDateString(invoice.caeExpiration),
     serviceFrom: toDateString(invoice.serviceFrom),
     serviceTo: toDateString(invoice.serviceTo),
@@ -234,6 +238,56 @@ export async function getInvoiceById(userId: number, invoiceId: number) {
     })),
     payments: formattedPayments,
   };
+}
+
+const VOUCHER_TYPE_CODE: Record<string, number> = { FACTURA_C: 11, NOTA_DEBITO_C: 12, NOTA_CREDITO_C: 13 };
+
+/**
+ * QR de ARCA de una factura autorizada. Devuelve null si todavía no está autorizada, si la generó el
+ * simulador (su CAE es inventado) o si falta algún dato: el comprobante se imprime igual, sin QR.
+ */
+function qrUrlFor(
+  invoice: {
+    status: string;
+    cae: string | null;
+    voucherType: string;
+    voucherNumber: number | null;
+    issuerCuit: string | null;
+    pointOfSale?: { number: number } | null;
+    currency: string;
+    fiscalExchangeRate: { toString(): string } | string | null;
+    totalAmount: { toString(): string } | string;
+    recipientDocType: string | null;
+    recipientDocNumber: string | null;
+    arcaResponse: unknown;
+  },
+  issueDate: string,
+): string | null {
+  const simulated =
+    typeof invoice.arcaResponse === "object" &&
+    invoice.arcaResponse !== null &&
+    (invoice.arcaResponse as { simulated?: unknown }).simulated === true;
+  if (invoice.status !== "AUTHORIZED" || simulated) return null;
+  if (!invoice.cae || !invoice.issuerCuit || !invoice.pointOfSale || invoice.voucherNumber === null) return null;
+  const voucherTypeCode = VOUCHER_TYPE_CODE[invoice.voucherType];
+  if (!voucherTypeCode) return null;
+  try {
+    return buildAfipQrUrl({
+      issueDate,
+      issuerCuit: invoice.issuerCuit,
+      pointOfSale: invoice.pointOfSale.number,
+      voucherTypeCode,
+      voucherNumber: invoice.voucherNumber,
+      total: Number(invoice.totalAmount.toString()).toFixed(2),
+      currency: invoice.currency === "USD" ? "USD" : "ARS",
+      exchangeRate: String(invoice.fiscalExchangeRate ?? 1),
+      recipientDocType: (invoice.recipientDocType ?? null) as never,
+      recipientDocNumber: invoice.recipientDocNumber,
+      cae: invoice.cae,
+    });
+  } catch {
+    return null;
+  }
 }
 
 /**

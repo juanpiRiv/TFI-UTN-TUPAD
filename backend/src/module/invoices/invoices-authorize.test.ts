@@ -156,6 +156,40 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     expect(res.body.invoice.testEnvironment).toBe(true);
   });
 
+  it("una factura autorizada por ARCA trae la dirección del QR con los datos del comprobante", async () => {
+    current.provider = realProvider("homologacion");
+    const res = await post();
+
+    const url = new URL(res.body.invoice.qrUrl);
+    expect(`${url.origin}${url.pathname}`).toBe("https://www.afip.gob.ar/fe/qr/");
+    const payload = JSON.parse(Buffer.from(url.searchParams.get("p")!, "base64").toString("utf8"));
+    expect(payload).toMatchObject({
+      ver: 1,
+      cuit: Number(org.cuit),
+      ptoVta: 3,
+      tipoCmp: 11,
+      nroCmp: 1,
+      moneda: "PES",
+      ctz: 1,
+      tipoCodAut: "E",
+      codAut: 74123456789012,
+    });
+  });
+
+  it("lo que genera el simulador no trae QR: su CAE es inventado", async () => {
+    const res = await post();
+
+    expect(res.body.invoice.simulated).toBe(true);
+    expect(res.body.invoice.qrUrl).toBeNull();
+  });
+
+  it("un borrador no trae QR", async () => {
+    const detail = await request(app).get("/api/invoices/99").set("Authorization", `Bearer ${token}`);
+
+    expect(detail.body.status).toBe("DRAFT");
+    expect(detail.body.qrUrl).toBeNull();
+  });
+
   it("emitida en producción no se marca como de prueba", async () => {
     current.provider = realProvider("produccion");
     const res = await post();
