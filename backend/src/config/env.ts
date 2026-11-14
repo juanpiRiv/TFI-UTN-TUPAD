@@ -19,6 +19,8 @@ const schema = z.object({
     ARCA_KEY_PATH: z.string().optional(),
     ARCA_CERT_PEM: z.string().optional(),
     ARCA_KEY_PEM: z.string().optional(),
+    // Clave para cifrar la clave privada de ARCA de cada organización: 64 caracteres hexadecimales (openssl rand -hex 32).
+    ARCA_ENCRYPTION_KEY: z.string().optional(),
     // Carpeta donde se comparte el ticket de acceso de WSAA entre procesos (ver FileWsaaSessionStore).
     ARCA_SESSION_DIR: z.string().optional(),
     // Con el proveedor sdk, producción solo se habilita escribiendo exactamente "true".

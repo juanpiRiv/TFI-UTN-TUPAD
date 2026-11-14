@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { assertPemShape, CredentialError, normalizePem } from './credential-inspector.js'
 import type { ArcaCredentials } from './provider-factory.js'
 
 /** Variables de entorno que alimentan las credenciales fiscales de prueba. */
@@ -13,14 +14,6 @@ export interface ArcaCredentialEnv {
 type ReadFile = (path: string) => string
 
 const CUIT = /^\d{11}$/
-
-/**
- * Los PEM que vienen en una variable de entorno suelen traer los saltos de línea escritos como `\n`.
- * Se normalizan para que la librería los pueda leer.
- */
-function normalizePem(pem: string): string {
-  return pem.replace(/\\n/g, '\n').trim()
-}
 
 function readPem(path: string, read: ReadFile, name: string): string {
   try {
@@ -66,14 +59,11 @@ export function loadArcaCredentialsFromEnv(vars: ArcaCredentialEnv, read: ReadFi
     privateKeyPem = normalizePem(readPem(vars.ARCA_KEY_PATH.trim(), read, 'ARCA_KEY_PATH'))
   }
 
-  if (!certificatePem.includes('BEGIN CERTIFICATE')) {
-    throw new Error('El certificado no parece un PEM (falta la cabecera BEGIN CERTIFICATE).')
-  }
-  if (privateKeyPem.includes('ENCRYPTED')) {
-    throw new Error('La clave privada está cifrada con contraseña: la librería necesita una clave sin cifrar.')
-  }
-  if (!/BEGIN (RSA )?PRIVATE KEY/.test(privateKeyPem)) {
-    throw new Error('La clave privada no parece un PEM sin cifrar (falta la cabecera BEGIN PRIVATE KEY).')
+  try {
+    assertPemShape(certificatePem, privateKeyPem)
+  } catch (error) {
+    // Mismo mensaje que antes para el desarrollador; sin contenido de los PEM.
+    throw error instanceof CredentialError ? new Error(error.message) : error
   }
 
   return { cuit, certificatePem, privateKeyPem }

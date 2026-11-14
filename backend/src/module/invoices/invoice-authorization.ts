@@ -21,7 +21,8 @@ const toDate = (yyyymmdd: string) =>
 export async function authorizeInvoice(
   userId: number,
   invoiceId: number,
-  createProvider: () => FiscalProvider,
+  // Recibe la organización: cada una puede tener su propia credencial de ARCA.
+  createProvider: (org: { id: number; cuit: string }) => FiscalProvider | Promise<FiscalProvider>,
 ) {
   const org = await prisma.organization.findUnique({
     where: { userId },
@@ -41,7 +42,7 @@ export async function authorizeInvoice(
   // Antes de tocar nada: si el proveedor no se puede armar, la factura queda como estaba.
   let provider: FiscalProvider;
   try {
-    provider = createProvider();
+    provider = await createProvider({ id: org.id, cuit: org.cuit });
   } catch (error) {
     const reason = error instanceof Error ? error.message : "error desconocido";
     throw new AppError(503, `El proveedor fiscal no está disponible: ${reason}`);

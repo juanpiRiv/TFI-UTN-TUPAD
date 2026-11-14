@@ -7,8 +7,10 @@ import { getFiscalProviderFromEnv } from "./module/arca/provider-from-env.js";
 const arcaProvider = parseArcaProviderKind(env.ARCA_PROVIDER);
 
 // Con sdk, falla al arrancar si las credenciales o el modo no son válidos, en vez de al primer facturar.
-if (arcaProvider === "sdk") {
+if (arcaProvider === "sdk" && env.ARCA_CUIT?.trim()) {
     getFiscalProviderFromEnv(env);
+} else if (arcaProvider === "sdk") {
+    console.log("ARCA: sin credenciales en el entorno; cada organización usa la que cargó en la aplicación.");
 }
 
 app.listen(env.PORT, () => {
