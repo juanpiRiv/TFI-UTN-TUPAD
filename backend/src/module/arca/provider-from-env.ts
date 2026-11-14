@@ -1,12 +1,21 @@
 import type { FiscalProvider } from './fiscal-provider.js'
 import { loadArcaCredentialsFromEnv, type ArcaCredentialEnv } from './credentials-from-env.js'
 import { createFiscalProvider, parseArcaProviderKind, type ArcaMode } from './provider-factory.js'
+import { FileWsaaSessionStore } from './sdk/wsaa-session-store.js'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 
 export interface FiscalProviderEnv extends ArcaCredentialEnv {
   ARCA_PROVIDER?: string | undefined
   ARCA_MODE: ArcaMode
   /** Hay que escribir exactamente "true" para permitir producción. Cualquier otro valor la bloquea. */
   ARCA_ALLOW_PRODUCTION?: string | undefined
+  /** Carpeta del ticket de acceso compartido. Por defecto ~/.arca-homologacion/sessions. */
+  ARCA_SESSION_DIR?: string | undefined
+}
+
+export function defaultSessionDir(env: { ARCA_SESSION_DIR?: string | undefined }): string {
+  return env.ARCA_SESSION_DIR?.trim() || join(homedir(), '.arca-homologacion', 'sessions')
 }
 
 // Un solo cliente sdk por proceso: así se reutiliza el ticket de acceso de WSAA, que dura 12 horas
@@ -27,6 +36,7 @@ export function getFiscalProviderFromEnv(env: FiscalProviderEnv): FiscalProvider
     mode: env.ARCA_MODE,
     credentials: loadArcaCredentialsFromEnv(env),
     allowProduction: env.ARCA_ALLOW_PRODUCTION === 'true',
+    overrides: { wsaaSessionStore: new FileWsaaSessionStore(defaultSessionDir(env)) },
   })
   return cachedSdkProvider
 }

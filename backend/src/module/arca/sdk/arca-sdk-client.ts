@@ -1,4 +1,4 @@
-import { createArcaClient, type ArcaClient, type WsfeVoucherInput } from 'facturas'
+import { createArcaClient, type ArcaClient, type ArcaWsaaSessionStore, type WsfeVoucherInput } from 'facturas'
 import type { CaeRequest, CaeResult, FiscalProvider, LastAuthorizedParams } from '../fiscal-provider.js'
 import { decimalStringToCents, centsToSdkNumber } from './amounts.js'
 import { serviceDatesError } from '../service-dates.js'
@@ -15,6 +15,11 @@ export interface ArcaSdkClientOptions {
   /** 'test' = homologacion. Por defecto 'test'. */
   environment?: 'test' | 'production'
   timeoutMs?: number
+  /**
+   * Almacén del ticket de acceso de WSAA. ARCA no entrega otro ticket mientras el anterior sigue vigente (12 h):
+   * si varios procesos piden el suyo, los siguientes fallan con `coe.alreadyAuthenticated`. Compartirlo lo evita.
+   */
+  wsaaSessionStore?: ArcaWsaaSessionStore
   /** Sumidero de logs del SDK. Por defecto se descartan (el SDK imprime por consola si no). */
   log?: (level: ArcaSdkLogLevel, message: string, ...args: unknown[]) => void
   /** Solo para tests: reemplaza la construccion del cliente del SDK. */
@@ -56,6 +61,7 @@ export class ArcaSdkClient implements FiscalProvider {
       privateKeyPem: options.privateKeyPem,
       environment: options.environment ?? 'test',
       ...(options.timeoutMs === undefined ? {} : { timeout: options.timeoutMs }),
+      ...(options.wsaaSessionStore === undefined ? {} : { wsaaSessionStore: options.wsaaSessionStore }),
       logger: { log: sink },
     } as const
     try {

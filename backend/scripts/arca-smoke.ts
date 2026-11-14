@@ -12,6 +12,8 @@
  */
 import { createArcaClient } from 'facturas'
 import { loadArcaCredentialsFromEnv } from '../src/module/arca/credentials-from-env.js'
+import { defaultSessionDir } from '../src/module/arca/provider-from-env.js'
+import { FileWsaaSessionStore } from '../src/module/arca/sdk/wsaa-session-store.js'
 
 const FACTURA_C = 11
 
@@ -52,6 +54,8 @@ async function main() {
     certificatePem: credentials.certificatePem,
     privateKeyPem: credentials.privateKeyPem,
     environment: 'test',
+    // Mismo almacén que el backend: así los dos comparten el ticket y ARCA no responde coe.alreadyAuthenticated.
+    wsaaSessionStore: new FileWsaaSessionStore(defaultSessionDir(process.env)),
     logger: { log: () => {} },
   })
 
