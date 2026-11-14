@@ -89,5 +89,5 @@ Es idempotente, pero escribe en la base de la demo: conviene correrlo una sola v
 
 - El servicio gratuito se duerme tras un rato sin uso y el primer pedido tarda unos 30 segundos (ver arriba).
 - La base gratuita de Render puede vencer: revisar el plan y la fecha antes de la defensa.
-- [`railway.toml`](../railway.toml) quedó sin uso: se evaluó Railway primero, pero el backend se desplegó en Render. Se puede borrar.
+- Se evaluó Railway primero, pero el backend se desplegó en Render; el `railway.toml` que quedó sin uso se eliminó.
 - El backend lee `ARCA_PROVIDER` y `ARCA_MODE`, pero todavía nada emite comprobantes reales (ver [Plan B de ARCA](./06-plan-b-arca.md)).
