@@ -36,6 +36,7 @@ import { prisma } from "../../lib/prisma.js";
 import { env } from "../../config/env.js";
 import { ArcaSimulatedClient, type SimulatedScenario } from "../arca/simulated/arca-simulated-client.js";
 import type { FiscalProvider } from "../arca/fiscal-provider.js";
+import { ProviderUnavailableError } from "../arca/errors.js";
 
 describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => {
   const userId = 10;
@@ -419,6 +420,21 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     const res = await post();
 
     expect(res.status).toBe(200);
+  });
+
+  it("el 503 muestra los motivos que el usuario puede corregir, pero no los errores internos", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    current.factoryError = new ProviderUnavailableError("La organización todavía no cargó su credencial de ARCA.");
+    const known = await post();
+    current.factoryError = new Error("Can't reach database server at db.interno:5432");
+    const internal = await post();
+
+    expect(known.status).toBe(503);
+    expect(known.body.error).toMatch(/todavía no cargó su credencial/);
+    expect(internal.status).toBe(503);
+    expect(internal.body.error).toMatch(/proveedor fiscal no está disponible/i);
+    expect(internal.body.error).not.toMatch(/db\.interno|database/);
+    log.mockRestore();
   });
 
   it("rechaza un ID de factura inválido", async () => {

@@ -1,3 +1,4 @@
+import { ProviderUnavailableError } from "../arca/errors.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
 import { buildCaeRequest } from "../arca/cae-request.js";
@@ -44,8 +45,12 @@ export async function authorizeInvoice(
   try {
     provider = await createProvider({ id: org.id, cuit: org.cuit });
   } catch (error) {
-    const reason = error instanceof Error ? error.message : "error desconocido";
-    throw new AppError(503, `El proveedor fiscal no está disponible: ${reason}`);
+    // Solo se muestran los motivos que el usuario puede corregir; el resto se registra y se informa de forma genérica.
+    if (error instanceof ProviderUnavailableError) {
+      throw new AppError(503, `El proveedor fiscal no está disponible: ${error.message}`);
+    }
+    console.error(`[arca] no se pudo armar el proveedor fiscal: ${error instanceof Error ? `${error.name}: ${error.message}` : "error desconocido"}`);
+    throw new AppError(503, "El proveedor fiscal no está disponible. Revisá la configuración de ARCA del servidor.");
   }
 
   // Un certificado solo puede emitir por su propio CUIT. Si no coincide, se corta antes de reservar:

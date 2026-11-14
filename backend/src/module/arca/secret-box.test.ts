@@ -45,6 +45,13 @@ describe('encryptSecret y decryptSecret', () => {
     expect(encrypted).toBeTruthy()
   })
 
+  it('rechaza una etiqueta de autenticación truncada', () => {
+    const [version, iv, tag, encrypted] = encryptSecret(PEM, key, 'org:1').split('.')
+    const truncated = [version, iv, Buffer.from(tag!, 'base64').subarray(0, 4).toString('base64'), encrypted].join('.')
+
+    expect(() => decryptSecret(truncated, key, 'org:1')).toThrow(/No se pudo descifrar/)
+  })
+
   it('rechaza un formato desconocido', () => {
     expect(() => decryptSecret('texto-plano', key, 'org:1')).toThrow(/formato desconocido/)
   })

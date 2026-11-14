@@ -3,6 +3,10 @@ import { loadArcaCredentialsForOrganization, type StoredArcaCredentials } from '
 import { createFiscalProvider, parseArcaProviderKind } from './provider-factory.js'
 import { defaultSessionDir, getFiscalProviderFromEnv, type FiscalProviderEnv } from './provider-from-env.js'
 import { FileWsaaSessionStore } from './sdk/wsaa-session-store.js'
+import { ProviderUnavailableError } from './errors.js'
+import { clearProviderCache, getCachedProvider, setCachedProvider } from './provider-cache.js'
+import { CredentialError } from './credential-inspector.js'
+import { EncryptionKeyError } from './secret-box.js'
 
 export interface OrganizationProviderEnv extends FiscalProviderEnv {
   ARCA_ENCRYPTION_KEY?: string | undefined
@@ -11,10 +15,6 @@ export interface OrganizationProviderEnv extends FiscalProviderEnv {
 export interface OrganizationProviderDeps {
   loadCredentials?: (org: { id: number; cuit: string }, encryptionKeyHex: string | undefined) => Promise<StoredArcaCredentials | null>
 }
-
-// Un cliente por organización y certificado: así se reutiliza el ticket de acceso de WSAA, y si la
-// organización carga otro certificado se arma un cliente nuevo.
-const providers = new Map<string, FiscalProvider>()
 
 /**
  * Proveedor fiscal que corresponde a una organización.
@@ -28,14 +28,27 @@ export async function getFiscalProviderForOrganization(
   org: { id: number; cuit: string },
   deps: OrganizationProviderDeps = {},
 ): Promise<FiscalProvider> {
+  try {
+    return await build(env, org, deps)
+  } catch (error) {
+    // Solo los errores propios (variables, producción bloqueada, PEM inválido) tienen un mensaje seguro.
+    if (error instanceof ProviderUnavailableError) throw error
+    console.error(`[arca] no se pudo armar el proveedor fiscal de la organización ${org.id}: ${error instanceof Error ? `${error.name}: ${error.message}` : 'error desconocido'}`)
+    throw new ProviderUnavailableError('No se pudo preparar la conexión con ARCA. Revisá la configuración de ARCA del servidor.')
+  }
+}
+
+async function build(env: OrganizationProviderEnv, org: { id: number; cuit: string }, deps: OrganizationProviderDeps): Promise<FiscalProvider> {
   const kind = parseArcaProviderKind(env.ARCA_PROVIDER)
   if (kind !== 'sdk') return createFiscalProvider(kind, { mode: env.ARCA_MODE })
 
-  const load = deps.loadCredentials ?? loadArcaCredentialsForOrganization
-  const stored = await load(org, env.ARCA_ENCRYPTION_KEY)
+  const stored = await loadStored(env, org, deps)
   if (stored) {
-    const cacheKey = `${org.id}:${stored.fingerprint}`
-    let provider = providers.get(cacheKey)
+    // La credencial que se carga hoy es de homologación: no se la manda a producción.
+    if (env.ARCA_MODE === 'produccion') {
+      throw new ProviderUnavailableError('La credencial cargada es de homologación y el servidor está configurado en producción.')
+    }
+    let provider = getCachedProvider(org.id, stored.fingerprint)
     if (!provider) {
       provider = createFiscalProvider('sdk', {
         mode: env.ARCA_MODE,
@@ -43,16 +56,29 @@ export async function getFiscalProviderForOrganization(
         allowProduction: env.ARCA_ALLOW_PRODUCTION === 'true',
         overrides: { wsaaSessionStore: new FileWsaaSessionStore(defaultSessionDir(env)) },
       })
-      providers.set(cacheKey, provider)
+      setCachedProvider(org.id, stored.fingerprint, provider)
     }
     return provider
   }
 
   if (env.ARCA_CUIT?.trim()) return getFiscalProviderFromEnv(env)
-  throw new Error('La organización todavía no cargó su credencial de ARCA. Se carga en la pantalla de la organización.')
+  throw new ProviderUnavailableError('La organización todavía no cargó su credencial de ARCA. Se carga en la pantalla de la organización.')
+}
+
+/** Lee la credencial guardada. Un error de la base no se muestra al usuario: se registra y se informa de forma genérica. */
+async function loadStored(env: OrganizationProviderEnv, org: { id: number; cuit: string }, deps: OrganizationProviderDeps) {
+  const load = deps.loadCredentials ?? loadArcaCredentialsForOrganization
+  try {
+    return await load(org, env.ARCA_ENCRYPTION_KEY)
+  } catch (error) {
+    if (error instanceof CredentialError || error instanceof EncryptionKeyError) throw new ProviderUnavailableError(error.message)
+    if (error instanceof Error && error.message.startsWith('No se pudo descifrar')) throw new ProviderUnavailableError(error.message)
+    console.error(`[arca] no se pudo leer la credencial de la organización ${org.id}: ${error instanceof Error ? error.name : 'Error'}`)
+    throw new ProviderUnavailableError('No se pudo leer la credencial de ARCA de la organización.')
+  }
 }
 
 /** Solo para tests. */
 export function resetOrganizationProviders(): void {
-  providers.clear()
+  clearProviderCache()
 }

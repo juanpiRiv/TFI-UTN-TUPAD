@@ -4,6 +4,7 @@ import { AppError } from '../../lib/error.js'
 import { CredentialError, inspectCredential, normalizePem } from './credential-inspector.js'
 import { decryptSecret, encryptSecret, EncryptionKeyError, parseEncryptionKey } from './secret-box.js'
 import type { ArcaCredentials } from './provider-factory.js'
+import { evictOrganizationProviders } from './provider-cache.js'
 
 /** Por ahora solo se cargan credenciales de homologación y del servicio de facturación electrónica. */
 const ENVIRONMENT = 'HOMOLOGACION' as const
@@ -16,7 +17,8 @@ export interface ArcaCredentialStatus {
   updatedAt?: string
 }
 
-const aadFor = (organizationId: number) => `arca-credential:${organizationId}`
+// El dato asociado ata el secreto a la organización, al ambiente y al servicio: copiado a otra fila no se descifra.
+export const aadFor = (organizationId: number) => `arca-credential:${organizationId}:${ENVIRONMENT}:${SERVICE}`
 const whereFor = (organizationId: number) => ({
   organizationId_environment_service: { organizationId, environment: ENVIRONMENT, service: SERVICE },
 })
@@ -80,12 +82,20 @@ export async function saveArcaCredential(
     create: { organizationId: org.id, environment: ENVIRONMENT, service: SERVICE, certificate, privateKeyEncrypted },
     update: { certificate, privateKeyEncrypted, token: null, sign: null, tokenExpiresAt: null },
   })
+  evictOrganizationProviders(org.id)
+  await prisma.auditLog.create({
+    data: { organizationId: org.id, userId, action: 'arca_credential.saved', entity: 'ArcaCredential', entityId: row.id },
+  })
   return statusOf(row)
 }
 
 export async function deleteArcaCredential(userId: number): Promise<void> {
   const org = await requireOrganization(userId)
   await prisma.arcaCredential.deleteMany({ where: { organizationId: org.id, environment: ENVIRONMENT, service: SERVICE } })
+  evictOrganizationProviders(org.id)
+  await prisma.auditLog.create({
+    data: { organizationId: org.id, userId, action: 'arca_credential.deleted', entity: 'ArcaCredential', entityId: org.id },
+  })
 }
 
 export interface StoredArcaCredentials {

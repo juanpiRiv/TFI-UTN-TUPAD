@@ -19,6 +19,7 @@ vi.mock("../../lib/prisma.js", () => ({
   prisma: {
     organization: { findUnique: vi.fn() },
     arcaCredential: { findUnique: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+    auditLog: { create: vi.fn() },
   },
 }));
 
@@ -26,7 +27,8 @@ import { app } from "../../app.js";
 import { prisma } from "../../lib/prisma.js";
 import { env } from "../../config/env.js";
 import { decryptSecret, parseEncryptionKey } from "../arca/secret-box.js";
-import { loadArcaCredentialsForOrganization } from "../arca/arca-credential.service.js";
+import { aadFor, loadArcaCredentialsForOrganization } from "../arca/arca-credential.service.js";
+import { getCachedProvider, setCachedProvider } from "../arca/provider-cache.js";
 
 function hasOpenssl(): boolean {
   try {
@@ -102,7 +104,7 @@ describe.skipIf(!hasOpenssl())("Credencial de ARCA de la organización", () => {
     const created = vi.mocked(prisma.arcaCredential.upsert).mock.calls[0]![0].create as { privateKeyEncrypted: string; organizationId: number };
     expect(created.organizationId).toBe(org.id);
     expect(created.privateKeyEncrypted).not.toContain("PRIVATE KEY");
-    expect(decryptSecret(created.privateKeyEncrypted, parseEncryptionKey(ENCRYPTION_KEY), `arca-credential:${org.id}`)).toBe(valid.privateKey.trim());
+    expect(decryptSecret(created.privateKeyEncrypted, parseEncryptionKey(ENCRYPTION_KEY), aadFor(org.id))).toBe(valid.privateKey.trim());
   });
 
   it("al reemplazar la credencial descarta el ticket de acceso anterior", async () => {
@@ -170,6 +172,28 @@ describe.skipIf(!hasOpenssl())("Credencial de ARCA de la organización", () => {
     vi.mocked(prisma.organization.findUnique).mockResolvedValue(null as never);
 
     expect((await request(app).get(route).set(auth())).status).toBe(403);
+  });
+
+  it("guardar y borrar quedan en la auditoría, sin datos de la credencial", async () => {
+    await request(app).post(route).set(auth()).send(valid);
+    await request(app).delete(route).set(auth());
+
+    const actions = vi.mocked(prisma.auditLog.create).mock.calls.map((call) => (call[0] as { data: { action: string } }).data.action);
+    expect(actions).toEqual(["arca_credential.saved", "arca_credential.deleted"]);
+    expect(JSON.stringify(vi.mocked(prisma.auditLog.create).mock.calls)).not.toMatch(/PRIVATE KEY|BEGIN/);
+  });
+
+  it("al reemplazar o borrar la credencial se olvida el cliente guardado en memoria, que tenía la clave", async () => {
+    setCachedProvider(org.id, "huella-vieja", { name: "falso" } as never);
+    setCachedProvider(99, "otra-org", { name: "otra" } as never);
+
+    await request(app).post(route).set(auth()).send(valid);
+    expect(getCachedProvider(org.id, "huella-vieja")).toBeUndefined();
+    expect(getCachedProvider(99, "otra-org")).toBeDefined();
+
+    setCachedProvider(org.id, "huella-nueva", { name: "falso" } as never);
+    await request(app).delete(route).set(auth());
+    expect(getCachedProvider(org.id, "huella-nueva")).toBeUndefined();
   });
 
   it("DELETE borra la credencial de la organización y responde 204", async () => {

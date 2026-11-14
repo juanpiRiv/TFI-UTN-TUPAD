@@ -26,16 +26,14 @@ permissions:
 
 jobs:
   smoke:
-    # Solo desde develop: una rama cualquiera no puede leer los secretos del environment.
+    # Solo desde develop. Este `if` vive en el mismo archivo que se puede editar: el control real es
+    # restringir las ramas del environment a develop (Settings > Environments > Deployment branches).
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: arca-homologacion
     env:
       ARCA_MODE: homologacion
-      ARCA_CUIT: ${{ secrets.ARCA_CUIT }}
-      ARCA_CERT_PEM: ${{ secrets.ARCA_CERT_PEM }}
-      ARCA_KEY_PEM: ${{ secrets.ARCA_KEY_PEM }}
       # El ticket de acceso queda en una carpeta temporal del runner y no se guarda en ningún cache.
       ARCA_SESSION_DIR: ${{ runner.temp }}/arca-sessions
       PUNTOS_DE_VENTA: ${{ inputs.puntos_de_venta }}
@@ -52,5 +50,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # La entrada va por variable de entorno, no dentro del comando, para que no se interprete como código.
+      # Los secretos van solo en este paso: ni la instalación de dependencias ni las otras acciones los ven.
       - name: Chequeo de solo lectura contra ARCA
+        env:
+          ARCA_CUIT: ${{ secrets.ARCA_CUIT }}
+          ARCA_CERT_PEM: ${{ secrets.ARCA_CERT_PEM }}
+          ARCA_KEY_PEM: ${{ secrets.ARCA_KEY_PEM }}
         run: pnpm --filter backend arca:smoke "$PUNTOS_DE_VENTA"

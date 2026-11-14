@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getFiscalProviderForOrganization, resetOrganizationProviders } from './provider-for-organization.js'
 import { resetFiscalProviderCache } from './provider-from-env.js'
 import { ArcaSimulatedClient } from './simulated/arca-simulated-client.js'
+import { ProviderUnavailableError } from './errors.js'
+import { evictOrganizationProviders } from './provider-cache.js'
 
 const CERT = '-----BEGIN CERTIFICATE-----\nfalso\n-----END CERTIFICATE-----'
 const KEY = '-----BEGIN PRIVATE KEY-----\nfalso\n-----END PRIVATE KEY-----'
@@ -68,9 +70,53 @@ describe('getFiscalProviderForOrganization', () => {
     expect(provider.issuerCuit).toBe(org.cuit)
   })
 
-  it('con sdk en producción sigue bloqueado si no se confirma de forma explícita', async () => {
+  it('con las variables ARCA_* y sdk en producción sigue bloqueado si no se confirma de forma explícita', async () => {
+    const envWithCredentials = { ...sdkEnv, ARCA_MODE: 'produccion' as const, ARCA_CUIT: org.cuit, ARCA_CERT_PEM: CERT, ARCA_KEY_PEM: KEY }
+
+    await expect(getFiscalProviderForOrganization(envWithCredentials, org, { loadCredentials: async () => null })).rejects.toThrow(
+      /ARCA_ALLOW_PRODUCTION=true/,
+    )
+  })
+
+  it('todo lo que no se puede armar sale como ProviderUnavailableError, con un mensaje seguro', async () => {
+    const failure = getFiscalProviderForOrganization(sdkEnv, org, { loadCredentials: async () => null })
+
+    await expect(failure).rejects.toBeInstanceOf(ProviderUnavailableError)
+  })
+
+  it('un error de la base al leer la credencial no llega al usuario: sale genérico', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const loadCredentials = async () => {
+      throw new Error("Can't reach database server at db.interno:5432")
+    }
+
+    const failure = getFiscalProviderForOrganization(sdkEnv, org, { loadCredentials })
+
+    await expect(failure).rejects.toThrow('No se pudo leer la credencial de ARCA de la organización.')
+    await expect(failure).rejects.not.toThrow(/db\.interno/)
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/db\.interno/)
+    log.mockRestore()
+  })
+
+  it('un error de descifrado o de clave de cifrado sí se informa, porque lo puede corregir quien administra el servidor', async () => {
+    const loadCredentials = async () => {
+      throw new Error('No se pudo descifrar el secreto guardado: la clave de cifrado o el registro no corresponden.')
+    }
+
+    await expect(getFiscalProviderForOrganization(sdkEnv, org, { loadCredentials })).rejects.toThrow(/No se pudo descifrar/)
+  })
+
+  it('una credencial de homologación no se manda a producción', async () => {
     await expect(
-      getFiscalProviderForOrganization({ ...sdkEnv, ARCA_MODE: 'produccion' }, org, { loadCredentials: async () => stored() }),
-    ).rejects.toThrow(/ARCA_ALLOW_PRODUCTION=true/)
+      getFiscalProviderForOrganization({ ...sdkEnv, ARCA_MODE: 'produccion', ARCA_ALLOW_PRODUCTION: 'true' }, org, { loadCredentials: async () => stored() }),
+    ).rejects.toThrow(/credencial cargada es de homologación/)
+  })
+
+  it('al evictar una organización se arma un cliente nuevo', async () => {
+    const first = await getFiscalProviderForOrganization(sdkEnv, org, { loadCredentials: async () => stored('huella-1') })
+    evictOrganizationProviders(org.id)
+    const second = await getFiscalProviderForOrganization(sdkEnv, org, { loadCredentials: async () => stored('huella-1') })
+
+    expect(second).not.toBe(first)
   })
 })
