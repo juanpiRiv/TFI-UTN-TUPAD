@@ -1,0 +1,56 @@
+name: ARCA homologación (manual)
+
+# Chequeo de SOLO LECTURA contra la homologación de ARCA con un certificado de prueba.
+# No emite comprobantes. Es manual y opcional: el CI normal (ci.yml) usa el proveedor simulado y no necesita secretos.
+#
+# Secrets del environment "arca-homologacion" (Settings > Environments, con revisor obligatorio):
+#   ARCA_CUIT      CUIT del titular del certificado (11 dígitos)
+#   ARCA_CERT_PEM  certificado de homologación en PEM
+#   ARCA_KEY_PEM   clave privada en PEM, sin contraseña
+# Nunca se usan en pull requests ni en producción.
+on:
+  workflow_dispatch:
+    inputs:
+      puntos_de_venta:
+        description: Puntos de venta a probar, separados por coma
+        required: true
+        default: "1,2"
+
+# Una sola corrida a la vez: ARCA no entrega otro ticket de acceso mientras el anterior sigue vigente (12 h).
+concurrency:
+  group: arca-homologacion
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    # Solo desde develop: una rama cualquiera no puede leer los secretos del environment.
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: arca-homologacion
+    env:
+      ARCA_MODE: homologacion
+      ARCA_CUIT: ${{ secrets.ARCA_CUIT }}
+      ARCA_CERT_PEM: ${{ secrets.ARCA_CERT_PEM }}
+      ARCA_KEY_PEM: ${{ secrets.ARCA_KEY_PEM }}
+      # El ticket de acceso queda en una carpeta temporal del runner y no se guarda en ningún cache.
+      ARCA_SESSION_DIR: ${{ runner.temp }}/arca-sessions
+      PUNTOS_DE_VENTA: ${{ inputs.puntos_de_venta }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # La entrada va por variable de entorno, no dentro del comando, para que no se interprete como código.
+      - name: Chequeo de solo lectura contra ARCA
+        run: pnpm --filter backend arca:smoke "$PUNTOS_DE_VENTA"

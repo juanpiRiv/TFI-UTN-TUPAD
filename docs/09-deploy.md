@@ -75,3 +75,28 @@ Lo hace la persona dueña de la cuenta de Railway (Brian). Los pasos son por el 
 - El backend todavía no tiene una ruta de health. Railway lo da por vivo cuando el proceso arranca.
 - Si el crédito de prueba se agota, la alternativa sin costo es el mismo Dockerfile en Render (el servicio gratuito se duerme tras 15 minutos sin uso) con la base en Supabase (conexión por el session pooler, que mantiene los bloqueos de `pg_advisory_lock`). No está configurada.
 - El backend lee `ARCA_PROVIDER` y `ARCA_MODE` desde #151, pero todavía nada emite comprobantes con el proveedor elegido (ver [Plan B de ARCA](./06-plan-b-arca.md)).
+
+## ARCA en homologación
+
+La facturación contra ARCA se prueba solo en homologación (`ARCA_MODE=homologacion`). Con `ARCA_PROVIDER=sdk`, producción queda bloqueada salvo que se escriba `ARCA_ALLOW_PRODUCTION=true`, y no hace falta en este proyecto.
+
+**Variables del backend**
+
+| Variable | Para qué sirve |
+| --- | --- |
+| `ARCA_PROVIDER` | `simulated` (demo, sin validez fiscal) o `sdk` (ARCA de verdad). Obligatoria. |
+| `ARCA_MODE` | `homologacion` por defecto. |
+| `ARCA_ENCRYPTION_KEY` | 64 caracteres hexadecimales (`openssl rand -hex 32`). Cifra la clave privada que cada organización carga. Si se pierde, hay que volver a cargar las credenciales. |
+| `ARCA_CUIT`, `ARCA_CERT_PATH` y `ARCA_KEY_PATH` (o `ARCA_CERT_PEM` y `ARCA_KEY_PEM`) | Solo para desarrollo: credenciales de prueba que se usan si la organización no cargó la suya. |
+| `ARCA_SESSION_DIR` | Carpeta donde se comparte el ticket de acceso de WSAA entre procesos. Por defecto `~/.arca-homologacion/sessions`. |
+
+**El ticket de acceso.** ARCA entrega un ticket de WSAA que dura 12 horas y no da otro mientras ese siga vigente: responde `coe.alreadyAuthenticated`. Por eso el backend y los scripts comparten el ticket en un archivo (permisos 600). Eso alcanza con una sola instancia y disco persistente. **Con más de una instancia o con disco efímero hace falta guardar el ticket en la base de datos**, cifrado con `ARCA_ENCRYPTION_KEY`; hoy no está hecho.
+
+**Credencial por organización.** El cliente carga su certificado y su clave en la pantalla de la organización (`/organizacion`). Los pasos que hace antes en ARCA están en [la guía del cliente](./arca/alta-de-cliente.md).
+
+**Chequeos locales** (desde `backend/`, con las variables ARCA_* cargadas):
+
+- `pnpm arca:smoke 1,2`: autentica en el WSAA, consulta el próximo número de Factura C de cada punto de venta y el catálogo de condiciones de IVA. No emite nada.
+- `pnpm arca:e2e 1,2`: con el backend local levantado, crea un usuario y una organización de prueba y emite una Factura C de $ 1500 por punto de venta. Con `E2E_UPLOAD_CREDENTIAL=true` carga antes el certificado y la clave por la API, como lo haría un cliente.
+
+**GitHub Actions.** El CI normal (`ci.yml`) usa el proveedor simulado y no necesita secretos. Hay un workflow aparte y manual, `arca-homologacion.yml`, que corre el chequeo de solo lectura. Para usarlo hay que crear el environment `arca-homologacion` con un revisor obligatorio y estos secrets: `ARCA_CUIT`, `ARCA_CERT_PEM` y `ARCA_KEY_PEM`. Solo corre desde `develop`, una corrida a la vez, y no guarda el ticket en ningún cache. Conviene usar para esto un certificado propio de CI, distinto al de desarrollo, porque dos certificados distintos no se pisan el ticket.
