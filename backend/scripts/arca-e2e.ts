@@ -152,6 +152,22 @@ async function main() {
     expectStatus('Organización creada con el CUIT de ARCA_CUIT', org.status, [201], org.body)
   }
 
+  // Con E2E_UPLOAD_CREDENTIAL=true se prueba el camino de un cliente: cargar el certificado y la clave por la API.
+  if (process.env.E2E_UPLOAD_CREDENTIAL === 'true') {
+    const { readFileSync } = await import('node:fs')
+    const certPath = process.env.ARCA_CERT_PATH
+    const keyPath = process.env.ARCA_KEY_PATH
+    if (!certPath || !keyPath) fail('Con E2E_UPLOAD_CREDENTIAL=true hacen falta ARCA_CERT_PATH y ARCA_KEY_PATH.')
+    const saved = await call<{ configured?: boolean; environment?: string; certificateExpiresAt?: string }>(
+      'POST',
+      '/api/organizations/me/arca-credential',
+      token,
+      { certificate: readFileSync(certPath, 'utf8'), privateKey: readFileSync(keyPath, 'utf8') },
+    )
+    expectStatus('Credencial de ARCA cargada por la API', saved.status, [200], saved.body)
+    console.log(`      configurada: ${saved.body.configured}, ambiente: ${saved.body.environment}, vence: ${saved.body.certificateExpiresAt}`)
+  }
+
   let allOk = true
   for (const number of pointsOfSale) {
     const ok = await issueOne(token, number)
