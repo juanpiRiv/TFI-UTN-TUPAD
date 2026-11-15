@@ -12,6 +12,30 @@ const LOCK_TRANSACTION_TIMEOUT_MS = 60_000
 /** Cuánto espera una instancia a que otra termine de pedir el ticket antes de rendirse. */
 const LOCK_MAX_WAIT_MS = 30_000
 
+/**
+ * Cuántos bloqueos puede haber a la vez en este proceso. Cada uno ocupa una conexión del pool mientras dura
+ * el pedido a ARCA, y ese pedido necesita otra conexión para leer y guardar el ticket: sin tope, varias
+ * organizaciones renovando a la vez agotarían el pool (10 por defecto) y todo esperaría hasta vencer el tiempo.
+ */
+const MAX_CONCURRENT_LOCKS = 3
+
+let activeLocks = 0
+const lockWaiters: Array<() => void> = []
+
+async function acquireLockSlot(): Promise<void> {
+  if (activeLocks < MAX_CONCURRENT_LOCKS) {
+    activeLocks++
+    return
+  }
+  await new Promise<void>((resolve) => lockWaiters.push(resolve))
+}
+
+function releaseLockSlot(): void {
+  const next = lockWaiters.shift()
+  if (next) next() // el lugar pasa directo al siguiente
+  else activeLocks--
+}
+
 /** Lo mínimo del cliente de Prisma que usa el almacén. */
 export type WsaaStoreClient = Pick<PrismaClient, 'arcaWsaaTicket' | '$transaction'>
 
@@ -24,7 +48,9 @@ export type WsaaStoreClient = Pick<PrismaClient, 'arcaWsaaTicket' | '$transactio
  *
  * Token y firma se cifran con AES-256-GCM (`secret-box`), con la huella del registro como dato asociado:
  * una fila copiada a otro id no se descifra. Un registro que no se puede descifrar (otra clave, alterado)
- * se trata como si no hubiera ticket y se borra: se pedirá uno nuevo.
+ * se trata como si no hubiera ticket, pero NO se borra: durante una rotación de clave o un despliegue con
+ * instancias de claves distintas, borrarlo le quitaría el ticket vigente a la instancia que sí lo puede leer
+ * (ARCA no entrega otro mientras el anterior vive). El próximo `set()` lo reemplaza.
  */
 export class DbWsaaSessionStore implements ArcaWsaaSessionStore {
   private readonly locks = new Map<string, Promise<unknown>>()
@@ -47,7 +73,8 @@ export class DbWsaaSessionStore implements ArcaWsaaSessionStore {
     const row = await this.client.arcaWsaaTicket.findUnique({ where: { id } })
     if (!row) return null
     if (row.expiresAt.getTime() - Date.now() <= SAFETY_MARGIN_MS) {
-      await this.delete(key)
+      // Se borra solo si sigue siendo el mismo registro vencido: otra instancia pudo haberlo renovado entre medio.
+      await this.client.arcaWsaaTicket.deleteMany({ where: { id, expiresAt: row.expiresAt } })
       return null
     }
     try {
@@ -58,8 +85,7 @@ export class DbWsaaSessionStore implements ArcaWsaaSessionStore {
       }
     } catch {
       // Sin detalle del secreto: solo se informa que el registro no sirve y se lo descarta.
-      console.error('[arca] el ticket de WSAA guardado no se pudo descifrar; se descarta y se pedirá uno nuevo.')
-      await this.delete(key)
+      console.error('[arca] el ticket de WSAA guardado no se pudo descifrar con la clave de este servidor; se pedirá uno nuevo.')
       return null
     }
   }
@@ -101,13 +127,18 @@ export class DbWsaaSessionStore implements ArcaWsaaSessionStore {
     return run
   }
 
-  private runExclusive<T>(id: string, fn: () => Promise<T>): Promise<T> {
-    return this.client.$transaction(
-      async (tx) => {
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`arca-wsaa:${id}`}, 0))`
-        return fn()
-      },
-      { timeout: LOCK_TRANSACTION_TIMEOUT_MS, maxWait: LOCK_MAX_WAIT_MS },
-    )
+  private async runExclusive<T>(id: string, fn: () => Promise<T>): Promise<T> {
+    await acquireLockSlot()
+    try {
+      return await this.client.$transaction(
+        async (tx) => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`arca-wsaa:${id}`}, 0))`
+          return fn()
+        },
+        { timeout: LOCK_TRANSACTION_TIMEOUT_MS, maxWait: LOCK_MAX_WAIT_MS },
+      )
+    } finally {
+      releaseLockSlot()
+    }
   }
 }

@@ -206,6 +206,16 @@ async function main() {
     fail('Este recorrido solo corre contra un backend local (localhost).')
   }
   if (process.env.ARCA_MODE === 'produccion') fail('ARCA_MODE=produccion no está permitido en este recorrido.')
+  const databaseHost = (() => {
+    try {
+      return new URL(process.env.DATABASE_URL ?? '').hostname
+    } catch {
+      return ''
+    }
+  })()
+  if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(databaseHost)) {
+    fail('Este recorrido solo usa una base local: DATABASE_URL tiene que apuntar a localhost.')
+  }
 
   const cuit = process.env.ARCA_CUIT?.trim()
   if (!cuit || !/^\d{11}$/.test(cuit)) fail('Falta ARCA_CUIT (11 dígitos): tiene que ser el CUIT del certificado.')

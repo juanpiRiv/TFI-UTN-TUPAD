@@ -22,10 +22,8 @@ describe('createWsaaSessionStore', () => {
     expect(createWsaaSessionStore({ ARCA_ENCRYPTION_KEY: '  ' }, client)).toBeInstanceOf(FileWsaaSessionStore)
   })
 
-  it('usa el archivo, con aviso, si la clave está mal formada', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-    expect(createWsaaSessionStore({ ARCA_ENCRYPTION_KEY: 'corta' }, client)).toBeInstanceOf(FileWsaaSessionStore)
-    expect(warn).toHaveBeenCalledOnce()
-    expect(String(warn.mock.calls[0]?.[0])).not.toContain('corta')
+  it('si la clave está mal formada falla con un motivo claro, sin caer al archivo ni repetir la clave', () => {
+    expect(() => createWsaaSessionStore({ ARCA_ENCRYPTION_KEY: 'corta' }, client)).toThrow(/64 caracteres hexadecimales/)
+    expect(() => createWsaaSessionStore({ ARCA_ENCRYPTION_KEY: 'corta' }, client)).not.toThrow(/corta.*corta/)
   })
 })

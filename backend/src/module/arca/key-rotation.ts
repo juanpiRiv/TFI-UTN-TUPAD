@@ -32,6 +32,10 @@ type RotationClient = Pick<PrismaClient, '$transaction'>
  * la clave vieja ni con la nueva, no se escribe nada. Se puede repetir sin riesgo: las filas que ya usan la
  * clave nueva se cuentan y se dejan como están.
  *
+ * Cada escritura comprueba que la fila no cambió desde que se leyó; si cambió, se aborta todo y se repite.
+ * Igual conviene parar el servidor o hacerlo en una ventana corta: lo que se guarde con la clave vieja después
+ * de la rotación no se descifra con la nueva.
+ *
  * Nunca devuelve ni registra claves ni texto descifrado: solo cantidades.
  */
 export async function rotateEncryptionKey(prisma: RotationClient, input: KeyRotationInput): Promise<KeyRotationReport> {
@@ -69,7 +73,14 @@ export async function rotateEncryptionKey(prisma: RotationClient, input: KeyRota
           throw new Error(`La verificación del nuevo cifrado falló para la organización ${row.organizationId}. No se cambió nada.`)
         }
         if (!dryRun) {
-          await tx.arcaCredential.update({ where: { id: row.id }, data: { privateKeyEncrypted: reencrypted } })
+          // Solo si nadie la cambió desde que se leyó (por ejemplo, una credencial recién cargada).
+          const written = await tx.arcaCredential.updateMany({
+            where: { id: row.id, privateKeyEncrypted: row.privateKeyEncrypted },
+            data: { privateKeyEncrypted: reencrypted },
+          })
+          if (written.count !== 1) {
+            throw new Error(`La credencial de la organización ${row.organizationId} cambió mientras se rotaba. No se cambió nada: repetir la rotación.`)
+          }
         }
         rotated++
       }
@@ -99,15 +110,16 @@ export async function rotateEncryptionKey(prisma: RotationClient, input: KeyRota
           }
         }
         if (token === undefined || sign === undefined) {
-          if (!dryRun) await tx.arcaWsaaTicket.delete({ where: { id: ticket.id } })
+          if (!dryRun) await tx.arcaWsaaTicket.deleteMany({ where: { id: ticket.id, tokenEncrypted: ticket.tokenEncrypted } })
           ticketsDiscarded++
           continue
         }
         if (!dryRun) {
-          await tx.arcaWsaaTicket.update({
-            where: { id: ticket.id },
+          const written = await tx.arcaWsaaTicket.updateMany({
+            where: { id: ticket.id, tokenEncrypted: ticket.tokenEncrypted },
             data: { tokenEncrypted: encryptSecret(token, newKey, aad), signEncrypted: encryptSecret(sign, newKey, aad) },
           })
+          if (written.count !== 1) throw new Error('Un ticket de acceso cambió mientras se rotaba. No se cambió nada: repetir la rotación.')
         }
         ticketsRotated++
       }

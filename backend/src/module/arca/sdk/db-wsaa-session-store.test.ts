@@ -82,13 +82,14 @@ describe.skipIf(!hasDb)('DbWsaaSessionStore', () => {
     expect(raw).not.toContain('FIRMA-EN-CLARA')
   })
 
-  it('con otra clave de cifrado se trata como si no hubiera ticket y se borra la fila', async () => {
+  it('con otra clave de cifrado se trata como si no hubiera ticket pero no se borra la fila (la puede leer otra instancia)', async () => {
     newKey()
     await store.set(key, { token: 'T', sign: 'S', expiresAt: inTwelveHours() })
 
     const otherKey = new DbWsaaSessionStore(prisma, randomBytes(32))
     expect(await otherKey.get(key)).toBeNull()
-    expect(await prisma.arcaWsaaTicket.count({ where: { id: DbWsaaSessionStore.idFor(key) } })).toBe(0)
+    expect(await prisma.arcaWsaaTicket.count({ where: { id: DbWsaaSessionStore.idFor(key) } })).toBe(1)
+    expect(await store.get(key)).toMatchObject({ token: 'T', sign: 'S' })
   })
 
   it('una fila copiada a otro id no se descifra (el dato asociado la ata a su id)', async () => {
@@ -141,6 +142,24 @@ describe.skipIf(!hasDb)('DbWsaaSessionStore', () => {
     expect(results).toEqual(['a', 'b', 'c'])
     expect(overlapped).toBe(false)
     expect(order.filter((_, i) => i % 2 === 0).every((entry) => entry.endsWith(':start'))).toBe(true)
+  })
+
+  it('limita a 3 los bloqueos simultáneos del proceso para no agotar el pool de conexiones', async () => {
+    const keys = Array.from({ length: 6 }, (_, index) => ({ ...key, certificateFingerprint: `tope-${randomUUID()}-${index}` }))
+    used.push(...keys.map((item) => DbWsaaSessionStore.idFor(item)))
+    let running = 0
+    let peak = 0
+    const work = async () => {
+      running++
+      peak = Math.max(peak, running)
+      await new Promise((resolve) => setTimeout(resolve, 80))
+      running--
+    }
+
+    await Promise.all(keys.map((item) => new DbWsaaSessionStore(prisma, randomBytes(32)).withLock(item, work)))
+
+    expect(peak).toBeLessThanOrEqual(3)
+    expect(peak).toBeGreaterThan(1)
   })
 
   it('withLock no bloquea claves distintas y libera el bloqueo si la función falla', async () => {

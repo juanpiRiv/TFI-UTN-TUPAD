@@ -21,27 +21,39 @@ interface Ticket {
   expiresAt: Date
 }
 
-function fakePrisma(initial: Row[], initialTickets: Ticket[] = []) {
+function fakePrisma(initial: Row[], initialTickets: Ticket[] = [], afterRead?: (rows: Row[]) => Row[]) {
   let rows = initial.map((row) => ({ ...row }))
   let tickets = initialTickets.map((ticket) => ({ ...ticket }))
   const client = {
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) => {
-      const snapshot = rows.map((row) => ({ ...row }))
+      let snapshot = rows.map((row) => ({ ...row }))
       const ticketSnapshot = tickets.map((ticket) => ({ ...ticket }))
       const tx = {
         arcaWsaaTicket: {
           findMany: async () => tickets.map((ticket) => ({ ...ticket })),
-          update: async ({ where, data }: { where: { id: string }; data: Partial<Ticket> }) => {
-            tickets = tickets.map((ticket) => (ticket.id === where.id ? { ...ticket, ...data } : ticket))
+          updateMany: async ({ where, data }: { where: { id: string; tokenEncrypted: string }; data: Partial<Ticket> }) => {
+            const match = tickets.find((ticket) => ticket.id === where.id && ticket.tokenEncrypted === where.tokenEncrypted)
+            if (match) tickets = tickets.map((ticket) => (ticket === match ? { ...ticket, ...data } : ticket))
+            return { count: match ? 1 : 0 }
           },
-          delete: async ({ where }: { where: { id: string } }) => {
+          deleteMany: async ({ where }: { where: { id: string } }) => {
             tickets = tickets.filter((ticket) => ticket.id !== where.id)
+            return { count: 1 }
           },
         },
         arcaCredential: {
-          findMany: async () => rows.map((row) => ({ ...row })),
-          update: vi.fn(async ({ where, data }: { where: { id: number }; data: { privateKeyEncrypted: string } }) => {
-            rows = rows.map((row) => (row.id === where.id ? { ...row, ...data } : row))
+          findMany: async () => {
+            const read = rows.map((row) => ({ ...row }))
+            if (afterRead) {
+              rows = afterRead(rows) // otro proceso escribe entre la lectura y la escritura
+              snapshot = rows.map((row) => ({ ...row })) // esa escritura es de otro proceso: no la deshace el rollback de la rotación
+            }
+            return read
+          },
+          updateMany: vi.fn(async ({ where, data }: { where: { id: number; privateKeyEncrypted: string }; data: { privateKeyEncrypted: string } }) => {
+            const match = rows.find((row) => row.id === where.id && row.privateKeyEncrypted === where.privateKeyEncrypted)
+            if (match) rows = rows.map((row) => (row === match ? { ...row, ...data } : row))
+            return { count: match ? 1 : 0 }
           }),
         },
       }
@@ -117,6 +129,18 @@ describe('rotateEncryptionKey', () => {
     const db = fakePrisma([copied])
 
     await expect(rotateEncryptionKey(db.client, { oldKeyHex: oldKey, newKeyHex: newKey, apply: true })).rejects.toThrow(/organización 99/)
+  })
+
+  it('si alguien guarda una credencial mientras se rota, aborta sin pisarla', async () => {
+    const [oldKey, newKey] = [hex(), hex()]
+    const fresh = rowFor(1, 10, oldKey).privateKeyEncrypted
+    const db = fakePrisma([rowFor(1, 10, oldKey)], [], (rows) =>
+      rows.map((row) => ({ ...row, privateKeyEncrypted: encryptSecret('credencial-nueva', Buffer.from(oldKey, 'hex'), aadFor(row.organizationId)) })),
+    )
+
+    await expect(rotateEncryptionKey(db.client, { oldKeyHex: oldKey, newKeyHex: newKey, apply: true })).rejects.toThrow(/cambió mientras se rotaba/)
+    expect(decryptSecret(db.rows()[0]!.privateKeyEncrypted, Buffer.from(oldKey, 'hex'), aadFor(10))).toBe('credencial-nueva')
+    expect(db.rows()[0]!.privateKeyEncrypted).not.toBe(fresh)
   })
 
   it('rechaza claves faltantes, mal formadas o iguales', async () => {
