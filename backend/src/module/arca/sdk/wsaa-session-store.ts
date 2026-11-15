@@ -15,8 +15,10 @@ const SAFETY_MARGIN_MS = 60_000
  * y responde `coe.alreadyAuthenticated`. Si el backend, un script de chequeo y una tarea de CI
  * piden cada uno el suyo, el segundo falla. Con un almacén compartido, todos reutilizan el mismo.
  *
- * Es el almacén para desarrollo y homologación en una sola máquina. Para varias instancias (por
- * ejemplo el despliegue en Render con más de un proceso) hace falta uno en la base de datos.
+ * Es el almacén para desarrollo, scripts de chequeo y homologación en una sola máquina, y el de
+ * respaldo cuando no hay base de datos o falta ARCA_ENCRYPTION_KEY. Con varias instancias (por
+ * ejemplo el despliegue en Render) se usa DbWsaaSessionStore, que cifra el ticket en PostgreSQL y
+ * bloquea entre instancias; la elección está en `wsaa-store-factory.ts`.
  *
  * El archivo contiene token y firma del ticket: se crea con permisos 600 en un directorio 700.
  */

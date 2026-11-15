@@ -92,6 +92,9 @@ export async function saveArcaCredential(
 export async function deleteArcaCredential(userId: number): Promise<void> {
   const org = await requireOrganization(userId)
   await prisma.arcaCredential.deleteMany({ where: { organizationId: org.id, environment: ENVIRONMENT, service: SERVICE } })
+  // El ticket de WSAA guardado en la base (arca_wsaa_tickets) no se borra acá: su clave incluye la huella del
+  // certificado y esta función no lo lee. Sin la credencial nadie puede usarlo y vence solo en 12 horas como máximo;
+  // un certificado nuevo tiene otra huella y pide su propio ticket.
   evictOrganizationProviders(org.id)
   await prisma.auditLog.create({
     data: { organizationId: org.id, userId, action: 'arca_credential.deleted', entity: 'ArcaCredential', entityId: org.id },

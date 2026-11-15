@@ -79,3 +79,20 @@ model ArcaCredential {
     @@unique([organizationId, environment, service])
     @@map("arca_credentials")
 }
+
+// Ticket de acceso (TA) del WSAA compartido entre instancias del backend (ver DbWsaaSessionStore).
+// `id` es el sha256 de [ambiente, servicio, huella del certificado]. Token y firma se guardan cifrados
+// (AES-256-GCM con ARCA_ENCRYPTION_KEY). No depende de ArcaCredential: el camino por variables de
+// entorno no tiene fila ahí y también necesita compartir el ticket.
+model ArcaWsaaTicket {
+    id             String   @id @db.VarChar(64)
+    environment    String   @db.VarChar(50)
+    service        String   @db.VarChar(50)
+    tokenEncrypted String   @map("token_encrypted") @db.Text
+    signEncrypted  String   @map("sign_encrypted") @db.Text
+    expiresAt      DateTime @map("expires_at")
+    updatedAt      DateTime @updatedAt @map("updated_at")
+
+    @@index([expiresAt])
+    @@map("arca_wsaa_tickets")
+}

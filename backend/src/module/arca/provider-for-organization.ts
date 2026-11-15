@@ -1,8 +1,9 @@
 import type { FiscalProvider } from './fiscal-provider.js'
 import { loadArcaCredentialsForOrganization, type StoredArcaCredentials } from './arca-credential.service.js'
 import { createFiscalProvider, parseArcaProviderKind } from './provider-factory.js'
-import { defaultSessionDir, getFiscalProviderFromEnv, type FiscalProviderEnv } from './provider-from-env.js'
-import { FileWsaaSessionStore } from './sdk/wsaa-session-store.js'
+import { getFiscalProviderFromEnv, type FiscalProviderEnv } from './provider-from-env.js'
+import { createWsaaSessionStore } from './wsaa-store-factory.js'
+import { prisma } from '../../lib/prisma.js'
 import { ProviderUnavailableError } from './errors.js'
 import { clearProviderCache, getCachedProvider, setCachedProvider } from './provider-cache.js'
 import { CredentialError } from './credential-inspector.js'
@@ -54,14 +55,14 @@ async function build(env: OrganizationProviderEnv, org: { id: number; cuit: stri
         mode: env.ARCA_MODE,
         credentials: stored.credentials,
         allowProduction: env.ARCA_ALLOW_PRODUCTION === 'true',
-        overrides: { wsaaSessionStore: new FileWsaaSessionStore(defaultSessionDir(env)) },
+        overrides: { wsaaSessionStore: createWsaaSessionStore(env, prisma) },
       })
       setCachedProvider(org.id, stored.fingerprint, provider)
     }
     return provider
   }
 
-  if (env.ARCA_CUIT?.trim()) return getFiscalProviderFromEnv(env)
+  if (env.ARCA_CUIT?.trim()) return getFiscalProviderFromEnv(env, createWsaaSessionStore(env, prisma))
   throw new ProviderUnavailableError('La organización todavía no cargó su credencial de ARCA. Se carga en la pantalla de la organización.')
 }
 
