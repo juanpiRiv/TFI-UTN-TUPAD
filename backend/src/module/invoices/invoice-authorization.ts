@@ -5,6 +5,7 @@ import { buildCaeRequest } from "../arca/cae-request.js";
 import { serviceDatesError } from "../arca/service-dates.js";
 import type { CaeResult, FiscalProvider } from "../arca/fiscal-provider.js";
 import { ArcaSimulatedClient } from "../arca/simulated/arca-simulated-client.js";
+import { issuerIncompleteMessage, missingIssuerFields } from "./issuer-completeness.js";
 import { getInvoiceById } from "./invoices.service.js";
 
 const FACTURA_C_CODE = 11;
@@ -57,6 +58,21 @@ export async function authorizeInvoice(
   // después de pasar a PENDING la factura quedaría trabada, porque solo se factura un borrador.
   if (provider.issuerCuit !== undefined && provider.issuerCuit !== org.cuit) {
     throw new AppError(409, "El CUIT de la organización no coincide con el del certificado de ARCA configurado");
+  }
+
+  // Con ARCA real el comprobante tiene que salir con todos los datos del emisor: se corta antes de reservar
+  // número y de llamar a ARCA. El simulador (demo y tests) no se bloquea.
+  if (!(provider instanceof ArcaSimulatedClient)) {
+    const missing = missingIssuerFields(org);
+    if (missing.length > 0) {
+      const message = issuerIncompleteMessage(missing);
+      throw new AppError(422, message, undefined, {
+        message,
+        code: "ISSUER_INCOMPLETE",
+        missing: missing.map((m) => m.field),
+        missingFields: missing,
+      });
+    }
   }
 
   // Paso 1: reservar. Si ya no es borrador (doble clic, otra pestaña) responde 409 sin llamar a ARCA.

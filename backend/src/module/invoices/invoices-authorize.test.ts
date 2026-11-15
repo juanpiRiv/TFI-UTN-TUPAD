@@ -191,6 +191,69 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     expect(detail.body.qrUrl).toBeNull();
   });
 
+  describe("datos del emisor incompletos (ARCA real)", () => {
+    const incomplete = (patch: Record<string, unknown>) =>
+      vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...org, taxCondition: "RESPONSABLE_INSCRIPTO", ...patch } as never);
+
+    it.each([
+      ["legalName", "", "Razón social"],
+      ["commercialAddress", null, "Domicilio comercial"],
+      ["activityStartDate", null, "Fecha de inicio de actividades"],
+      ["grossIncomeNumber", "  ", "Ingresos Brutos"],
+    ])("sin %s responde 422 sin reservar, sin numerar y sin llamar a ARCA", async (field, value, label) => {
+      const provider = realProvider("homologacion");
+      const requestCae = vi.spyOn(provider, "requestCae");
+      current.provider = provider;
+      incomplete({ [field]: value });
+
+      const res = await post();
+
+      expect(res.status).toBe(422);
+      expect(res.body.code).toBe("ISSUER_INCOMPLETE");
+      expect(res.body.missing).toEqual([field]);
+      expect(res.body.message).toBe(`Faltan datos del emisor para facturar: ${res.body.missingFields[0].label}.`);
+      expect(res.body.message).toContain(label);
+      expect(tx.invoice.update).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(requestCae).not.toHaveBeenCalled();
+      expect(row.status).toBe("DRAFT");
+    });
+
+    it("lista todos los faltantes juntos con el mensaje estable", async () => {
+      current.provider = realProvider("homologacion");
+      incomplete({ commercialAddress: null, activityStartDate: null, grossIncomeNumber: "Exento" });
+
+      const res = await post();
+
+      expect(res.status).toBe(422);
+      expect(res.body.message).toBe("Faltan datos del emisor para facturar: Domicilio comercial, Fecha de inicio de actividades.");
+      expect(res.body.missing).toEqual(["commercialAddress", "activityStartDate"]);
+    });
+
+    it("con los datos completos autoriza (Ingresos Brutos puede ser 'Exento')", async () => {
+      current.provider = realProvider("homologacion");
+      incomplete({ grossIncomeNumber: "Exento" });
+
+      const res = await post();
+
+      expect(res.status).toBe(200);
+      expect(res.body.invoice.status).toBe("AUTHORIZED");
+    });
+
+    it("un monotributista sin Ingresos Brutos autoriza", async () => {
+      current.provider = realProvider("homologacion");
+      vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...org, grossIncomeNumber: null } as never);
+
+      expect((await post()).status).toBe(200);
+    });
+
+    it("con el simulador no bloquea, aunque falten datos", async () => {
+      incomplete({ commercialAddress: null, activityStartDate: null, grossIncomeNumber: null });
+
+      expect((await post()).status).toBe(200);
+    });
+  });
+
   it("emitida en producción no se marca como de prueba", async () => {
     current.provider = realProvider("produccion");
     const res = await post();

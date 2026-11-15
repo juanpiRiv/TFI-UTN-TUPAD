@@ -65,7 +65,7 @@ La organización es del usuario logueado, por eso las rutas usan `me` en lugar d
 | Método y ruta | Request | Response |
 | --- | --- | --- |
 | `POST /api/organizations` | Ver cuerpo abajo | `201` con la organización. Crea también las categorías por defecto y el punto de venta N° 1 (sin él no se pueden crear facturas), y registra el alta en la auditoría. `400` si algún campo no es válido. `409` si el usuario ya tiene una o si el CUIT ya está registrado. `401` si el usuario del token ya no existe. |
-| `GET /api/organizations/me` | | `200` con la organización. `403` si todavía no tiene. |
+| `GET /api/organizations/me` | | `200` con la organización, más `issuerCompleteness`: `{ "complete": false, "missing": [{ "field": "commercialAddress", "label": "Domicilio comercial" }] }`. `403` si todavía no tiene. |
 | `PATCH /api/organizations/me` | Cualquier campo del cuerpo de alta | `200` con la organización actualizada. `400` si algún campo no es válido. `403` si todavía no tiene organización. `409` si el CUIT ya está registrado o si se intenta cambiar con facturas autorizadas. |
 
 Cuerpo de alta:
@@ -95,9 +95,11 @@ El certificado y la clave privada con los que la organización factura ante ARCA
 
 | Método y ruta | Request | Response |
 | --- | --- | --- |
-| `GET /api/organizations/me/arca-credential` | | `200` con `{ "configured": false }` o `{ "configured": true, "environment": "HOMOLOGACION", "certificateExpiresAt": "2028-10-21T20:51:13.000Z", "updatedAt": "..." }`. `403` si todavía no tiene organización. |
+| `GET /api/organizations/me/arca-credential` | | `200` con `{ "configured": false }` o `{ "configured": true, "environment": "HOMOLOGACION", "certificateExpiresAt": "2028-10-21T20:51:13.000Z", "updatedAt": "..." }`. Si hay una solicitud de certificado pendiente, agrega `pendingCsr: { "csr": "<PEM>", "createdAt": "..." }` (también cuando ya está configurada). Nunca incluye la clave. `403` si todavía no tiene organización. |
 | `POST /api/organizations/me/arca-credential` | `{ "certificate": "<PEM>", "privateKey": "<PEM>" }` | `200` con el mismo estado que el `GET`. Reemplaza la anterior. `400` si falta un campo. `422` con un mensaje en `error` si el certificado está vencido, la clave no corresponde al certificado, la clave está cifrada con contraseña o el CUIT del certificado no es el de la organización. `503` si el servidor no tiene `ARCA_ENCRYPTION_KEY`. |
-| `DELETE /api/organizations/me/arca-credential` | | `204`. Borra el certificado y la clave. |
+| `POST /api/organizations/me/arca-credential/csr` | | `201` con `{ "csr": "<PEM CERTIFICATE REQUEST>", "createdAt": "..." }`. Genera una clave RSA de 2048 bits y un CSR con `C=AR`, `O=<razón social>`, `CN=tfi<CUIT>` y `serialNumber=CUIT <CUIT>`; reemplaza cualquier solicitud pendiente. La clave queda cifrada en el servidor y no se devuelve. `403` si no tiene organización. `503` si el servidor no tiene `ARCA_ENCRYPTION_KEY`. |
+| `POST /api/organizations/me/arca-credential/certificate` | `{ "certificate": "<PEM>" }` | `200` con el mismo estado que el `GET` (`configured: true`). Usa la clave de la solicitud pendiente, valida y guarda la credencial como el `POST` directo, y borra la solicitud. `400` si falta el certificado. `422` con `Primero generá la solicitud de certificado.` si no hay solicitud pendiente, o con un mensaje en `error` si el certificado está vencido, no corresponde a la clave pendiente o su CUIT no es el de la organización. `503` si el servidor no tiene `ARCA_ENCRYPTION_KEY`. |
+| `DELETE /api/organizations/me/arca-credential` | | `204`. Borra el certificado, la clave y cualquier solicitud pendiente. |
 
 - Con `ARCA_PROVIDER=sdk`, al facturar se usa la credencial de la organización. Si no cargó ninguna, `authorize` responde `503` con el motivo; no se factura con el simulador sin avisar.
 - Cada pedido se valida de nuevo al usarla: si el certificado venció desde que se cargó, falla con un mensaje claro.
@@ -235,7 +237,7 @@ Cubre RF-22 y RF-23. El backend crea facturas en borrador, las consulta y las au
 | `GET /api/invoices` | | `200` con la lista de facturas de la organización, de la más nueva a la más vieja: `id`, `voucherType`, `voucherNumber`, `concept`, `issueDate`, `recipientName`, `currency`, `totalAmount`, `totalPaid`, `pendingBalance`, `status`, `commercialStatus`, `cae` y `client`. |
 | `GET /api/invoices/:invoiceId` | | `200` con el detalle: lo de la lista más `items`, `payments` (los no anulados), `issuer`, `simulated`, `testEnvironment` (`true` si la generó el simulador o se emitió en homologación: el CAE no tiene validez fiscal), `qrUrl` (la dirección que va dentro del QR de ARCA, RG 4892; `null` si la factura no está autorizada por ARCA o la generó el simulador) y lo que se imprime en el comprobante: `recipient` (nombre, documento, condición frente al IVA y domicilio copiados a la factura), `pointOfSale` (número), `caeExpiration`, `serviceFrom`, `serviceTo` y `paymentDueDate` (fechas `AAAA-MM-DD`, `null` si no corresponden). `404` si no existe en la organización. |
 | `POST /api/invoices` | Ver abajo | `201` con la factura en estado `DRAFT` y la misma forma que `GET /api/invoices/:id` (con `invoiceId`, `items`, `totalPaid` en `0.00` y `payments` vacío). `400` si algún campo no es válido o no hay ítems. `404` si el cliente o el punto de venta no existen en la organización. `409` si el cliente está dado de baja. `403` si todavía no hay organización. |
-| `POST /api/invoices/:invoiceId/authorize` | Sin cuerpo | `200` con `{ invoice, fiscal }`: `invoice` tiene la forma del detalle y `fiscal` trae `outcome` (`AUTHORIZED`, `AUTHORIZED_WITH_OBSERVATIONS` o `REJECTED`), `simulated`, `observations` y `errors`. `202` si ARCA no respondió (`INDETERMINATE`) y la factura queda `PENDING`. `409` si no está en borrador. `404` si no existe. `502` si falló la comunicación y quedó `PENDING`. `503` si el proveedor fiscal no se pudo armar (la factura no se toca). |
+| `POST /api/invoices/:invoiceId/authorize` | Sin cuerpo | `200` con `{ invoice, fiscal }`: `invoice` tiene la forma del detalle y `fiscal` trae `outcome` (`AUTHORIZED`, `AUTHORIZED_WITH_OBSERVATIONS` o `REJECTED`), `simulated`, `observations` y `errors`. `202` si ARCA no respondió (`INDETERMINATE`) y la factura queda `PENDING`. `409` si no está en borrador. `404` si no existe. `422` con `code: "ISSUER_INCOMPLETE"` si faltan datos del emisor (ver abajo): no se reserva número ni se llama a ARCA. `502` si falló la comunicación y quedó `PENDING`. `503` si el proveedor fiscal no se pudo armar (la factura no se toca). |
 
 ```json
 {
@@ -249,6 +251,8 @@ Cubre RF-22 y RF-23. El backend crea facturas en borrador, las consulta y las au
   "items": [{ "description": "Consultoría técnica", "quantity": 1, "unitPrice": 250000 }]
 }
 ```
+
+**Datos del emisor obligatorios.** Con un proveedor fiscal que no sea el simulado, `authorize` exige razón social, CUIT, condición frente al IVA, domicilio comercial y fecha de inicio de actividades; también Ingresos Brutos (número, `Exento` o `Convenio`) salvo que la organización sea Monotributo. Es lo que el comprobante oficial de ARCA muestra. Si falta algo responde `422`: `{ "error": "Faltan datos del emisor para facturar: Domicilio comercial.", "message": "<igual>", "code": "ISSUER_INCOMPLETE", "missing": ["commercialAddress"], "missingFields": [{ "field": "commercialAddress", "label": "Domicilio comercial" }] }`. Con el proveedor simulado no se bloquea.
 
 Cómo autoriza (docs/02, sección 4): reserva el borrador (`DRAFT` → `PENDING`) con la fila bloqueada; después, de a una por punto de venta, calcula el número (el mayor entre el último del proveedor y el último autorizado en la base, más uno), pide el CAE y guarda `AUTHORIZED` con `voucher_number`, `cae` y `cae_expiration`, o `REJECTED` con los errores en `arca_response`. Registra `invoice.authorized` o `invoice.rejected` en la auditoría. Una factura `PENDING` no se reintenta sola: la reconciliación todavía no está hecha.
 

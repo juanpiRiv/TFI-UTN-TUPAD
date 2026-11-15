@@ -136,6 +136,16 @@ describe.skipIf(!dbAvailable)("organizations (integration)", () => {
         expect((await request(app).get("/api/clients").set(as(tokenA))).status).toBe(200);
     });
 
+    it("GET /me expone issuerCompleteness con lo que falta para facturar", async () => {
+        const me = await request(app).get("/api/organizations/me").set(as(tokenA));
+        expect(me.status).toBe(200);
+        // validBody: monotributo sin domicilio comercial ni Ingresos Brutos
+        expect(me.body.issuerCompleteness).toEqual({
+            complete: false,
+            missing: [{ field: "commercialAddress", label: "Domicilio comercial" }],
+        });
+    });
+
     it("no deja crear una segunda organización ni repetir un CUIT", async () => {
         const again = await request(app).post("/api/organizations").set(as(tokenA)).send(validBody());
         expect(again.status).toBe(409);
