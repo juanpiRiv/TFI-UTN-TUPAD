@@ -26,6 +26,16 @@ export function seedPendingCsr(organizationId: number): ArcaPendingCsr {
   return pending
 }
 
+/** Lets a test start with a connected credential. */
+export function seedConfiguredCredential(organizationId: number): void {
+  credentials.set(organizationId, {
+    configured: true,
+    environment: 'HOMOLOGACION',
+    certificateExpiresAt: '2028-10-21T20:51:13.000Z',
+    updatedAt: '2026-11-01T12:00:00.000Z',
+  })
+}
+
 const PATH = `${API_URL}/api/organizations/me/arca-credential`
 
 function statusOf(organizationId: number): ArcaCredentialStatus {

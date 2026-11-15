@@ -98,11 +98,14 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   const payload = await readJson(response)
 
   if (!response.ok) {
-    const body = (payload ?? {}) as Record<string, unknown>
+    const body: Record<string, unknown> =
+      typeof payload === 'object' && payload !== null && !Array.isArray(payload)
+        ? (payload as Record<string, unknown>)
+        : {}
     const message =
-      typeof body.error === 'string'
+      typeof body.error === 'string' && body.error !== ''
         ? body.error
-        : typeof body.message === 'string'
+        : typeof body.message === 'string' && body.message !== ''
           ? body.message
           : `Error ${response.status}`
     const code = typeof body.code === 'string' ? body.code : null

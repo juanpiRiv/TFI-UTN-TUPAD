@@ -32,17 +32,26 @@ function cuitTaken(cuit: string | undefined, exceptId?: number): boolean {
   return db.organizations.some((org) => org.cuit === cuit && org.id !== exceptId)
 }
 
-/** Mirrors the backend rule: the data an invoice needs from its issuer. */
-function issuerCompleteness(organization: Organization): IssuerCompleteness {
+/** Mirrors the backend rule (issuer-completeness.ts): IIBB is not required for MONOTRIBUTO. */
+export function issuerCompleteness(organization: Organization): IssuerCompleteness {
   const missing: IssuerCompleteness['missing'] = []
-  if (!organization.commercialAddress) {
+  const blank = (value: string | null | undefined) => !value || value.trim() === ''
+  if (blank(organization.legalName)) missing.push({ field: 'legalName', label: 'Razón social' })
+  if (blank(organization.cuit)) missing.push({ field: 'cuit', label: 'CUIT' })
+  if (blank(organization.taxCondition)) {
+    missing.push({ field: 'taxCondition', label: 'Condición frente al IVA' })
+  }
+  if (blank(organization.commercialAddress)) {
     missing.push({ field: 'commercialAddress', label: 'Domicilio comercial' })
   }
   if (!organization.activityStartDate) {
     missing.push({ field: 'activityStartDate', label: 'Fecha de inicio de actividades' })
   }
-  if (!organization.grossIncomeNumber) {
-    missing.push({ field: 'grossIncomeNumber', label: 'Ingresos Brutos' })
+  if (organization.taxCondition !== 'MONOTRIBUTO' && blank(organization.grossIncomeNumber)) {
+    missing.push({
+      field: 'grossIncomeNumber',
+      label: 'Ingresos Brutos (número, Exento o Convenio)',
+    })
   }
   return { complete: missing.length === 0, missing }
 }
