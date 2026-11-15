@@ -78,7 +78,8 @@ export function inspectCredential(input: {
     throw new CredentialError('La clave privada no corresponde a este certificado.')
   }
 
-  const certificateCuit = /CUIT\s*(\d{11})/.exec(certificate.subject)?.[1] ?? null
+  // El CUIT es el del atributo serialNumber: la razón social (O) del pedido también puede decir "CUIT 3071..." y no cuenta.
+  const certificateCuit = /^serialNumber=CUIT\s*(\d{11})/m.exec(certificate.subject)?.[1] ?? /CUIT\s*(\d{11})/.exec(certificate.subject)?.[1] ?? null
   if (certificateCuit && certificateCuit !== input.expectedCuit) {
     throw new CredentialError('El CUIT del certificado no es el de la organización.')
   }

@@ -58,6 +58,8 @@ export class DbWsaaSessionStore implements ArcaWsaaSessionStore {
   constructor(
     private readonly client: WsaaStoreClient,
     private readonly encryptionKey: Buffer,
+    /** Solo para tests: acorta los tiempos del bloqueo. Por defecto valen las constantes de arriba. */
+    private readonly lockTimings: { transactionTimeoutMs?: number; maxWaitMs?: number } = {},
   ) {}
 
   static idFor(key: ArcaWsaaSessionKey): string {
@@ -135,7 +137,10 @@ export class DbWsaaSessionStore implements ArcaWsaaSessionStore {
           await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`arca-wsaa:${id}`}, 0))`
           return fn()
         },
-        { timeout: LOCK_TRANSACTION_TIMEOUT_MS, maxWait: LOCK_MAX_WAIT_MS },
+        {
+          timeout: this.lockTimings.transactionTimeoutMs ?? LOCK_TRANSACTION_TIMEOUT_MS,
+          maxWait: this.lockTimings.maxWaitMs ?? LOCK_MAX_WAIT_MS,
+        },
       )
     } finally {
       releaseLockSlot()
