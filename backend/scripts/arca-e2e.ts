@@ -244,15 +244,20 @@ async function main() {
     token = register.body.token
   }
 
+  // Datos que ARCA exige en el comprobante: sin ellos la app no deja autorizar (ISSUER_INCOMPLETE).
+  const issuerData = { commercialAddress: 'Calle de Prueba 123, Córdoba', activityStartDate: '2020-01-01' }
   const mine = await call<{ id?: number }>('GET', '/api/organizations/me', token)
   if (mine.status === 200 && mine.body.id) {
     console.log('OK    La organización de prueba ya existía: se reutiliza')
+    const completed = await call('PATCH', '/api/organizations/me', token, issuerData)
+    expectStatus('Datos del emisor completos', completed.status, [200], completed.body)
   } else {
     const org = await call<{ id: number }>('POST', '/api/organizations', token, {
       cuit,
       legalName: 'Prueba E2E ARCA',
       taxCondition: 'MONOTRIBUTO',
       baseCurrency: 'ARS',
+      ...issuerData,
     })
     expectStatus('Organización creada con el CUIT de ARCA_CUIT', org.status, [201], org.body)
   }

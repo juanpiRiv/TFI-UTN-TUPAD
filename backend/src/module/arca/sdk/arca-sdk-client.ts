@@ -26,6 +26,12 @@ export interface ArcaSdkClientOptions {
   clientFactory?: (config: Parameters<typeof createArcaClient>[0]) => ArcaClient
 }
 
+/**
+ * Tiempo máximo de cada pedido a ARCA. Tiene que ser bastante menor que los 60 s del bloqueo del ticket de WSAA
+ * (DbWsaaSessionStore): si el pedido sigue vivo cuando se libera el bloqueo, otra instancia podría pedir un segundo ticket.
+ */
+const DEFAULT_TIMEOUT_MS = 25_000
+
 const CUIT = /^\d{11}$/
 const YYYYMMDD = /^\d{8}$/
 const CURRENCY = /^[A-Z]{3}$/
@@ -62,7 +68,7 @@ export class ArcaSdkClient implements FiscalProvider {
       certificatePem: options.certificatePem,
       privateKeyPem: options.privateKeyPem,
       environment: options.environment ?? 'test',
-      ...(options.timeoutMs === undefined ? {} : { timeout: options.timeoutMs }),
+      timeout: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
       ...(options.wsaaSessionStore === undefined ? {} : { wsaaSessionStore: options.wsaaSessionStore }),
       logger: { log: sink },
     } as const
