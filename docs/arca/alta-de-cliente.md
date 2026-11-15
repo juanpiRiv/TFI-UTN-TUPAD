@@ -20,6 +20,10 @@ La clave privada tiene que quedar **sin contraseña** y guardada fuera de cualqu
 3. La aplicación comprueba que el certificado esté vigente, que la clave corresponda a ese certificado y que el CUIT del certificado sea el de la organización. Si algo falla, lo explica.
 4. Crear una factura, **Facturar** y, desde la factura, abrir **el comprobante** para imprimirlo o guardarlo como PDF.
 
+## Qué comprobantes se probaron contra ARCA
+
+En homologación, con `pnpm arca:e2e` (`E2E_SCENARIOS=basic,services,receiver`), se emitieron y verificaron con `FECompConsultar` facturas C a consumidor final, de servicios con período y vencimiento de pago, y a receptores identificados con CUIT (Responsable Inscripto y Monotributo) y con DNI. Al facturar a un receptor con CUIT, ARCA exige que el CUIT figure en el padrón y que no sea el del emisor. El detalle está en `docs/arca/respuestas-reales/D-servicios-y-receptor-identificado-15-11-2026.txt`.
+
 ## Qué pasa con los datos
 
 - La clave privada se guarda cifrada (AES-256-GCM) y no vuelve a mostrarse. Se puede **Desconectar** en cualquier momento y se borra.

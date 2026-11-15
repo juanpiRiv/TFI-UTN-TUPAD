@@ -7,10 +7,24 @@
  *
  * Uso (desde backend/):
  *   pnpm arca:e2e [1,2]      (puntos de venta separados por coma; por defecto 1,2)
+ *   E2E_SCENARIOS=basic,services,receiver pnpm arca:e2e 1,2
  *
- * Emite UNA factura de prueba por cada punto de venta indicado, en homologación, sin validez fiscal.
- * Imprime solo el resultado (estado, CAE, observaciones): nunca tokens ni credenciales.
+ * Escenarios (por defecto solo `basic`):
+ *   basic     Factura C por productos a consumidor final.
+ *   services  Factura C por servicios, con período del servicio y vencimiento del pago.
+ *   receiver  Factura C a receptores identificados: CUIT de Responsable Inscripto, CUIT de Monotributo,
+ *             DNI de consumidor final y servicios a un CUIT de Responsable Inscripto.
+ *
+ * Emite UNA factura de prueba por escenario y punto de venta, en homologación, sin validez fiscal.
+ * Después de autorizar, cada factura se verifica contra ARCA con FECompConsultar (mismo ticket compartido).
+ * Imprime solo escenario, punto de venta, número, CAE y resultado: nunca tokens ni credenciales.
  */
+import { createArcaClient } from 'facturas'
+import { loadArcaCredentialsFromEnv } from '../src/module/arca/credentials-from-env.js'
+import { createWsaaSessionStore } from '../src/module/arca/wsaa-store-factory.js'
+import { prisma } from '../src/lib/prisma.js'
+import { buildScenarios, type Scenario } from './arca-e2e-scenarios.js'
+
 const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
 const AMOUNT = 1500
 
@@ -59,16 +73,57 @@ async function ensurePointOfSale(token: string, number: number): Promise<number>
   return existing.id
 }
 
-/** Crea un borrador de Factura C, la factura y devuelve si ARCA (o el simulador) la autorizó. */
-async function issueOne(token: string, number: number): Promise<boolean> {
-  console.log(`\n=== Punto de venta ${number} ===`)
+type ClientRow = { id: number; docType?: string | null; docNumber?: string | null }
+
+/** Devuelve el id del cliente con ese documento: lo crea o, si ya existe en la organización, lo reutiliza. */
+async function ensureClient(token: string, receiver: NonNullable<Scenario['receiver']>): Promise<number> {
+  const created = await call<ClientRow>('POST', '/api/clients', token, {
+    name: receiver.name,
+    docType: receiver.docType,
+    docNumber: receiver.docNumber,
+    taxCondition: receiver.taxCondition,
+  })
+  if (created.status !== 409) {
+    expectStatus(`Cliente ${receiver.docType} (${receiver.taxCondition}) creado`, created.status, [201], created.body)
+    return created.body.id
+  }
+  const list = await call<ClientRow[] | { items?: ClientRow[] }>('GET', '/api/clients', token)
+  const rows = Array.isArray(list.body) ? list.body : (list.body.items ?? [])
+  const existing = rows.find((row) => row.docType === receiver.docType && row.docNumber === receiver.docNumber)
+  if (!existing) fail(`ERROR Cliente ${receiver.docType}: ya existe pero no se pudo listar (HTTP ${list.status})`)
+  return existing.id
+}
+
+type Lookup = { kind: string; voucher?: { result?: string; cae?: string; concept?: number; documentType?: number; documentNumber?: string; receiverVatConditionId?: number; serviceStartDate?: string; serviceEndDate?: string; paymentDueDate?: string } }
+
+/** Consulta el comprobante en ARCA (FECompConsultar) con el mismo ticket que usa el backend. */
+async function lookupInArca(pointOfSale: number, voucherNumber: number): Promise<Lookup> {
+  const credentials = loadArcaCredentialsFromEnv(process.env)
+  const client = createArcaClient({
+    taxId: credentials.cuit,
+    certificatePem: credentials.certificatePem,
+    privateKeyPem: credentials.privateKeyPem,
+    environment: 'test',
+    // Mismo almacén que el backend (base de datos con ARCA_ENCRYPTION_KEY, archivo sin ella): comparten el ticket.
+    wsaaSessionStore: createWsaaSessionStore(process.env, prisma),
+    logger: { log: () => {} },
+  })
+  return (await client.wsfe.lookupVoucher({ number: voucherNumber, salesPoint: pointOfSale, voucherType: 11 })) as Lookup
+}
+
+/** Crea un borrador de Factura C según el escenario, la factura y la verifica contra ARCA. */
+async function issueOne(token: string, scenario: Scenario, number: number): Promise<boolean> {
+  console.log(`\n=== Escenario ${scenario.name} / punto de venta ${number} ===`)
   const pointOfSaleId = await ensurePointOfSale(token, number)
+  const clientId = scenario.receiver ? await ensureClient(token, scenario.receiver) : undefined
 
   const draft = await call<{ invoiceId: number }>('POST', '/api/invoices', token, {
     pointOfSaleId,
-    concept: 'PRODUCTOS',
+    ...(clientId === undefined ? {} : { clientId }),
+    concept: scenario.concept,
     issueDate: new Date().toISOString().slice(0, 10),
-    items: [{ description: 'Prueba de homologación', quantity: 1, unitPrice: AMOUNT }],
+    ...(scenario.serviceDates ?? {}),
+    items: [{ description: scenario.description, quantity: 1, unitPrice: AMOUNT }],
   })
   expectStatus(`Borrador de Factura C por $ ${AMOUNT}`, draft.status, [201], draft.body)
 
@@ -79,10 +134,12 @@ async function issueOne(token: string, number: number): Promise<boolean> {
   )
   const fiscal = result.body.fiscal ?? {}
   const invoice = result.body.invoice ?? {}
-  console.log(`\nFacturar: HTTP ${result.status}`)
+  console.log(`Facturar: HTTP ${result.status}`)
   console.log(
     JSON.stringify(
       {
+        escenario: scenario.name,
+        puntoDeVenta: number,
         estadoFactura: invoice.status,
         numeroDeComprobante: invoice.voucherNumber,
         cae: invoice.cae,
@@ -98,11 +155,49 @@ async function issueOne(token: string, number: number): Promise<boolean> {
     ),
   )
 
-  const ok = result.status === 200 && fiscal.outcome === 'AUTHORIZED'
-  if (!ok) console.log(`\nPunto de venta ${number}: NO autorizada.`)
-  else if (fiscal.simulated) console.log(`\nPunto de venta ${number}: autorizada por el proveedor SIMULADO (no llegó a ARCA).`)
-  else console.log(`\nPunto de venta ${number}: autorizada por ARCA en homologación.`)
-  return ok
+  const authorized = result.status === 200 && fiscal.outcome === 'AUTHORIZED'
+  if (!authorized) {
+    console.log(`Escenario ${scenario.name}, punto de venta ${number}: NO autorizada.`)
+    return false
+  }
+  if (fiscal.simulated) {
+    console.log(`Escenario ${scenario.name}, punto de venta ${number}: autorizada por el proveedor SIMULADO (no llegó a ARCA).`)
+    return false
+  }
+
+  // Verificación independiente: ARCA tiene que devolver el mismo CAE, Resultado A y los datos del receptor.
+  const found = await lookupInArca(number, Number(invoice.voucherNumber))
+  const v = found.voucher
+  const problems: string[] = []
+  if (found.kind !== 'found' || !v) problems.push('FECompConsultar no encontró el comprobante')
+  else {
+    if (v.result !== 'A') problems.push(`Resultado ${v.result} (se esperaba A)`)
+    if (v.cae !== invoice.cae) problems.push('CodAutorizacion distinto del CAE guardado')
+    const expected = scenario.expectedInArca
+    if (v.concept !== expected.concept) problems.push(`Concepto ${v.concept} (se esperaba ${expected.concept})`)
+    if (v.documentType !== expected.documentType) problems.push(`DocTipo ${v.documentType} (se esperaba ${expected.documentType})`)
+    if (v.receiverVatConditionId !== expected.receiverVatConditionId) {
+      problems.push(`CondicionIVAReceptorId ${v.receiverVatConditionId} (se esperaba ${expected.receiverVatConditionId})`)
+    }
+    if (expected.hasServiceDates && !(v.serviceStartDate && v.serviceEndDate && v.paymentDueDate)) {
+      problems.push('faltan las fechas de servicio en el comprobante de ARCA')
+    }
+  }
+  console.log(
+    `VERIFICADO ${JSON.stringify({
+      escenario: scenario.name,
+      puntoDeVenta: number,
+      numero: invoice.voucherNumber,
+      cae: v?.cae,
+      resultadoArca: v?.result,
+      docTipo: v?.documentType,
+      condicionIvaReceptor: v?.receiverVatConditionId,
+      concepto: v?.concept,
+      fechasServicio: v?.serviceStartDate ? [v.serviceStartDate, v.serviceEndDate, v.paymentDueDate] : undefined,
+      problemas: problems,
+    })}`,
+  )
+  return problems.length === 0
 }
 
 async function main() {
@@ -168,11 +263,18 @@ async function main() {
     console.log(`      configurada: ${saved.body.configured}, ambiente: ${saved.body.environment}, vence: ${saved.body.certificateExpiresAt}`)
   }
 
+  const requested = (process.env.E2E_SCENARIOS ?? 'basic').split(',').map((value) => value.trim()).filter(Boolean)
+  const scenarios = buildScenarios(requested, new Date())
+  if (scenarios.length === 0) fail('E2E_SCENARIOS no incluye ningún escenario válido (basic, services, receiver).')
+
   let allOk = true
-  for (const number of pointsOfSale) {
-    const ok = await issueOne(token, number)
-    allOk = allOk && ok
+  for (const scenario of scenarios) {
+    for (const number of pointsOfSale) {
+      const ok = await issueOne(token, scenario, number)
+      allOk = allOk && ok
+    }
   }
+  await prisma.$disconnect()
   process.exit(allOk ? 0 : 2)
 }
 
