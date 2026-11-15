@@ -1,4 +1,4 @@
-import { ProviderUnavailableError } from "../arca/errors.js";
+import { GENERIC_USER_MESSAGE, ProviderUnavailableError } from "../arca/errors.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
 import { buildCaeRequest } from "../arca/cae-request.js";
@@ -46,12 +46,10 @@ export async function authorizeInvoice(
   try {
     provider = await createProvider({ id: org.id, cuit: org.cuit });
   } catch (error) {
-    // Solo se muestran los motivos que el usuario puede corregir; el resto se registra y se informa de forma genérica.
-    if (error instanceof ProviderUnavailableError) {
-      throw new AppError(503, `El proveedor fiscal no está disponible: ${error.message}`);
-    }
+    // A la persona que factura solo se le muestra lo que puede entender y corregir; el detalle técnico
+    // (variables de entorno, configuración del servidor) va al registro.
     console.error(`[arca] no se pudo armar el proveedor fiscal: ${error instanceof Error ? `${error.name}: ${error.message}` : "error desconocido"}`);
-    throw new AppError(503, "El proveedor fiscal no está disponible. Revisá la configuración de ARCA del servidor.");
+    throw new AppError(503, error instanceof ProviderUnavailableError ? error.userMessage : GENERIC_USER_MESSAGE);
   }
 
   // Un certificado solo puede emitir por su propio CUIT. Si no coincide, se corta antes de reservar:
@@ -118,6 +116,9 @@ export async function authorizeInvoice(
 
   // Paso 2: numerar y autorizar, de a una por punto de venta y tipo de comprobante.
   let result: CaeResult;
+  // Hasta que se pide el CAE no se le mandó nada a ARCA que registre un comprobante: si falla antes (login con
+  // el certificado, consulta del último número, base), se puede volver a borrador sin riesgo de duplicar.
+  let caeRequested = false;
   try {
     result = await prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(${reserved.pointOfSaleId}, ${FACTURA_C_CODE})`;
@@ -132,6 +133,7 @@ export async function authorizeInvoice(
 
       const last = await provider.getLastAuthorized(sequence);
       const voucherNumber = Math.max(last.voucherNumber, lastLocal) + 1;
+      caeRequested = true;
       const outcome = await provider.requestCae(
         buildCaeRequest({
           cuit: org.cuit,
@@ -195,6 +197,9 @@ export async function authorizeInvoice(
     const name = error instanceof Error ? error.name : "Error";
     const reason = error instanceof Error ? error.message : String(error);
     console.error(`[arca] falló la autorización de la factura ${invoiceId}: ${name}: ${reason}`);
+    if (!caeRequested && (await revertToDraft(invoiceId, org.id))) {
+      throw new AppError(502, "No se pudo conectar con ARCA. La factura sigue en borrador: revisá la conexión con ARCA y volvé a facturar.");
+    }
     // La factura queda PENDING: puede que ARCA haya contestado y falló nuestra base.
     throw new AppError(502, "No se pudo completar la autorización con ARCA. La factura quedó pendiente.");
   }
@@ -209,4 +214,31 @@ export async function authorizeInvoice(
       errors: result.errors,
     },
   };
+}
+
+/**
+ * Devuelve a borrador una factura que se reservó pero a la que todavía no se le pidió el CAE.
+ * Solo toca una fila PENDING sin número de comprobante, y vuelve a dejar vacía la copia del emisor (el borrador
+ * no la tiene). Devuelve false si no pudo: en ese caso la factura queda PENDING y se informa como tal.
+ */
+async function revertToDraft(invoiceId: number, organizationId: number): Promise<boolean> {
+  try {
+    const { count } = await prisma.invoice.updateMany({
+      where: { id: invoiceId, organizationId, status: "PENDING", voucherNumber: null },
+      data: {
+        status: "DRAFT",
+        issuerCuit: null,
+        issuerLegalName: null,
+        issuerTradeName: null,
+        issuerAddress: null,
+        issuerTaxCondition: null,
+        issuerGrossIncomeNumber: null,
+        issuerActivityStartDate: null,
+      },
+    });
+    return count === 1;
+  } catch (error) {
+    console.error(`[arca] no se pudo devolver a borrador la factura ${invoiceId}: ${error instanceof Error ? error.name : "Error"}`);
+    return false;
+  }
 }

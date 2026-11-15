@@ -10,6 +10,7 @@ import {
   arcaCertificateSchema,
   type ArcaCertificateFormValues,
   type ArcaCertificateInput,
+  MAX_PEM_BYTES,
 } from './arca-credential-schemas'
 import { errorMessage } from './arca-errors'
 import { useGenerateArcaCsr, useUploadArcaCertificate } from './queries'
@@ -108,6 +109,11 @@ export function ArcaConnectWizard({ pendingCsr, onCancel, onConnected }: WizardP
   const loadFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
+    if (file.size > MAX_PEM_BYTES) {
+      setError('certificate', { type: 'manual', message: 'El archivo es demasiado grande' })
+      event.target.value = ''
+      return
+    }
     try {
       setValue('certificate', await file.text(), { shouldValidate: true })
     } catch {
@@ -152,9 +158,15 @@ export function ArcaConnectWizard({ pendingCsr, onCancel, onConnected }: WizardP
         <section aria-label="Paso 1: Generar la solicitud" className="flex flex-col gap-3">
           <p className="text-sm text-slate-700">
             Generamos una solicitud de certificado (CSR) para tu CUIT. La clave privada se crea y se
-            guarda cifrada en el servidor: nunca tenés que verla ni cargarla.
+            guarda cifrada: nunca tenés que verla ni cargarla.
           </p>
           {csr && <CsrBox csr={csr.csr} />}
+          {csr && (
+            <p className="text-sm text-slate-600">
+              Si generás una nueva solicitud, la anterior deja de servir: si ya la usaste en ARCA,
+              tendrías que pedir el certificado de nuevo.
+            </p>
+          )}
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <Button
               variant={csr ? 'secondary' : 'primary'}
@@ -186,9 +198,12 @@ export function ArcaConnectWizard({ pendingCsr, onCancel, onConnected }: WizardP
               Services».
             </li>
           </ol>
-          <p className="text-sm text-slate-600">
-            Guía completa: <code>docs/arca/alta-de-cliente.md</code>
-          </p>
+          {csr && (
+            <p className="text-sm text-slate-600">
+              Si generás una nueva solicitud, la anterior deja de servir: si ya la usaste en ARCA,
+              tendrías que pedir el certificado de nuevo.
+            </p>
+          )}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="secondary" onClick={() => setManualStep(1)}>
               Volver
@@ -213,8 +228,8 @@ export function ArcaConnectWizard({ pendingCsr, onCancel, onConnected }: WizardP
           className="flex flex-col gap-3"
         >
           <p className="text-sm text-slate-700">
-            Subí el certificado que te dio ARCA. Solo el certificado: la clave privada ya está en el
-            servidor.
+            Subí el certificado que te dio ARCA. Solo el certificado: la clave privada ya la guardamos
+            nosotros.
           </p>
           <FormError message={uploadError} />
           <Input

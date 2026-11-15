@@ -10,6 +10,7 @@ import {
   arcaCredentialSchema,
   type ArcaCredentialFormValues,
   type ArcaCredentialInput,
+  MAX_PEM_BYTES,
 } from './arca-credential-schemas'
 import { errorMessage } from './arca-errors'
 import { ArcaConnectWizard } from './ArcaConnectWizard'
@@ -30,6 +31,7 @@ export function ArcaCredentialCard() {
     handleSubmit,
     setValue,
     resetField,
+    reset,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<ArcaCredentialFormValues, unknown, ArcaCredentialInput>({
@@ -41,6 +43,11 @@ export function ArcaCredentialCard() {
     (field: 'certificate' | 'privateKey') => async (event: ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0]
       if (!file) return
+      if (file.size > MAX_PEM_BYTES) {
+        setError(field, { type: 'manual', message: 'El archivo es demasiado grande' })
+        event.target.value = ''
+        return
+      }
       try {
         setValue(field, await file.text(), { shouldValidate: true })
       } catch {
@@ -54,8 +61,7 @@ export function ArcaCredentialCard() {
     setFormError(null)
     try {
       await save.mutateAsync(values)
-      resetField('certificate', { defaultValue: '' })
-      setReplacing(false)
+      leaveWizard()
     } catch (error) {
       setFormError(errorMessage(error))
     } finally {
@@ -64,10 +70,18 @@ export function ArcaCredentialCard() {
     }
   })
 
+  /** Leaves the wizard and forgets whatever was typed in the advanced form (a key included). */
+  const leaveWizard = () => {
+    reset(emptyValues)
+    setFormError(null)
+    setReplacing(false)
+  }
+
   const disconnect = async () => {
     setDeleteError(null)
     try {
       await remove.mutateAsync()
+      reset(emptyValues)
       setConfirmingDelete(false)
     } catch (error) {
       setDeleteError(errorMessage(error))
@@ -108,8 +122,7 @@ export function ArcaCredentialCard() {
             </div>
           ) : (
             <p role="status" className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">
-              Sin conectar: las facturas se emiten con el proveedor simulado o no se pueden emitir,
-              según la configuración del servidor.
+              Todavía no conectaste tu cuenta con ARCA: no podés emitir facturas con validez fiscal.
             </p>
           )}
 
@@ -117,8 +130,8 @@ export function ArcaCredentialCard() {
             <>
               <ArcaConnectWizard
                 pendingCsr={status?.pendingCsr}
-                onCancel={status?.configured ? () => setReplacing(false) : undefined}
-                onConnected={() => setReplacing(false)}
+                onCancel={status?.configured ? leaveWizard : undefined}
+                onConnected={leaveWizard}
               />
               <details className="text-sm text-slate-600">
                 <summary className="cursor-pointer font-medium text-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">

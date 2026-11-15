@@ -44,7 +44,8 @@ function encryptionKey(hex: string | undefined): Buffer {
     return parseEncryptionKey(hex)
   } catch (error) {
     if (error instanceof EncryptionKeyError) {
-      throw new AppError(503, 'El servidor no tiene configurada la clave de cifrado de ARCA: no se puede guardar la credencial.')
+      console.error('[arca] falta o es inválida ARCA_ENCRYPTION_KEY: no se puede guardar ni leer credenciales.')
+      throw new AppError(503, 'La conexión con ARCA no está disponible en este momento. Probá de nuevo más tarde.')
     }
     throw error
   }

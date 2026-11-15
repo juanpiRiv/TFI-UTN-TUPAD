@@ -246,7 +246,7 @@ describe("Solicitud de certificado de ARCA (CSR)", () => {
       const cert = await request(app).post(`${route}/certificate`).set(auth()).send({ certificate: "x" });
 
       expect(csr.status).toBe(503);
-      expect(csr.body.error).toMatch(/clave de cifrado/);
+      expect(csr.body.error).toMatch(/no está disponible en este momento/);
       expect(cert.status).toBe(503);
       expect(prisma.arcaCsrRequest.upsert).not.toHaveBeenCalled();
     } finally {

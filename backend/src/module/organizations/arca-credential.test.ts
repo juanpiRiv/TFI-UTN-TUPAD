@@ -162,7 +162,7 @@ describe.skipIf(!hasOpenssl())("Credencial de ARCA de la organización", () => {
       const res = await request(app).post(route).set(auth()).send(valid);
 
       expect(res.status).toBe(503);
-      expect(res.body.error).toMatch(/clave de cifrado/);
+      expect(res.body.error).toMatch(/no está disponible en este momento/);
       expect(prisma.arcaCredential.upsert).not.toHaveBeenCalled();
     } finally {
       mutableEnv.ARCA_ENCRYPTION_KEY = original;

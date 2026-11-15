@@ -47,7 +47,10 @@ async function build(env: OrganizationProviderEnv, org: { id: number; cuit: stri
   if (stored) {
     // La credencial que se carga hoy es de homologación: no se la manda a producción.
     if (env.ARCA_MODE === 'produccion') {
-      throw new ProviderUnavailableError('La credencial cargada es de homologación y el servidor está configurado en producción.')
+      throw new ProviderUnavailableError(
+        'La credencial cargada es de homologación y el servidor está configurado en producción.',
+        'La conexión con ARCA que cargaste es de pruebas y no sirve para facturar con validez fiscal. Conectá una de producción.',
+      )
     }
     let provider = getCachedProvider(org.id, stored.fingerprint)
     if (!provider) {
@@ -63,7 +66,10 @@ async function build(env: OrganizationProviderEnv, org: { id: number; cuit: stri
   }
 
   if (env.ARCA_CUIT?.trim()) return getFiscalProviderFromEnv(env, createWsaaSessionStore(env, prisma))
-  throw new ProviderUnavailableError('La organización todavía no cargó su credencial de ARCA. Se carga en la pantalla de la organización.')
+  throw new ProviderUnavailableError(
+    'La organización todavía no cargó su credencial de ARCA. Se carga en la pantalla de la organización.',
+    'Todavía no conectaste tu cuenta con ARCA. Hacelo en «Mi negocio» y volvé a facturar.',
+  )
 }
 
 /** Lee la credencial guardada. Un error de la base no se muestra al usuario: se registra y se informa de forma genérica. */
@@ -72,8 +78,11 @@ async function loadStored(env: OrganizationProviderEnv, org: { id: number; cuit:
   try {
     return await load(org, env.ARCA_ENCRYPTION_KEY)
   } catch (error) {
-    if (error instanceof CredentialError || error instanceof EncryptionKeyError) throw new ProviderUnavailableError(error.message)
-    if (error instanceof Error && error.message.startsWith('No se pudo descifrar')) throw new ProviderUnavailableError(error.message)
+    if (error instanceof CredentialError) throw new ProviderUnavailableError(error.message, error.message)
+    if (error instanceof EncryptionKeyError) throw new ProviderUnavailableError(error.message)
+    if (error instanceof Error && error.message.startsWith('No se pudo descifrar')) {
+      throw new ProviderUnavailableError(error.message, 'No se pudo usar la conexión con ARCA guardada. Volvé a conectarla en «Mi negocio».')
+    }
     console.error(`[arca] no se pudo leer la credencial de la organización ${org.id}: ${error instanceof Error ? error.name : 'Error'}`)
     throw new ProviderUnavailableError('No se pudo leer la credencial de ARCA de la organización.')
   }

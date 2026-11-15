@@ -19,9 +19,21 @@ const ISSUER_LABELS: Record<string, string> = {
   monotributoCategory: 'Categoría de monotributo',
 }
 
-function missingItems(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return value
+/** Labels of what the issuer is missing: the server's own labels first, our map as fallback. */
+function missingItems(body: Record<string, unknown>): string[] {
+  const { missingFields, missing } = body
+  if (Array.isArray(missingFields)) {
+    const labels = missingFields.flatMap((item) => {
+      if (typeof item === 'string') return [ISSUER_LABELS[item] ?? item]
+      const entry = item as { field?: unknown; label?: unknown } | null
+      if (typeof entry?.label === 'string') return [entry.label]
+      if (typeof entry?.field === 'string') return [ISSUER_LABELS[entry.field] ?? entry.field]
+      return []
+    })
+    if (labels.length > 0) return labels
+  }
+  if (!Array.isArray(missing)) return []
+  return missing
     .filter((item): item is string => typeof item === 'string')
     .map((field) => ISSUER_LABELS[field] ?? field)
 }
@@ -41,7 +53,7 @@ export function InvoiceDetailPage() {
   const fiscal = authorize.data?.fiscal
   const issuerMissing =
     authorize.error instanceof ApiError && authorize.error.code === 'ISSUER_INCOMPLETE'
-      ? missingItems(authorize.error.body.missing)
+      ? missingItems(authorize.error.body)
       : null
   const authorizeError =
     issuerMissing !== null
@@ -221,7 +233,7 @@ export function InvoiceDetailPage() {
           className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900"
         >
           {invoice.simulated
-            ? 'Comprobante de prueba, sin validez fiscal: lo generó el proveedor simulado.'
+            ? 'Comprobante de práctica, sin validez fiscal.'
             : 'Comprobante de prueba, sin validez fiscal: se emitió en el ambiente de homologación de ARCA.'}
         </p>
       )}

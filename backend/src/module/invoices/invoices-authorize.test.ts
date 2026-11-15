@@ -19,7 +19,7 @@ const current = vi.hoisted(() => ({ provider: null as unknown, factoryError: nul
 vi.mock("../../lib/prisma.js", () => ({
   prisma: {
     organization: { findUnique: vi.fn() },
-    invoice: { findFirst: vi.fn() },
+    invoice: { findFirst: vi.fn(), updateMany: vi.fn() },
     $transaction: vi.fn(async (callback: (t: typeof tx) => unknown) => callback(tx)),
   },
 }));
@@ -397,7 +397,8 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     expect(res.body.fiscal.outcome).toBe("INDETERMINATE");
   });
 
-  it("si el proveedor falla de forma inesperada responde 502 y deja la factura PENDING", async () => {
+  it("si falla antes de pedir el CAE (login, último número) responde 502 y vuelve la factura a borrador", async () => {
+    vi.mocked(prisma.invoice.updateMany).mockResolvedValue({ count: 1 } as never);
     current.provider = {
       name: "roto",
       healthCheck: async () => ({ ok: false, detail: "" }),
@@ -411,9 +412,44 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     const res = await post();
 
     expect(res.status).toBe(502);
-    expect(res.body.error).toMatch(/pendiente/i);
-    expect(updates()).toHaveLength(1);
-    expect(updates()[0]).toMatchObject({ status: "PENDING" });
+    expect(res.body.error).toMatch(/sigue en borrador/i);
+    const revert = vi.mocked(prisma.invoice.updateMany).mock.calls[0]![0];
+    expect(revert.where).toEqual({ id: 99, organizationId: orgId, status: "PENDING", voucherNumber: null });
+    expect(revert.data).toMatchObject({ status: "DRAFT", issuerCuit: null, issuerLegalName: null, issuerActivityStartDate: null });
+  });
+
+  it("si no se puede volver a borrador, la factura queda PENDING y se informa", async () => {
+    vi.mocked(prisma.invoice.updateMany).mockRejectedValue(new Error("db caída"));
+    current.provider = {
+      name: "roto",
+      healthCheck: async () => ({ ok: false, detail: "" }),
+      getLastAuthorized: async () => {
+        throw new Error("ECONNRESET");
+      },
+      requestCae: async () => {
+        throw new Error("no debería llamarse");
+      },
+    } satisfies FiscalProvider;
+    const res = await post();
+
+    expect(res.status).toBe(502);
+    expect(res.body.error).toMatch(/quedó pendiente/i);
+  });
+
+  it("si falla DESPUÉS de pedir el CAE queda PENDING y no vuelve a borrador (ARCA pudo haberlo registrado)", async () => {
+    current.provider = {
+      name: "roto",
+      healthCheck: async () => ({ ok: false, detail: "" }),
+      getLastAuthorized: async () => ({ voucherNumber: 0 }),
+      requestCae: async () => {
+        throw new Error("ECONNRESET");
+      },
+    } as unknown as FiscalProvider;
+    const res = await post();
+
+    expect(res.status).toBe(502);
+    expect(res.body.error).toMatch(/quedó pendiente/i);
+    expect(vi.mocked(prisma.invoice.updateMany)).not.toHaveBeenCalled();
   });
 
   it("registra invoice.authorized en la auditoría con el CAE", async () => {
@@ -463,7 +499,8 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     const res = await post();
 
     expect(res.status).toBe(503);
-    expect(res.body.error).toMatch(/proveedor fiscal/i);
+    expect(res.body.error).toMatch(/no está disponible en este momento/i);
+    expect(JSON.stringify(res.body)).not.toMatch(/ARCA_|servidor|sdk/i);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
@@ -487,15 +524,19 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
 
   it("el 503 muestra los motivos que el usuario puede corregir, pero no los errores internos", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
-    current.factoryError = new ProviderUnavailableError("La organización todavía no cargó su credencial de ARCA.");
+    current.factoryError = new ProviderUnavailableError(
+      "La organización todavía no cargó su credencial de ARCA.",
+      "Todavía no conectaste tu cuenta con ARCA. Hacelo en «Mi negocio» y volvé a facturar.",
+    );
     const known = await post();
     current.factoryError = new Error("Can't reach database server at db.interno:5432");
     const internal = await post();
 
     expect(known.status).toBe(503);
-    expect(known.body.error).toMatch(/todavía no cargó su credencial/);
+    expect(known.body.error).toMatch(/Todavía no conectaste tu cuenta con ARCA/);
+    expect(JSON.stringify(known.body)).not.toMatch(/ARCA_|servidor|pantalla de la organización/i);
     expect(internal.status).toBe(503);
-    expect(internal.body.error).toMatch(/proveedor fiscal no está disponible/i);
+    expect(internal.body.error).toMatch(/no está disponible en este momento/i);
     expect(internal.body.error).not.toMatch(/db\.interno|database/);
     log.mockRestore();
   });

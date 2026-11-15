@@ -48,7 +48,7 @@ describe('ARCA connection wizard', () => {
     await user.click(screen.getByRole('button', { name: 'Continuar' }))
     expect(screen.getAllByText(/WSASS/).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/wsfe/).length).toBeGreaterThan(0)
-    expect(screen.getByText(/alta-de-cliente\.md/)).toBeInTheDocument()
+    expect(screen.queryByText(/alta-de-cliente|docs\//)).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Ya tengo el certificado' }))
     const form = within(screen.getByRole('form', { name: 'Subir el certificado' }))
@@ -95,7 +95,7 @@ describe('ARCA connection wizard', () => {
     expect(
       await screen.findByText('El certificado no corresponde al CUIT de tu negocio.'),
     ).toBeInTheDocument()
-    expect(screen.getByText(/Sin conectar/)).toBeInTheDocument()
+    expect(screen.getByText(/Todavía no conectaste tu cuenta con ARCA/)).toBeInTheDocument()
   })
 
   it('shows the 503 message when the server cannot store keys', async () => {
@@ -153,7 +153,7 @@ describe('ARCA credential card', () => {
   it('shows the disconnected state', async () => {
     renderApp('/organizacion')
 
-    expect(await screen.findByText(/Sin conectar: las facturas se emiten/)).toBeInTheDocument()
+    expect(await screen.findByText(/Todavía no conectaste tu cuenta con ARCA/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument()
   })
 
@@ -175,7 +175,7 @@ describe('ARCA credential card', () => {
 
     expect(await screen.findByText('El certificado está vencido')).toBeInTheDocument()
     expect(screen.getByLabelText('O pegá la clave privada')).toHaveValue('')
-    expect(screen.getByText(/Sin conectar/)).toBeInTheDocument()
+    expect(screen.getByText(/Todavía no conectaste tu cuenta con ARCA/)).toBeInTheDocument()
   })
 
   it('validates the certificate header locally', async () => {
@@ -184,7 +184,7 @@ describe('ARCA credential card', () => {
     await connect(user, 'esto no es un certificado')
 
     expect(await screen.findByText(/debe incluir BEGIN CERTIFICATE/)).toBeInTheDocument()
-    expect(screen.getByText(/Sin conectar/)).toBeInTheDocument()
+    expect(screen.getByText(/Todavía no conectaste tu cuenta con ARCA/)).toBeInTheDocument()
   })
 
   it('rejects encrypted private keys locally', async () => {
@@ -226,6 +226,6 @@ describe('ARCA credential card', () => {
     await user.click(screen.getByRole('button', { name: 'Eliminar' }))
     await user.click(screen.getByRole('button', { name: 'Confirmar' }))
 
-    expect(await screen.findByText(/Sin conectar/)).toBeInTheDocument()
+    expect(await screen.findByText(/Todavía no conectaste tu cuenta con ARCA/)).toBeInTheDocument()
   })
 })
