@@ -17,6 +17,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "arca:smoke": "tsx --env-file-if-exists=.env scripts/arca-smoke.ts",
     "arca:e2e": "tsx --env-file-if-exists=.env scripts/arca-e2e.ts",
+    "arca:journey": "tsx --env-file-if-exists=.env scripts/arca-journey.ts",
     "arca:rotate-key": "tsx --env-file-if-exists=.env scripts/arca-rotate-key.ts"
   },
   "prisma": {
