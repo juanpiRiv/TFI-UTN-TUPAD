@@ -23,7 +23,7 @@ Cada secreto vive en un solo lugar, el de quien lo usa. Nunca van al repositorio
 | `NODE_ENV` | Ambiente | Lo fija el Dockerfile en `production`, no se carga | Sí |
 | `ARCA_MODE` | `homologacion` (por defecto) o `produccion` | Variable normal, opcional | Sí, desde #151 |
 | `ARCA_PROVIDER` | Qué proveedor fiscal se usa: `simulated`, `sdk` o `direct` | Variable normal. **Obligatoria**: sin ella el backend no arranca. Usar `simulated` hasta tener la emisión real | Sí, desde #151 |
-| `ARCA_ENCRYPTION_KEY` | Clave que cifra en la base la clave privada de cada organización | Generarla con `openssl rand -hex 32`. Es un secreto | No: todavía no se usa |
+| `ARCA_ENCRYPTION_KEY` | Clave que cifra en la base la clave privada de cada organización | Generarla con `openssl rand -hex 32`. Es un secreto | Sí: la lee el backend (cifra la clave privada y el ticket de WSAA) |
 
 `ARCA_PROVIDER` hay que cargarla desde el primer despliegue, porque el backend la valida al arrancar (cambio de #151). `ARCA_ENCRYPTION_KEY` se carga cuando se guarden credenciales por organización; cargarla antes no hace daño.
 
@@ -88,9 +88,21 @@ La facturación contra ARCA se prueba solo en homologación (`ARCA_MODE=homologa
 | `ARCA_MODE` | `homologacion` por defecto. |
 | `ARCA_ENCRYPTION_KEY` | 64 caracteres hexadecimales (`openssl rand -hex 32`). Cifra la clave privada que cada organización carga. Si se pierde, hay que volver a cargar las credenciales. |
 | `ARCA_CUIT`, `ARCA_CERT_PATH` y `ARCA_KEY_PATH` (o `ARCA_CERT_PEM` y `ARCA_KEY_PEM`) | Solo para desarrollo: credenciales de prueba que se usan si la organización no cargó la suya. |
-| `ARCA_SESSION_DIR` | Carpeta donde se comparte el ticket de acceso de WSAA entre procesos. Por defecto `~/.arca-homologacion/sessions`. |
+| `ARCA_SESSION_DIR` | Solo para el almacén en archivo (sin base de datos): carpeta donde se comparte el ticket de acceso de WSAA entre procesos. Por defecto `~/.arca-homologacion/sessions`. |
 
-**El ticket de acceso.** ARCA entrega un ticket de WSAA que dura 12 horas y no da otro mientras ese siga vigente: responde `coe.alreadyAuthenticated`. Por eso el backend y los scripts comparten el ticket en un archivo (permisos 600). Eso alcanza con una sola instancia y disco persistente. **Con más de una instancia o con disco efímero hace falta guardar el ticket en la base de datos**, cifrado con `ARCA_ENCRYPTION_KEY`; hoy no está hecho.
+**El ticket de acceso.** ARCA entrega un ticket de WSAA que dura 12 horas y no da otro mientras ese siga vigente: responde `coe.alreadyAuthenticated`. Por eso todas las instancias tienen que compartir el mismo ticket. El backend lo guarda en la tabla `arca_wsaa_tickets` de PostgreSQL, con el token y la firma cifrados con `ARCA_ENCRYPTION_KEY` (AES-256-GCM), y usa un bloqueo asesor de PostgreSQL para que, si varias instancias lo necesitan a la vez, solo una lo pida a ARCA y las demás reutilicen el resultado. Esto permite correr más de una instancia en Render, incluso con disco efímero. Si un ticket guardado no se puede descifrar (por ejemplo, se cambió la clave), se descarta y se pide uno nuevo.
+
+Cuando no hay base de datos o falta `ARCA_ENCRYPTION_KEY` (desarrollo y scripts como `arca:smoke`), se usa en cambio un archivo con permisos 600 en `ARCA_SESSION_DIR`, que alcanza con una sola máquina. El ticket de una credencial borrada o reemplazada no se limpia de inmediato: queda inutilizable y vence solo en 12 horas como máximo.
+
+**Rotar `ARCA_ENCRYPTION_KEY`.** Conviene hacerlo si la clave se filtró o por política. Desde `backend/`, con la base de producción en `DATABASE_URL`:
+
+1. Hacer un backup de la base.
+2. Generar la clave nueva: `openssl rand -hex 32`.
+3. Simular (no escribe nada): `ARCA_OLD_ENCRYPTION_KEY=<vieja> ARCA_NEW_ENCRYPTION_KEY=<nueva> pnpm arca:rotate-key`.
+4. Aplicar: el mismo comando con `--apply`. Vuelve a cifrar las claves privadas y los tickets de WSAA vigentes en una sola transacción: si una credencial no se descifra ni con la clave vieja ni con la nueva, no cambia nada. Se puede repetir sin riesgo.
+5. Cambiar `ARCA_ENCRYPTION_KEY` en el servidor por la clave nueva y reiniciar.
+
+Entre los pasos 4 y 5 el servidor con la clave vieja no puede descifrar las credenciales y las emisiones por ARCA fallan con un error claro: conviene hacerlo en una ventana corta. Las claves se pasan por variables de entorno y el script imprime solo cantidades.
 
 **Credencial por organización.** El cliente carga su certificado y su clave en la pantalla de la organización (`/organizacion`). Los pasos que hace antes en ARCA están en [la guía del cliente](./arca/alta-de-cliente.md).
 
