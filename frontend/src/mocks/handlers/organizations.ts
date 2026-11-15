@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import { isValidCuit, organizationTaxConditions } from '@/features/organizations/schemas'
-import type { Organization } from '@/features/organizations/types'
+import type { IssuerCompleteness, Organization } from '@/features/organizations/types'
 import { API_URL } from '@/lib/api'
 import { db, nextId, nowIso, saveDb } from '../db'
 import { seedDefaultCategories } from './categories'
@@ -30,6 +30,21 @@ function validate(body: OrganizationBody, partial: boolean): FieldDetail[] {
 
 function cuitTaken(cuit: string | undefined, exceptId?: number): boolean {
   return db.organizations.some((org) => org.cuit === cuit && org.id !== exceptId)
+}
+
+/** Mirrors the backend rule: the data an invoice needs from its issuer. */
+function issuerCompleteness(organization: Organization): IssuerCompleteness {
+  const missing: IssuerCompleteness['missing'] = []
+  if (!organization.commercialAddress) {
+    missing.push({ field: 'commercialAddress', label: 'Domicilio comercial' })
+  }
+  if (!organization.activityStartDate) {
+    missing.push({ field: 'activityStartDate', label: 'Fecha de inicio de actividades' })
+  }
+  if (!organization.grossIncomeNumber) {
+    missing.push({ field: 'grossIncomeNumber', label: 'Ingresos Brutos' })
+  }
+  return { complete: missing.length === 0, missing }
 }
 
 export const organizationHandlers = [
@@ -72,7 +87,10 @@ export const organizationHandlers = [
   http.get(`${API_URL}/api/organizations/me`, ({ request }) => {
     const organization = resolveOrganization(request)
     if (organization instanceof Response) return organization
-    return HttpResponse.json(organization)
+    return HttpResponse.json({
+      ...organization,
+      issuerCompleteness: issuerCompleteness(organization),
+    })
   }),
 
   http.patch(`${API_URL}/api/organizations/me`, async ({ request }) => {

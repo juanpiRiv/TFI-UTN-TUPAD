@@ -20,12 +20,26 @@ export type Organization = {
   updatedAt: string
 }
 
+export type IssuerMissingItem = { field: string; label: string }
+
+/** What is still missing in the organization to be able to issue an invoice. */
+export type IssuerCompleteness = { complete: boolean; missing: IssuerMissingItem[] }
+
+/** Organization with the completeness that GET /api/organizations/me adds. */
+export type OrganizationWithCompleteness = Organization & { issuerCompleteness: IssuerCompleteness }
+
+export type ArcaPendingCsr = { csr: string; createdAt: string }
+
+/** Response of POST /arca-credential/csr. */
+export type ArcaCsr = ArcaPendingCsr
+
 /** ARCA credential status. The private key never comes back from the server. */
 export type ArcaCredentialStatus =
-  | { configured: false }
+  | { configured: false; pendingCsr?: ArcaPendingCsr }
   | {
       configured: true
-      environment: 'HOMOLOGACION'
+      environment: 'HOMOLOGACION' | 'PRODUCCION'
       certificateExpiresAt: string
       updatedAt: string
+      pendingCsr?: ArcaPendingCsr
     }

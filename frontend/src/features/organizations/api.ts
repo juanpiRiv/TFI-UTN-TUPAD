@@ -1,7 +1,12 @@
 import { apiFetch } from '@/lib/api'
-import type { ArcaCredentialInput } from './arca-credential-schemas'
+import type { ArcaCertificateInput, ArcaCredentialInput } from './arca-credential-schemas'
 import type { OrganizationInput } from './schemas'
-import type { ArcaCredentialStatus, Organization } from './types'
+import type {
+  ArcaCredentialStatus,
+  ArcaCsr,
+  Organization,
+  OrganizationWithCompleteness,
+} from './types'
 
 export function createOrganization(input: OrganizationInput): Promise<Organization> {
   return apiFetch<Organization>('/api/organizations', { method: 'POST', body: input })
@@ -23,4 +28,21 @@ export function saveArcaCredential(input: ArcaCredentialInput): Promise<ArcaCred
 
 export async function deleteArcaCredential(): Promise<undefined> {
   await apiFetch<unknown>(ARCA_CREDENTIAL_PATH, { method: 'DELETE' })
+}
+
+export function generateArcaCsr(): Promise<ArcaCsr> {
+  return apiFetch<ArcaCsr>(`${ARCA_CREDENTIAL_PATH}/csr`, { method: 'POST' })
+}
+
+export function uploadArcaCertificate(input: ArcaCertificateInput): Promise<ArcaCredentialStatus> {
+  return apiFetch<ArcaCredentialStatus>(`${ARCA_CREDENTIAL_PATH}/certificate`, {
+    method: 'POST',
+    body: input,
+  })
+}
+
+export function getOrganizationWithCompleteness(
+  signal?: AbortSignal,
+): Promise<OrganizationWithCompleteness> {
+  return apiFetch<OrganizationWithCompleteness>('/api/organizations/me', { signal })
 }

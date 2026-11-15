@@ -9,6 +9,23 @@ import { useAuthorizeInvoiceMutation, useInvoiceDetailQuery } from './queries'
 import { PaymentForm } from './PaymentForm'
 import type { PaymentItem } from './schemas'
 
+const ISSUER_LABELS: Record<string, string> = {
+  cuit: 'CUIT',
+  legalName: 'Razón social',
+  taxCondition: 'Condición frente al IVA',
+  commercialAddress: 'Domicilio comercial',
+  activityStartDate: 'Fecha de inicio de actividades',
+  grossIncomeNumber: 'Ingresos Brutos',
+  monotributoCategory: 'Categoría de monotributo',
+}
+
+function missingItems(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((field) => ISSUER_LABELS[field] ?? field)
+}
+
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const invoiceId = Number(id)
@@ -22,12 +39,18 @@ export function InvoiceDetailPage() {
     if (ok) authorize.mutate()
   }
   const fiscal = authorize.data?.fiscal
+  const issuerMissing =
+    authorize.error instanceof ApiError && authorize.error.code === 'ISSUER_INCOMPLETE'
+      ? missingItems(authorize.error.body.missing)
+      : null
   const authorizeError =
-    authorize.error instanceof ApiError
-      ? authorize.error.message
-      : authorize.error
-        ? 'Ocurrió un error inesperado. Probá de nuevo.'
-        : null
+    issuerMissing !== null
+      ? null
+      : authorize.error instanceof ApiError
+        ? authorize.error.message
+        : authorize.error
+          ? 'Ocurrió un error inesperado. Probá de nuevo.'
+          : null
 
   if (isLoading) {
     return <LoadingState label="Cargando información de la factura y sus cobros..." />
@@ -210,6 +233,21 @@ export function InvoiceDetailPage() {
           {invoice.status === 'DRAFT' ? 'Vista previa del comprobante' : 'Ver comprobante'}
         </Link>
       </div>
+      {issuerMissing !== null && (
+        <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
+          <p className="font-semibold">Faltan datos de tu negocio para poder facturar.</p>
+          {issuerMissing.length > 0 && (
+            <ul className="mt-1 list-disc pl-5">
+              {issuerMissing.map((label) => (
+                <li key={label}>{label}</li>
+              ))}
+            </ul>
+          )}
+          <Link to="/organizacion" className="mt-1 inline-block font-medium underline">
+            Completar los datos en Mi negocio
+          </Link>
+        </div>
+      )}
       {authorizeError && (
         <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
           {authorizeError}

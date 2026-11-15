@@ -27,9 +27,28 @@ export function useCreateOrganization() {
   })
 }
 
+export const organizationKeys = {
+  completeness: ['organization-completeness'] as const,
+}
+
 export function useUpdateOrganization() {
   const syncMe = useSyncMe()
-  return useMutation({ mutationFn: organizationsApi.updateOrganization, onSuccess: syncMe })
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: organizationsApi.updateOrganization,
+    onSuccess: async (organization) => {
+      await queryClient.invalidateQueries({ queryKey: organizationKeys.completeness })
+      await syncMe(organization)
+    },
+  })
+}
+
+export function useIssuerCompleteness() {
+  return useQuery({
+    queryKey: organizationKeys.completeness,
+    queryFn: ({ signal }) => organizationsApi.getOrganizationWithCompleteness(signal),
+    select: (organization) => organization.issuerCompleteness,
+  })
 }
 
 export const arcaCredentialKeys = {
@@ -56,4 +75,14 @@ export function useSaveArcaCredential() {
 export function useDeleteArcaCredential() {
   const invalidate = useInvalidateArcaCredential()
   return useMutation({ mutationFn: organizationsApi.deleteArcaCredential, onSuccess: invalidate })
+}
+
+export function useGenerateArcaCsr() {
+  const invalidate = useInvalidateArcaCredential()
+  return useMutation({ mutationFn: organizationsApi.generateArcaCsr, onSuccess: invalidate })
+}
+
+export function useUploadArcaCertificate() {
+  const invalidate = useInvalidateArcaCredential()
+  return useMutation({ mutationFn: organizationsApi.uploadArcaCertificate, onSuccess: invalidate })
 }

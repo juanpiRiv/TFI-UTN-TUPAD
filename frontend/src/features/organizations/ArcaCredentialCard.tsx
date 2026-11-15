@@ -6,19 +6,16 @@ import { controlClass, Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
 import { ErrorState, FormError, LoadingState } from '@/components/ui/States'
 import { formatDate } from '@/lib/format'
-import { ApiError } from '@/lib/api'
 import {
   arcaCredentialSchema,
   type ArcaCredentialFormValues,
   type ArcaCredentialInput,
 } from './arca-credential-schemas'
+import { errorMessage } from './arca-errors'
+import { ArcaConnectWizard } from './ArcaConnectWizard'
 import { useArcaCredential, useDeleteArcaCredential, useSaveArcaCredential } from './queries'
 
 const emptyValues: ArcaCredentialFormValues = { certificate: '', privateKey: '' }
-
-function errorMessage(error: unknown): string {
-  return error instanceof ApiError ? error.message : 'Ocurrió un error inesperado. Probá de nuevo.'
-}
 
 export function ArcaCredentialCard() {
   const credential = useArcaCredential()
@@ -27,6 +24,7 @@ export function ArcaCredentialCard() {
   const [formError, setFormError] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [replacing, setReplacing] = useState(false)
   const {
     register,
     handleSubmit,
@@ -57,6 +55,7 @@ export function ArcaCredentialCard() {
     try {
       await save.mutateAsync(values)
       resetField('certificate', { defaultValue: '' })
+      setReplacing(false)
     } catch (error) {
       setFormError(errorMessage(error))
     } finally {
@@ -76,6 +75,7 @@ export function ArcaCredentialCard() {
   }
 
   const status = credential.data
+  const showWizard = !status?.configured || replacing
 
   return (
     <section
@@ -101,7 +101,8 @@ export function ArcaCredentialCard() {
             <div role="status" className="rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-800">
               <p className="font-medium">Conectada</p>
               <p>
-                Homologación. El certificado vence el {formatDate(status.certificateExpiresAt)}.
+                {status.environment === 'PRODUCCION' ? 'Producción' : 'Homologación'}. El
+                certificado vence el {formatDate(status.certificateExpiresAt)}.
               </p>
               <p>Última actualización: {formatDate(status.updatedAt)}.</p>
             </div>
@@ -112,90 +113,102 @@ export function ArcaCredentialCard() {
             </p>
           )}
 
-          <details className="text-sm text-slate-600">
-            <summary className="cursor-pointer font-medium text-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">
-              Cómo conectar tu cuenta de ARCA
-            </summary>
-            <ol className="mt-2 list-decimal space-y-1 pl-5">
-              <li>Generá una clave privada y un pedido de certificado (CSR).</li>
-              <li>Pedí el certificado de homologación en WSASS.</li>
-              <li>Autorizá el servicio wsfe para ese certificado.</li>
-              <li>Dá de alta un punto de venta para web service.</li>
-              <li>Cargá acá el certificado y la clave.</li>
-            </ol>
-            <p className="mt-2">
-              La clave se guarda cifrada y no se vuelve a mostrar. Solo homologación: los
-              comprobantes no tienen validez fiscal.
-            </p>
-          </details>
-
-          <form
-            onSubmit={submit}
-            noValidate
-            aria-label="Cargar credencial de ARCA"
-            className="flex flex-col gap-4"
-          >
-            <FormError message={formError} />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-3">
-                <Input
-                  id="arca-certificate-file"
-                  label="Archivo del certificado (.crt, .pem, .cer)"
-                  type="file"
-                  accept=".crt,.pem,.cer"
-                  onChange={(event) => void loadFile('certificate')(event)}
-                />
-                <Field
-                  id="arca-certificate"
-                  label="O pegá el certificado"
-                  error={errors.certificate?.message}
-                >
-                  <textarea
-                    id="arca-certificate"
-                    rows={6}
-                    spellCheck={false}
-                    autoComplete="off"
-                    placeholder="-----BEGIN CERTIFICATE-----"
-                    aria-invalid={errors.certificate ? true : undefined}
-                    aria-describedby={errors.certificate ? 'arca-certificate-error' : undefined}
-                    className={`${controlClass} font-mono text-xs`}
-                    {...register('certificate')}
-                  />
-                </Field>
-              </div>
-              <div className="flex flex-col gap-3">
-                <Input
-                  id="arca-key-file"
-                  label="Archivo de la clave (.key, .pem)"
-                  type="file"
-                  accept=".key,.pem"
-                  onChange={(event) => void loadFile('privateKey')(event)}
-                />
-                <Field
-                  id="arca-key"
-                  label="O pegá la clave privada"
-                  error={errors.privateKey?.message}
-                >
-                  <textarea
-                    id="arca-key"
-                    rows={6}
-                    spellCheck={false}
-                    autoComplete="off"
-                    placeholder="-----BEGIN PRIVATE KEY-----"
-                    aria-invalid={errors.privateKey ? true : undefined}
-                    aria-describedby={errors.privateKey ? 'arca-key-error' : undefined}
-                    className={`${controlClass} font-mono text-xs`}
-                    {...register('privateKey')}
-                  />
-                </Field>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Button type="submit" loading={isSubmitting} className="w-full sm:w-auto">
-                {status?.configured ? 'Reemplazar credencial' : 'Conectar con ARCA'}
+          {showWizard ? (
+            <>
+              <ArcaConnectWizard
+                pendingCsr={status?.pendingCsr}
+                onCancel={status?.configured ? () => setReplacing(false) : undefined}
+                onConnected={() => setReplacing(false)}
+              />
+              <details className="text-sm text-slate-600">
+                <summary className="cursor-pointer font-medium text-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">
+                  Opciones avanzadas
+                </summary>
+                <div className="mt-3 flex flex-col gap-3">
+                  <h3 className="font-medium text-slate-900">Ya tengo certificado y clave</h3>
+                  <p>
+                    Si generaste la clave y el pedido de certificado por tu cuenta, cargá los dos
+                    archivos. La clave se guarda cifrada y no se vuelve a mostrar.
+                  </p>
+                  <form
+                    onSubmit={submit}
+                    noValidate
+                    aria-label="Cargar certificado y clave"
+                    className="flex flex-col gap-4"
+                  >
+                    <FormError message={formError} />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="flex flex-col gap-3">
+                        <Input
+                          id="arca-certificate-file"
+                          label="Archivo del certificado (.crt, .pem, .cer)"
+                          type="file"
+                          accept=".crt,.pem,.cer"
+                          onChange={(event) => void loadFile('certificate')(event)}
+                        />
+                        <Field
+                          id="arca-certificate"
+                          label="O pegá el certificado"
+                          error={errors.certificate?.message}
+                        >
+                          <textarea
+                            id="arca-certificate"
+                            rows={6}
+                            spellCheck={false}
+                            autoComplete="off"
+                            placeholder="-----BEGIN CERTIFICATE-----"
+                            aria-invalid={errors.certificate ? true : undefined}
+                            aria-describedby={
+                              errors.certificate ? 'arca-certificate-error' : undefined
+                            }
+                            className={`${controlClass} font-mono text-xs`}
+                            {...register('certificate')}
+                          />
+                        </Field>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <Input
+                          id="arca-key-file"
+                          label="Archivo de la clave (.key, .pem)"
+                          type="file"
+                          accept=".key,.pem"
+                          onChange={(event) => void loadFile('privateKey')(event)}
+                        />
+                        <Field
+                          id="arca-key"
+                          label="O pegá la clave privada"
+                          error={errors.privateKey?.message}
+                        >
+                          <textarea
+                            id="arca-key"
+                            rows={6}
+                            spellCheck={false}
+                            autoComplete="off"
+                            placeholder="-----BEGIN PRIVATE KEY-----"
+                            aria-invalid={errors.privateKey ? true : undefined}
+                            aria-describedby={errors.privateKey ? 'arca-key-error' : undefined}
+                            className={`${controlClass} font-mono text-xs`}
+                            {...register('privateKey')}
+                          />
+                        </Field>
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button type="submit" loading={isSubmitting} className="w-full sm:w-auto">
+                        Conectar con ARCA
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              </details>
+            </>
+          ) : (
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button variant="secondary" onClick={() => setReplacing(true)}>
+                Reemplazar
               </Button>
             </div>
-          </form>
+          )}
 
           {status?.configured && (
             <div className="border-t border-slate-200 pt-4">
@@ -210,7 +223,7 @@ export function ArcaCredentialCard() {
               {confirmingDelete ? (
                 <div
                   role="group"
-                  aria-label="Confirmar desconexión"
+                  aria-label="Confirmar eliminación"
                   className="flex flex-col gap-3"
                 >
                   <p className="text-sm text-slate-800">
@@ -237,7 +250,7 @@ export function ArcaCredentialCard() {
                 </div>
               ) : (
                 <Button variant="secondary" onClick={() => setConfirmingDelete(true)}>
-                  Desconectar
+                  Eliminar
                 </Button>
               )}
             </div>

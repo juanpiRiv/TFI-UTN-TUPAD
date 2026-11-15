@@ -130,6 +130,32 @@ describe('botón Facturar de un borrador (Issue #59)', () => {
     expect(screen.queryByTestId('invoice-issuer')).not.toBeInTheDocument()
   })
 
+  it('con datos del emisor incompletos lista lo que falta y enlaza a Mi negocio', async () => {
+    server.use(
+      http.post(`${API_URL}/api/invoices/1/authorize`, () =>
+        HttpResponse.json(
+          {
+            message: 'Faltan datos del emisor.',
+            code: 'ISSUER_INCOMPLETE',
+            missing: ['commercialAddress', 'grossIncomeNumber'],
+          },
+          { status: 422 },
+        ),
+      ),
+    )
+    const view = renderApp('/facturas/1')
+
+    await view.user.click(await screen.findByRole('button', { name: 'Facturar' }))
+
+    expect(await screen.findByText(/Faltan datos de tu negocio/)).toBeInTheDocument()
+    expect(screen.getByText('Domicilio comercial')).toBeInTheDocument()
+    expect(screen.getByText('Ingresos Brutos')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Completar los datos en Mi negocio/ })).toHaveAttribute(
+      'href',
+      '/organizacion',
+    )
+  })
+
   it('si se cancela la confirmación no llama a la API', async () => {
     vi.mocked(window.confirm).mockReturnValue(false)
     mockAuthorize(authorized, {})
