@@ -1,7 +1,7 @@
 import "dotenv/config";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { isValidCuit } from "../../lib/cuit.js";
+import { uniqueCuit } from "../../test-utils/unique-cuit.js";
 import { createPointOfSaleSchema, updatePointOfSaleSchema } from "./points-of-sale.schemas.js";
 
 let app: any;
@@ -19,16 +19,7 @@ if (process.env.DATABASE_URL && process.env.JWT_SECRET) {
     }
 }
 
-let cuitSeed = (Date.now() + 9191) % 100_000_000;
-function nextCuit(): string {
-    for (; ;) {
-        cuitSeed = (cuitSeed + 7919) % 100_000_000;
-        const base = `23${String(cuitSeed).padStart(8, "0")}`;
-        for (let digit = 0; digit <= 9; digit++) {
-            if (isValidCuit(`${base}${digit}`)) return `${base}${digit}`;
-        }
-    }
-}
+const nextCuit = () => uniqueCuit("23");
 
 describe("points of sale schemas", () => {
     it("exige un número entero entre 1 y 99999", () => {

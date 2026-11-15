@@ -1,7 +1,7 @@
 import "dotenv/config";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { isValidCuit } from "../../lib/cuit.js";
+import { uniqueCuit } from "../../test-utils/unique-cuit.js";
 import { createOrganizationSchema, updateOrganizationSchema } from "./organizations.schemas.js";
 
 let app: any;
@@ -19,17 +19,7 @@ if (process.env.DATABASE_URL && process.env.JWT_SECRET) {
     }
 }
 
-/** Genera un CUIT válido y distinto en cada llamada. */
-let cuitSeed = Date.now() % 100_000_000;
-function nextCuit(): string {
-    for (; ;) {
-        cuitSeed = (cuitSeed + 7919) % 100_000_000;
-        const base = `20${String(cuitSeed).padStart(8, "0")}`;
-        for (let digit = 0; digit <= 9; digit++) {
-            if (isValidCuit(`${base}${digit}`)) return `${base}${digit}`;
-        }
-    }
-}
+const nextCuit = () => uniqueCuit("20");
 
 const validBody = () => ({
     cuit: nextCuit(),
