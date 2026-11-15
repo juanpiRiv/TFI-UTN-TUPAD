@@ -27,6 +27,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
+    "@peculiar/x509": "1.12.3",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "7",
     "argon2": "^0.45.1",

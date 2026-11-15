@@ -99,12 +99,12 @@ Cuando no hay base de datos o falta `ARCA_ENCRYPTION_KEY` (desarrollo y scripts 
 1. Hacer un backup de la base.
 2. Generar la clave nueva: `openssl rand -hex 32`.
 3. Simular (no escribe nada): `ARCA_OLD_ENCRYPTION_KEY=<vieja> ARCA_NEW_ENCRYPTION_KEY=<nueva> pnpm arca:rotate-key`.
-4. Aplicar: el mismo comando con `--apply`. Vuelve a cifrar las claves privadas y los tickets de WSAA vigentes en una sola transacción: si una credencial no se descifra ni con la clave vieja ni con la nueva, no cambia nada. Se puede repetir sin riesgo.
+4. Aplicar: el mismo comando con `--apply`. Vuelve a cifrar las claves privadas, las claves de las solicitudes de certificado pendientes (tabla `arca_csr_requests`) y los tickets de WSAA vigentes en una sola transacción: si una credencial no se descifra ni con la clave vieja ni con la nueva, no cambia nada. Las solicitudes pendientes y los tickets ilegibles no frenan la rotación: se descartan y se informan (el cliente puede generar otra solicitud). Se puede repetir sin riesgo.
 5. Cambiar `ARCA_ENCRYPTION_KEY` en el servidor por la clave nueva y reiniciar.
 
 Si alguien guarda una credencial mientras se rota, la rotación aborta sin cambiar nada y hay que repetirla. Entre los pasos 4 y 5 el servidor con la clave vieja no puede descifrar las credenciales y las emisiones por ARCA fallan con un error claro: conviene hacerlo en una ventana corta. Las claves se pasan por variables de entorno y el script imprime solo cantidades.
 
-**Credencial por organización.** El cliente carga su certificado y su clave en la pantalla de la organización (`/organizacion`). Los pasos que hace antes en ARCA están en [la guía del cliente](./arca/alta-de-cliente.md).
+**Credencial por organización.** El cliente conecta su cuenta en la pantalla de la organización (`/organizacion`): la aplicación genera la clave y el CSR, y él solo sube el certificado que le devuelve ARCA (también puede cargar un certificado y una clave propios). Los pasos que hace antes en ARCA están en [la guía del cliente](./arca/alta-de-cliente.md).
 
 **Chequeos locales** (desde `backend/`, con las variables ARCA_* cargadas):
 

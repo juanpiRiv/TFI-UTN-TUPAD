@@ -1,5 +1,5 @@
 import type { PrismaClient } from '../../generated/prisma/client.js'
-import { aadFor } from './arca-credential.service.js'
+import { aadFor, csrAadFor } from './arca-credential.service.js'
 import { decryptSecret, encryptSecret, parseEncryptionKey } from './secret-box.js'
 
 export interface KeyRotationReport {
@@ -11,6 +11,12 @@ export interface KeyRotationReport {
   ticketsRotated: number
   /** Tickets vencidos o que no se descifran con ninguna de las dos claves: se descartan, el siguiente pedido arma otro. */
   ticketsDiscarded: number
+  /** Solicitudes de certificado pendientes (clave privada generada por la aplicación) vueltas a cifrar. */
+  csrRotated: number
+  /** Solicitudes pendientes que ya estaban con la clave nueva. */
+  csrAlreadyRotated: number
+  /** Solicitudes pendientes que no se descifran con ninguna de las dos claves: se descartan, el cliente genera otra. */
+  csrDiscarded: number
   /** Si fue una simulación: no se escribió nada. */
   dryRun: boolean
 }
@@ -123,7 +129,48 @@ export async function rotateEncryptionKey(prisma: RotationClient, input: KeyRota
         }
         ticketsRotated++
       }
-      return { rotated, alreadyRotated, ticketsRotated, ticketsDiscarded, dryRun }
+
+      let csrRotated = 0
+      let csrAlreadyRotated = 0
+      let csrDiscarded = 0
+      const requests = await tx.arcaCsrRequest.findMany({ select: { id: true, organizationId: true, privateKeyEncrypted: true } })
+      for (const request of requests) {
+        const aad = csrAadFor(request.organizationId)
+        let plain: string | undefined
+        try {
+          plain = decryptSecret(request.privateKeyEncrypted, oldKey, aad)
+        } catch {
+          try {
+            decryptSecret(request.privateKeyEncrypted, newKey, aad)
+            csrAlreadyRotated++
+            continue
+          } catch {
+            // No se lee con ninguna: se descarta, el cliente puede generar otra solicitud.
+          }
+        }
+        if (plain === undefined) {
+          if (!dryRun) {
+            await tx.arcaCsrRequest.deleteMany({ where: { id: request.id, privateKeyEncrypted: request.privateKeyEncrypted } })
+          }
+          csrDiscarded++
+          continue
+        }
+        const reencrypted = encryptSecret(plain, newKey, aad)
+        if (decryptSecret(reencrypted, newKey, aad) !== plain) {
+          throw new Error(`La verificación del nuevo cifrado falló para la solicitud de la organización ${request.organizationId}. No se cambió nada.`)
+        }
+        if (!dryRun) {
+          const written = await tx.arcaCsrRequest.updateMany({
+            where: { id: request.id, privateKeyEncrypted: request.privateKeyEncrypted },
+            data: { privateKeyEncrypted: reencrypted },
+          })
+          if (written.count !== 1) {
+            throw new Error(`La solicitud de la organización ${request.organizationId} cambió mientras se rotaba. No se cambió nada: repetir la rotación.`)
+          }
+        }
+        csrRotated++
+      }
+      return { rotated, alreadyRotated, ticketsRotated, ticketsDiscarded, csrRotated, csrAlreadyRotated, csrDiscarded, dryRun }
     },
     { timeout: 60_000 },
   )

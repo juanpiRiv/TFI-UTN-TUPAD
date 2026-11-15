@@ -13,3 +13,7 @@ export const arcaCredentialSchema = z.object({
     certificate: pem("Certificate"),
     privateKey: pem("Private key"),
 });
+
+export const arcaCertificateSchema = z.object({
+    certificate: pem("Certificate"),
+});

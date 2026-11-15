@@ -29,6 +29,7 @@ try {
   const mode = report.dryRun ? 'SIMULACIÓN (no se escribió nada)' : 'APLICADO'
   console.log(`${mode}: ${report.rotated} credencial(es) vueltas a cifrar, ${report.alreadyRotated} ya estaban con la clave nueva.`)
   console.log(`Tickets de acceso: ${report.ticketsRotated} vueltos a cifrar, ${report.ticketsDiscarded} descartados (vencidos o ilegibles).`)
+  console.log(`Solicitudes de certificado pendientes: ${report.csrRotated} vueltas a cifrar, ${report.csrAlreadyRotated} ya estaban con la clave nueva, ${report.csrDiscarded} descartadas (ilegibles).`)
   if (report.dryRun) console.log('Para escribir los cambios, repetir con --apply.')
   else console.log('Ahora cambiar ARCA_ENCRYPTION_KEY en el servidor por la clave nueva y reiniciar.')
 } catch (error) {

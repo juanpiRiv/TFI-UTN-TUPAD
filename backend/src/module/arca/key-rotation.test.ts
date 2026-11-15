@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
-import { aadFor } from './arca-credential.service.js'
+import { aadFor, csrAadFor } from './arca-credential.service.js'
 import { rotateEncryptionKey } from './key-rotation.js'
 import { decryptSecret, encryptSecret } from './secret-box.js'
 
@@ -21,12 +21,14 @@ interface Ticket {
   expiresAt: Date
 }
 
-function fakePrisma(initial: Row[], initialTickets: Ticket[] = [], afterRead?: (rows: Row[]) => Row[]) {
+function fakePrisma(initial: Row[], initialTickets: Ticket[] = [], afterRead?: (rows: Row[]) => Row[], initialCsr: Row[] = []) {
+  let csrRows = initialCsr.map((row) => ({ ...row }))
   let rows = initial.map((row) => ({ ...row }))
   let tickets = initialTickets.map((ticket) => ({ ...ticket }))
   const client = {
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) => {
       let snapshot = rows.map((row) => ({ ...row }))
+      const csrSnapshot = csrRows.map((row) => ({ ...row }))
       const ticketSnapshot = tickets.map((ticket) => ({ ...ticket }))
       const tx = {
         arcaWsaaTicket: {
@@ -38,6 +40,18 @@ function fakePrisma(initial: Row[], initialTickets: Ticket[] = [], afterRead?: (
           },
           deleteMany: async ({ where }: { where: { id: string } }) => {
             tickets = tickets.filter((ticket) => ticket.id !== where.id)
+            return { count: 1 }
+          },
+        },
+        arcaCsrRequest: {
+          findMany: async () => csrRows.map((row) => ({ ...row })),
+          updateMany: async ({ where, data }: { where: { id: number; privateKeyEncrypted: string }; data: { privateKeyEncrypted: string } }) => {
+            const match = csrRows.find((row) => row.id === where.id && row.privateKeyEncrypted === where.privateKeyEncrypted)
+            if (match) csrRows = csrRows.map((row) => (row === match ? { ...row, ...data } : row))
+            return { count: match ? 1 : 0 }
+          },
+          deleteMany: async ({ where }: { where: { id: number } }) => {
+            csrRows = csrRows.filter((row) => row.id !== where.id)
             return { count: 1 }
           },
         },
@@ -62,11 +76,12 @@ function fakePrisma(initial: Row[], initialTickets: Ticket[] = [], afterRead?: (
       } catch (error) {
         rows = snapshot
         tickets = ticketSnapshot
+        csrRows = csrSnapshot
         throw error
       }
     },
   }
-  return { client: client as never, rows: () => rows, tickets: () => tickets }
+  return { client: client as never, rows: () => rows, tickets: () => tickets, csr: () => csrRows }
 }
 
 const rowFor = (id: number, organizationId: number, keyHex: string): Row => ({
@@ -82,7 +97,7 @@ describe('rotateEncryptionKey', () => {
 
     const report = await rotateEncryptionKey(db.client, { oldKeyHex: oldKey, newKeyHex: newKey, apply: true })
 
-    expect(report).toEqual({ rotated: 2, alreadyRotated: 0, ticketsRotated: 0, ticketsDiscarded: 0, dryRun: false })
+    expect(report).toEqual({ rotated: 2, alreadyRotated: 0, ticketsRotated: 0, ticketsDiscarded: 0, csrRotated: 0, csrAlreadyRotated: 0, csrDiscarded: 0, dryRun: false })
     for (const row of db.rows()) {
       expect(decryptSecret(row.privateKeyEncrypted, Buffer.from(newKey, 'hex'), aadFor(row.organizationId))).toBe(PEM)
       expect(() => decryptSecret(row.privateKeyEncrypted, Buffer.from(oldKey, 'hex'), aadFor(row.organizationId))).toThrow()
@@ -96,7 +111,7 @@ describe('rotateEncryptionKey', () => {
 
     const report = await rotateEncryptionKey(db.client, { oldKeyHex: oldKey, newKeyHex: newKey })
 
-    expect(report).toEqual({ rotated: 1, alreadyRotated: 0, ticketsRotated: 0, ticketsDiscarded: 0, dryRun: true })
+    expect(report).toEqual({ rotated: 1, alreadyRotated: 0, ticketsRotated: 0, ticketsDiscarded: 0, csrRotated: 0, csrAlreadyRotated: 0, csrDiscarded: 0, dryRun: true })
     expect(db.rows()[0]?.privateKeyEncrypted).toBe(original.privateKeyEncrypted)
   })
 
@@ -107,7 +122,7 @@ describe('rotateEncryptionKey', () => {
 
     const report = await rotateEncryptionKey(db.client, { oldKeyHex: oldKey, newKeyHex: newKey, apply: true })
 
-    expect(report).toEqual({ rotated: 1, alreadyRotated: 1, ticketsRotated: 0, ticketsDiscarded: 0, dryRun: false })
+    expect(report).toEqual({ rotated: 1, alreadyRotated: 1, ticketsRotated: 0, ticketsDiscarded: 0, csrRotated: 0, csrAlreadyRotated: 0, csrDiscarded: 0, dryRun: false })
     expect(db.rows()[1]?.privateKeyEncrypted).toBe(already)
   })
 
@@ -207,6 +222,59 @@ describe('rotateEncryptionKey', () => {
 
       expect(report).toMatchObject({ ticketsRotated: 0, ticketsDiscarded: 0 })
       expect(db.tickets()[0]?.tokenEncrypted).toBe(before)
+    })
+  })
+
+  describe('solicitudes de certificado pendientes', () => {
+    const csrRow = (id: number, organizationId: number, keyHex: string): Row => ({
+      id,
+      organizationId,
+      privateKeyEncrypted: encryptSecret(PEM, Buffer.from(keyHex, 'hex'), csrAadFor(organizationId)),
+    })
+
+    it('vuelve a cifrar la clave pendiente con la clave nueva', async () => {
+      const [oldKey, newKey] = [hex(), hex()]
+      const db = fakePrisma([], [], undefined, [csrRow(1, 10, oldKey)])
+
+      const report = await rotateEncryptionKey(db.client, { oldKeyHex: oldKey, newKeyHex: newKey, apply: true })
+
+      expect(report).toMatchObject({ csrRotated: 1, csrAlreadyRotated: 0, csrDiscarded: 0 })
+      const [row] = db.csr()
+      expect(decryptSecret(row!.privateKeyEncrypted, Buffer.from(newKey, 'hex'), csrAadFor(10))).toBe(PEM)
+      expect(() => decryptSecret(row!.privateKeyEncrypted, Buffer.from(oldKey, 'hex'), csrAadFor(10))).toThrow()
+    })
+
+    it('cuenta las que ya usan la clave nueva y descarta las ilegibles', async () => {
+      const [oldKey, newKey, otherKey] = [hex(), hex(), hex()]
+      const db = fakePrisma([], [], undefined, [csrRow(1, 10, newKey), csrRow(2, 20, otherKey), csrRow(3, 30, oldKey)])
+
+      const report = await rotateEncryptionKey(db.client, { oldKeyHex: oldKey, newKeyHex: newKey, apply: true })
+
+      expect(report).toMatchObject({ csrRotated: 1, csrAlreadyRotated: 1, csrDiscarded: 1 })
+      expect(db.csr().map((row) => row.id)).toEqual([1, 3])
+    })
+
+    it('en simulación no escribe ni borra', async () => {
+      const [oldKey, newKey, otherKey] = [hex(), hex(), hex()]
+      const original = csrRow(1, 10, oldKey)
+      const db = fakePrisma([], [], undefined, [original, csrRow(2, 20, otherKey)])
+
+      const report = await rotateEncryptionKey(db.client, { oldKeyHex: oldKey, newKeyHex: newKey })
+
+      expect(report).toMatchObject({ csrRotated: 1, csrDiscarded: 1, dryRun: true })
+      expect(db.csr()).toHaveLength(2)
+      expect(db.csr()[0]?.privateKeyEncrypted).toBe(original.privateKeyEncrypted)
+    })
+
+    it('una solicitud copiada a otra organización no se rota: se descarta', async () => {
+      const [oldKey, newKey] = [hex(), hex()]
+      const copied = { ...csrRow(1, 10, oldKey), organizationId: 99 }
+      const db = fakePrisma([], [], undefined, [copied])
+
+      const report = await rotateEncryptionKey(db.client, { oldKeyHex: oldKey, newKeyHex: newKey, apply: true })
+
+      expect(report).toMatchObject({ csrRotated: 0, csrDiscarded: 1 })
+      expect(db.csr()).toHaveLength(0)
     })
   })
 })

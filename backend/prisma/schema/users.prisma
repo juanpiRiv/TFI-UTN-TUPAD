@@ -47,6 +47,7 @@ model Organization {
 
     user            User             @relation(fields: [userId], references: [id])
     arcaCredentials ArcaCredential[]
+    arcaCsrRequest  ArcaCsrRequest?
     activities      Activity[]
     pointsOfSale    PointOfSale[]
     clients         Client[]
@@ -78,6 +79,21 @@ model ArcaCredential {
 
     @@unique([organizationId, environment, service])
     @@map("arca_credentials")
+}
+
+// Solicitud de certificado (CSR) en curso: el backend genera la clave y el CSR, el cliente sube el certificado
+// que ARCA le devuelve. La clave privada se guarda cifrada hasta entonces y se borra al completar el alta.
+model ArcaCsrRequest {
+    id                  Int          @id @default(autoincrement())
+    organizationId      Int          @unique @map("organization_id")
+    csr                 String       @db.Text
+    privateKeyEncrypted String       @map("private_key_encrypted") @db.Text
+    createdAt           DateTime     @default(now()) @map("created_at")
+    updatedAt           DateTime     @updatedAt @map("updated_at")
+
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    @@map("arca_csr_requests")
 }
 
 // Ticket de acceso (TA) del WSAA compartido entre instancias del backend (ver DbWsaaSessionStore).

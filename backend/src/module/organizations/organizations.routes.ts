@@ -3,7 +3,7 @@ import { requireAuth } from "../../middlewares/require-handler.js";
 import { validateBody } from "../../middlewares/validate.js";
 import { createOrganizationSchema, updateOrganizationSchema } from "./organizations.schemas.js";
 import { create, getMine, updateMine } from "./organizations.controller.js";
-import { arcaCredentialSchema } from "./arca-credential.schemas.js";
+import { arcaCertificateSchema, arcaCredentialSchema } from "./arca-credential.schemas.js";
 import * as arcaCredential from "./arca-credential.controller.js";
 
 export const organizationsRouter = Router();
@@ -18,4 +18,6 @@ organizationsRouter.patch("/me", validateBody(updateOrganizationSchema), updateM
 // Credencial de ARCA de la organización: el certificado y la clave nunca vuelven en una respuesta
 organizationsRouter.get("/me/arca-credential", arcaCredential.getStatus);
 organizationsRouter.post("/me/arca-credential", validateBody(arcaCredentialSchema), arcaCredential.save);
+organizationsRouter.post("/me/arca-credential/csr", arcaCredential.createCsr);
+organizationsRouter.post("/me/arca-credential/certificate", validateBody(arcaCertificateSchema), arcaCredential.attachCertificate);
 organizationsRouter.delete("/me/arca-credential", arcaCredential.remove);

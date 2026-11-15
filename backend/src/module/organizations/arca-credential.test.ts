@@ -19,6 +19,7 @@ vi.mock("../../lib/prisma.js", () => ({
   prisma: {
     organization: { findUnique: vi.fn() },
     arcaCredential: { findUnique: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+    arcaCsrRequest: { findUnique: vi.fn().mockResolvedValue(null), upsert: vi.fn(), deleteMany: vi.fn() },
     auditLog: { create: vi.fn() },
   },
 }));
