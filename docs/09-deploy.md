@@ -25,11 +25,11 @@ Cada secreto vive en un solo lugar, el de quien lo usa. Nunca van al repositorio
 | `ARCA_PROVIDER` | Qué proveedor fiscal se usa: `simulated`, `sdk` o `direct` | Variable normal. **Obligatoria**: sin ella el backend no arranca. Usar `simulated` hasta tener la emisión real | Sí, desde #151 |
 | `ARCA_ENCRYPTION_KEY` | Clave que cifra en la base la clave privada de cada organización | Generarla con `openssl rand -hex 32`. Es un secreto | Sí: la lee el backend (cifra la clave privada y el ticket de WSAA) |
 
-`ARCA_PROVIDER` hay que cargarla desde el primer despliegue, porque el backend la valida al arrancar (cambio de #151). `ARCA_ENCRYPTION_KEY` se carga cuando se guarden credenciales por organización; cargarla antes no hace daño.
+`ARCA_PROVIDER` hay que cargarla desde el primer despliegue, porque el backend la valida al arrancar (cambio de #151). `ARCA_ENCRYPTION_KEY` hay que cargarla antes de que una organización guarde su credencial.
 
 ### Credenciales de ARCA: no son variables
 
-El certificado y la clave privada de ARCA no se cargan en Railway ni en GitHub. Según el [modelo de datos](./03-modelo-de-datos.md), se guardan por organización y ambiente en la tabla `ArcaCredential`: el certificado y la clave privada cifrada con `ARCA_ENCRYPTION_KEY`, más el ticket de acceso de WSAA. Todavía no hay una pantalla ni un endpoint para cargarlos.
+El certificado y la clave privada de ARCA no se cargan en Railway ni en GitHub. Según el [modelo de datos](./03-modelo-de-datos.md), se guardan por organización y ambiente en la tabla `ArcaCredential`: el certificado y la clave privada cifrada con `ARCA_ENCRYPTION_KEY`, más el ticket de acceso de WSAA. Se cargan desde la pantalla de la organización o con `POST /api/organizations/me/arca-credential`.
 
 Hoy el certificado de homologación vive solo en la computadora del titular del CUIT, fuera del repositorio, y no hay que subirlo a ningún lado. Si se pierde `ARCA_ENCRYPTION_KEY`, las claves cifradas en la base no se pueden recuperar, así que conviene guardarla también en un gestor de contraseñas.
 
