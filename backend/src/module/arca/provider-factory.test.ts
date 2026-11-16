@@ -66,10 +66,19 @@ describe('createFiscalProvider', () => {
     const clientFactory = vi.fn((_config: unknown) => ({}) as ArcaClient)
 
     createFiscalProvider('sdk', { credentials, overrides: { clientFactory } })
-    createFiscalProvider('sdk', { credentials, mode: 'produccion', overrides: { clientFactory } })
+    createFiscalProvider('sdk', { credentials, mode: 'produccion', allowProduction: true, overrides: { clientFactory } })
 
     expect(clientFactory.mock.calls[0]![0]).toMatchObject({ environment: 'test' })
     expect(clientFactory.mock.calls[1]![0]).toMatchObject({ environment: 'production' })
+  })
+
+  it('sdk en producción está bloqueado si no se confirma de forma explícita', () => {
+    const clientFactory = vi.fn(() => ({}) as unknown as ArcaClient)
+
+    expect(() => createFiscalProvider('sdk', { credentials, mode: 'produccion', overrides: { clientFactory } })).toThrow(
+      /ARCA_ALLOW_PRODUCTION=true/,
+    )
+    expect(clientFactory).not.toHaveBeenCalled()
   })
 
   it('sdk sin credenciales falla con un mensaje claro', () => {

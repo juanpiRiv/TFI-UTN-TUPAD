@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { issuerCompleteness } from "../invoices/issuer-completeness.js";
 import * as organizationsService from "./organizations.service.js";
 
 export async function create(req: Request, res: Response) {
@@ -8,7 +9,7 @@ export async function create(req: Request, res: Response) {
 
 export async function getMine(req: Request, res: Response) {
     const organization = await organizationsService.getOrganization(req.userId!);
-    res.json(organization);
+    res.json({ ...organization, issuerCompleteness: issuerCompleteness(organization) });
 }
 
 export async function updateMine(req: Request, res: Response) {

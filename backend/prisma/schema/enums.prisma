@@ -63,3 +63,9 @@ enum ArcaEnvironment {
     HOMOLOGACION
     PRODUCCION
 }
+
+// Resultado de la última verificación de la delegación del servicio de facturación en ARCA.
+enum ArcaDelegationStatus {
+    VERIFIED
+    FAILED
+}

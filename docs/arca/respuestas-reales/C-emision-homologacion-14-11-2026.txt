@@ -1,0 +1,40 @@
+Prueba real de punta a punta contra la HOMOLOGACION de ARCA
+Fecha: 14/11/2026 (hora de Argentina). Ambiente: wsaahomo / wswhomo. Sin validez fiscal.
+Cliente: backend del proyecto con ARCA_PROVIDER=sdk (libreria facturas 0.25.2), certificado de WSASS emitido el 22/10/2026.
+Datos que no se publican: CUIT (terminado en 3967), certificado, clave privada, token y firma del ticket de acceso.
+
+1) FEDummy (sin autenticacion)
+   {"appServer":"OK","dbServer":"OK","authServer":"OK"}
+
+2) WSAA: loginCms con el TRA firmado con el certificado propio
+   Resultado: ticket de acceso obtenido. La firma que usa la libreria (SHA-1) fue aceptada.
+
+3) FECompUltimoAutorizado, Factura C (CbteTipo 11)
+   Punto de venta 1: proximo numero 1. Punto de venta 2: proximo numero 1. Sin error en ninguno.
+
+4) FEParamGetPtosVenta
+   Lista vacia, aunque los puntos de venta 1 y 2 existen y aceptan comprobantes.
+   Conclusion: en homologacion esta consulta no sirve para saber si un punto de venta existe.
+
+5) FEParamGetCondicionIvaReceptor (clase C): ids confirmados contra el catalogo oficial
+   1 Responsable Inscripto, 4 Exento, 5 Consumidor Final, 6 Responsable Monotributo
+   (tambien 7, 8, 9, 10, 13, 15, 16). El codigo del repositorio usa 1, 4, 5 y 6.
+
+6) FECAESolicitar desde la aplicacion (POST /api/invoices/:id/authorize), Factura C por $ 1500, concepto productos,
+   receptor consumidor final (DocTipo 99, DocNro 0, CondicionIVAReceptorId 5)
+   Primera emision:  punto de venta 1 -> comprobante 1, CAE 86461069190540, vencimiento 24/11/2026
+                     punto de venta 2 -> comprobante 1, CAE 86461069190553, vencimiento 24/11/2026
+   Segunda emision:  punto de venta 1 -> comprobante 2, CAE 86461069190595
+                     punto de venta 2 -> comprobante 2, CAE 86461069190600
+   La aplicacion tomo el numero de FECompUltimoAutorizado + 1 en cada intento.
+
+7) Verificacion independiente con FECompConsultar (comprobante 1 de cada punto de venta)
+   Resultado: "A" (aprobado). CodAutorizacion igual al CAE guardado por la aplicacion.
+   Campos devueltos: CbteTipo 11, Concepto 1, DocTipo 99, DocNro 0, ImpTotal 1500, ImpNeto 1500, ImpIVA 0,
+   ImpTrib 0, MonId PES, MonCotiz 1, CondicionIVAReceptorId 5, EmisionTipo CAE, FchVto 20261124,
+   CbteFch 20261114, PtoVta 1 y 2.
+
+Observacion operativa
+   Cada proceso que pide su propio ticket al WSAA hace fallar a los demas mientras el primero sigue vigente
+   (12 horas): ARCA responde coe.alreadyAuthenticated. Por eso el backend y los scripts comparten el ticket
+   en un archivo (FileWsaaSessionStore). Con mas de una instancia en el despliegue hace falta un almacen en la base.

@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import { isValidCuit, organizationTaxConditions } from '@/features/organizations/schemas'
-import type { Organization } from '@/features/organizations/types'
+import type { IssuerCompleteness, Organization } from '@/features/organizations/types'
 import { API_URL } from '@/lib/api'
 import { db, nextId, nowIso, saveDb } from '../db'
 import { seedDefaultCategories } from './categories'
@@ -32,18 +32,42 @@ function cuitTaken(cuit: string | undefined, exceptId?: number): boolean {
   return db.organizations.some((org) => org.cuit === cuit && org.id !== exceptId)
 }
 
+/** Mirrors the backend rule (issuer-completeness.ts): IIBB is not required for MONOTRIBUTO. */
+export function issuerCompleteness(organization: Organization): IssuerCompleteness {
+  const missing: IssuerCompleteness['missing'] = []
+  const blank = (value: string | null | undefined) => !value || value.trim() === ''
+  if (blank(organization.legalName)) missing.push({ field: 'legalName', label: 'Razón social' })
+  if (blank(organization.cuit)) missing.push({ field: 'cuit', label: 'CUIT' })
+  if (blank(organization.taxCondition)) {
+    missing.push({ field: 'taxCondition', label: 'Condición frente al IVA' })
+  }
+  if (blank(organization.commercialAddress)) {
+    missing.push({ field: 'commercialAddress', label: 'Domicilio comercial' })
+  }
+  if (!organization.activityStartDate) {
+    missing.push({ field: 'activityStartDate', label: 'Fecha de inicio de actividades' })
+  }
+  if (organization.taxCondition !== 'MONOTRIBUTO' && blank(organization.grossIncomeNumber)) {
+    missing.push({
+      field: 'grossIncomeNumber',
+      label: 'Ingresos Brutos (número, Exento o Convenio)',
+    })
+  }
+  return { complete: missing.length === 0, missing }
+}
+
 export const organizationHandlers = [
   http.post(`${API_URL}/api/organizations`, async ({ request }) => {
     const context = resolveUser(request)
     if (context instanceof Response) return context
     if (context.organization) {
-      return HttpResponse.json({ error: 'Organization already exists' }, { status: 409 })
+      return HttpResponse.json({ error: 'Ya tenés una organización creada' }, { status: 409 })
     }
     const body = (await request.json()) as OrganizationBody
     const details = validate(body, false)
     if (details.length) return invalidData(details)
     if (cuitTaken(body.cuit)) {
-      return HttpResponse.json({ error: 'CUIT already registered' }, { status: 409 })
+      return HttpResponse.json({ error: 'Ese CUIT ya está registrado en otra organización' }, { status: 409 })
     }
 
     const now = nowIso()
@@ -72,7 +96,10 @@ export const organizationHandlers = [
   http.get(`${API_URL}/api/organizations/me`, ({ request }) => {
     const organization = resolveOrganization(request)
     if (organization instanceof Response) return organization
-    return HttpResponse.json(organization)
+    return HttpResponse.json({
+      ...organization,
+      issuerCompleteness: issuerCompleteness(organization),
+    })
   }),
 
   http.patch(`${API_URL}/api/organizations/me`, async ({ request }) => {
@@ -82,7 +109,7 @@ export const organizationHandlers = [
     const details = validate(body, true)
     if (details.length) return invalidData(details)
     if (body.cuit !== undefined && cuitTaken(body.cuit, organization.id)) {
-      return HttpResponse.json({ error: 'CUIT already registered' }, { status: 409 })
+      return HttpResponse.json({ error: 'Ese CUIT ya está registrado en otra organización' }, { status: 409 })
     }
     Object.assign(organization, body, { updatedAt: nowIso() })
     saveDb()

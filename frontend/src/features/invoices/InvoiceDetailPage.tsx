@@ -9,6 +9,35 @@ import { useAuthorizeInvoiceMutation, useInvoiceDetailQuery } from './queries'
 import { PaymentForm } from './PaymentForm'
 import type { PaymentItem } from './schemas'
 
+const ISSUER_LABELS: Record<string, string> = {
+  cuit: 'CUIT',
+  legalName: 'Razón social',
+  taxCondition: 'Condición frente al IVA',
+  commercialAddress: 'Domicilio comercial',
+  activityStartDate: 'Fecha de inicio de actividades',
+  grossIncomeNumber: 'Ingresos Brutos',
+  monotributoCategory: 'Categoría de monotributo',
+}
+
+/** Labels of what the issuer is missing: the server's own labels first, our map as fallback. */
+function missingItems(body: Record<string, unknown>): string[] {
+  const { missingFields, missing } = body
+  if (Array.isArray(missingFields)) {
+    const labels = missingFields.flatMap((item) => {
+      if (typeof item === 'string') return [ISSUER_LABELS[item] ?? item]
+      const entry = item as { field?: unknown; label?: unknown } | null
+      if (typeof entry?.label === 'string') return [entry.label]
+      if (typeof entry?.field === 'string') return [ISSUER_LABELS[entry.field] ?? entry.field]
+      return []
+    })
+    if (labels.length > 0) return labels
+  }
+  if (!Array.isArray(missing)) return []
+  return missing
+    .filter((item): item is string => typeof item === 'string')
+    .map((field) => ISSUER_LABELS[field] ?? field)
+}
+
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const invoiceId = Number(id)
@@ -22,12 +51,18 @@ export function InvoiceDetailPage() {
     if (ok) authorize.mutate()
   }
   const fiscal = authorize.data?.fiscal
+  const issuerMissing =
+    authorize.error instanceof ApiError && authorize.error.code === 'ISSUER_INCOMPLETE'
+      ? missingItems(authorize.error.body)
+      : null
   const authorizeError =
-    authorize.error instanceof ApiError
-      ? authorize.error.message
-      : authorize.error
-        ? 'Ocurrió un error inesperado. Probá de nuevo.'
-        : null
+    issuerMissing !== null
+      ? null
+      : authorize.error instanceof ApiError
+        ? authorize.error.message
+        : authorize.error
+          ? 'Ocurrió un error inesperado. Probá de nuevo.'
+          : null
 
   if (isLoading) {
     return <LoadingState label="Cargando información de la factura y sus cobros..." />
@@ -191,14 +226,39 @@ export function InvoiceDetailPage() {
         </div>
       </div>
 
-      {invoice.simulated && invoice.status === 'AUTHORIZED' && (
+      {(invoice.simulated || invoice.testEnvironment) && invoice.status === 'AUTHORIZED' && (
         <p
           role="note"
           data-testid="simulated-legend"
           className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900"
         >
-          Comprobante de prueba, sin validez fiscal: lo generó el proveedor simulado.
+          {invoice.simulated
+            ? 'Comprobante de práctica, sin validez fiscal.'
+            : 'Comprobante de prueba, sin validez fiscal: se emitió en el ambiente de homologación de ARCA.'}
         </p>
+      )}
+      <div className="flex justify-end">
+        <Link
+          to={`/facturas/${invoice.invoiceId}/comprobante`}
+          className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          {invoice.status === 'DRAFT' ? 'Vista previa del comprobante' : 'Ver comprobante'}
+        </Link>
+      </div>
+      {issuerMissing !== null && (
+        <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
+          <p className="font-semibold">Faltan datos de tu negocio para poder facturar.</p>
+          {issuerMissing.length > 0 && (
+            <ul className="mt-1 list-disc pl-5">
+              {issuerMissing.map((label) => (
+                <li key={label}>{label}</li>
+              ))}
+            </ul>
+          )}
+          <Link to="/organizacion" className="mt-1 inline-block font-medium underline">
+            Completar los datos en Mi negocio
+          </Link>
+        </div>
       )}
       {authorizeError && (
         <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">

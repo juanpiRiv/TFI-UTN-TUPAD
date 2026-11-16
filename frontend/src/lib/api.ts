@@ -8,12 +8,24 @@ export type FieldErrorDetail = { field: string; message: string }
 export class ApiError extends Error {
   readonly status: number
   readonly details: FieldErrorDetail[]
+  /** Machine-readable code some endpoints add next to the message (e.g. ISSUER_INCOMPLETE). */
+  readonly code: string | null
+  /** Whole parsed error body, for endpoints that return extra fields. */
+  readonly body: Record<string, unknown>
 
-  constructor(status: number, message: string, details: FieldErrorDetail[] = []) {
+  constructor(
+    status: number,
+    message: string,
+    details: FieldErrorDetail[] = [],
+    code: string | null = null,
+    body: Record<string, unknown> = {},
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.details = details
+    this.code = code
+    this.body = body
   }
 }
 
@@ -86,9 +98,18 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   const payload = await readJson(response)
 
   if (!response.ok) {
-    const body = (payload ?? {}) as { error?: unknown; details?: unknown }
-    const message = typeof body.error === 'string' ? body.error : `Error ${response.status}`
-    const apiError = new ApiError(response.status, message, parseDetails(body.details))
+    const body: Record<string, unknown> =
+      typeof payload === 'object' && payload !== null && !Array.isArray(payload)
+        ? (payload as Record<string, unknown>)
+        : {}
+    const message =
+      typeof body.error === 'string' && body.error !== ''
+        ? body.error
+        : typeof body.message === 'string' && body.message !== ''
+          ? body.message
+          : `Error ${response.status}`
+    const code = typeof body.code === 'string' ? body.code : null
+    const apiError = new ApiError(response.status, message, parseDetails(body.details), code, body)
 
     // A 401 on a request that carried a token means the session expired or is invalid.
     // A 401 without a token (e.g. wrong password on login) is just a regular error.

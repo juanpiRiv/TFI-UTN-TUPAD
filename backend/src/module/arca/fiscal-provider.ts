@@ -46,6 +46,10 @@ export interface CaeResult {
 
 export interface FiscalProvider {
   readonly name: string
+  /** CUIT con el que el proveedor está autenticado en ARCA. Solo lo tienen los que hablan con ARCA. */
+  readonly issuerCuit?: string
+  /** Ambiente de ARCA al que apunta el proveedor. Solo lo tienen los que hablan con ARCA. */
+  readonly environment?: 'homologacion' | 'produccion'
   healthCheck(): Promise<{ ok: boolean; detail: string }>
   getLastAuthorized(params: LastAuthorizedParams): Promise<{ voucherNumber: number }>
   requestCae(request: CaeRequest): Promise<CaeResult>

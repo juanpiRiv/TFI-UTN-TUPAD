@@ -47,6 +47,8 @@ model Organization {
 
     user            User             @relation(fields: [userId], references: [id])
     arcaCredentials ArcaCredential[]
+    arcaCsrRequest  ArcaCsrRequest?
+    arcaDelegation  ArcaDelegation?
     activities      Activity[]
     pointsOfSale    PointOfSale[]
     clients         Client[]
@@ -78,4 +80,58 @@ model ArcaCredential {
 
     @@unique([organizationId, environment, service])
     @@map("arca_credentials")
+}
+
+// Solicitud de certificado (CSR) en curso: el backend genera la clave y el CSR, el cliente sube el certificado
+// que ARCA le devuelve. La clave privada se guarda cifrada hasta entonces y se borra al completar el alta.
+model ArcaCsrRequest {
+    id                  Int          @id @default(autoincrement())
+    organizationId      Int          @unique @map("organization_id")
+    csr                 String       @db.Text
+    privateKeyEncrypted String       @map("private_key_encrypted") @db.Text
+    createdAt           DateTime     @default(now()) @map("created_at")
+    updatedAt           DateTime     @updatedAt @map("updated_at")
+
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    @@map("arca_csr_requests")
+}
+
+// Delegación del servicio de facturación electrónica a la plataforma (modo delegado): el cliente se lo delega en el
+// Administrador de Relaciones de ARCA y la plataforma emite en su nombre con un único certificado. No guarda secretos:
+// solo el resultado de la última verificación y el ambiente en el que se verificó (una delegación de homologación no
+// sirve en producción ni al revés).
+model ArcaDelegation {
+    id             Int                  @id @default(autoincrement())
+    organizationId Int                  @unique @map("organization_id")
+    environment    ArcaEnvironment      @default(HOMOLOGACION)
+    status         ArcaDelegationStatus
+    // CUIT de la organización cuando se consultó a ARCA. Si el CUIT cambió después, la fila ya no vale.
+    verifiedCuit   String?              @map("verified_cuit") @db.VarChar(11)
+    verifiedAt     DateTime?            @map("verified_at")
+    lastCheckedAt  DateTime             @map("last_checked_at")
+    lastError      String?              @map("last_error") @db.VarChar(300)
+    createdAt      DateTime             @default(now()) @map("created_at")
+    updatedAt      DateTime             @updatedAt @map("updated_at")
+
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    @@map("arca_delegations")
+}
+
+// Ticket de acceso (TA) del WSAA compartido entre instancias del backend (ver DbWsaaSessionStore).
+// `id` es el sha256 de [ambiente, servicio, huella del certificado]. Token y firma se guardan cifrados
+// (AES-256-GCM con ARCA_ENCRYPTION_KEY). No depende de ArcaCredential: el camino por variables de
+// entorno no tiene fila ahí y también necesita compartir el ticket.
+model ArcaWsaaTicket {
+    id             String   @id @db.VarChar(64)
+    environment    String   @db.VarChar(50)
+    service        String   @db.VarChar(50)
+    tokenEncrypted String   @map("token_encrypted") @db.Text
+    signEncrypted  String   @map("sign_encrypted") @db.Text
+    expiresAt      DateTime @map("expires_at")
+    updatedAt      DateTime @updatedAt @map("updated_at")
+
+    @@index([expiresAt])
+    @@map("arca_wsaa_tickets")
 }

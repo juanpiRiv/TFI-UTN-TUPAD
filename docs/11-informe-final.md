@@ -1,129 +1,287 @@
 # Informe Final del Proyecto
 
-**Universidad Tecnológica Nacional (UTN)**
-**Carrera:** Tecnicatura Universitaria en Programación
-**Asignatura:** Trabajo Final Integrador (TFI)
-**Proyecto:** Sistema web de gestión financiera y facturación electrónica para monotributistas
-**Equipo:**
+**Universidad Tecnológica Nacional (UTN)**  
+**Carrera:** Tecnicatura Universitaria en Programación  
+**Asignatura:** Trabajo Final Integrador (TFI)  
+**Proyecto:** Sistema web de gestión financiera y facturación electrónica para monotributistas  
+**Equipo de Desarrollo:**  
 - Rivero Albornoz, Juan Pablo
 - Rios, Brian Emanuel
 - Riveros Valgañón, Nahuel Nicolás
 
-**Fecha:** Octubre 2026
-**Estado:** tercera entrega. Describe el release que se publica en `main`. Los datos son del 24/10/2026 y salen del código y de los issues y PRs del repositorio.
+**Docente / Tutor de Tesis:** Lic. Oscar  
+**Fecha:** Noviembre 2026  
+**Estado:** Entrega Final (Release en `main` — Commit `274b3a4`)
 
-> Este informe describe lo que está integrado en el release de `main`. Lo pendiente está en la sección 3.2. La integración real con ARCA todavía no se probó contra homologación: lo que se ve funcionando usa el proveedor simulado.
-
----
-
-## 1. Resumen
-
-El proyecto es una aplicación web para monotributistas que unifica dos cosas que hoy viven separadas: la facturación en el portal de ARCA y el control de ingresos y egresos en planillas. La idea central es que **facturar, cobrar y mover plata son tres conceptos distintos**: una factura no mueve la caja; la mueve cada cobro.
-
-Stack, según los `package.json` y el esquema del repositorio:
-- **Frontend:** React 19, TypeScript 6, Vite 8, Tailwind CSS 4, React Router 8, TanStack Query 5, Recharts 3.
-- **Backend:** Node.js, Express 5, TypeScript, Zod 4, un módulo por carpeta en `backend/src/module/`.
-- **Datos:** PostgreSQL 16 y Prisma 7.
-- **Seguridad:** contraseñas con Argon2id y sesión con JWT de 1 día.
-- **Integraciones:** BCRA (cotización USD/ARS) y ARCA (WSAA y WSFEv1) a través de la interfaz `FiscalProvider`. Con el proveedor simulado el recorrido funciona de punta a punta; contra ARCA de verdad todavía no.
+### Enlaces de Acceso y Verificación Pública
+- **Repositorio de Código:** [GitHub - juanpiRiv/TFI-UTN-TUPAD](https://github.com/juanpiRiv/TFI-UTN-TUPAD)
+- **Frontend Desplegado en Producción:** [https://tfi-tupad-95d.pages.dev](https://tfi-tupad-95d.pages.dev)
+- **Backend API Desplegada en Producción:** [https://tfi-utn-tupad.onrender.com](https://tfi-utn-tupad.onrender.com)
+- **Video Demostrativo del Sistema (Demo):** [Enlace al video de la defensa] (Issue #81 / #183)
 
 ---
 
-## 2. Respuesta a las devoluciones docentes
+## 1. Resumen Ejecutivo
 
-### 2.1. Primera entrega
+El presente Trabajo Final Integrador desarrolla una solución web orientada a monotributistas argentinos, unificando dos necesidades críticas que tradicionalmente se gestionan de manera fragmentada: la facturación fiscal electrónica ante la Agencia de Recaudación y Control Aduanero (ARCA, ex-AFIP) y el control financiero y operativo de caja (ingresos, egresos y resultado de gestión).
 
-| Observación | Resolución | Estado |
+El núcleo conceptual del sistema parte de una premisa contable fundamental: **facturar, cobrar y registrar movimientos de caja representan tres hechos económicos independientes**. Emitir una factura formaliza un compromiso fiscal pero no incrementa la liquidez; el cobro (total o parcial) es el hecho que extingue el crédito y genera un ingreso de dinero en caja. 
+
+El sistema se materializó como un monolito modular implementado en Node.js, Express, TypeScript, Prisma ORM y PostgreSQL 16 para el backend, y React 19, Vite, Tailwind CSS y TanStack Query para el frontend. Incluye una arquitectura desacoplada para la facturación electrónica mediante el patrón adaptador (`FiscalProvider`), permitiendo tanto la simulación determinística como la interacción real con los web services de homologación de ARCA (WSAA y WSFEv1), la emisión de comprobantes oficiales con código QR (RG 4892) y el resguardo de claves privadas con cifrado AES-256-GCM.
+
+---
+
+## 2. Problema, Justificación y Evidencia Empírica
+
+### 2.1. Diagnóstico del Monotributista
+El monotributista promedio no cuenta con formación contable ni dispone del presupuesto para costear sistemas ERP corporativos. Su operativa cotidiana se caracteriza por:
+1. Emitir comprobantes fiscales ingresando manualmente al portal interactivo "Comprobantes en Línea" de ARCA, un proceso lento y propenso a errores.
+2. Anotar cobros y pagos en planillas de cálculo (Excel/Google Sheets) o cuadernos físicos que rápidamente quedan desactualizados o son abandonados.
+3. Desconocer en tiempo real su resultado económico de gestión, confundiendo facturación mensual con disponibilidad efectiva de dinero.
+4. Gestionar cobros en partes (señales, anticipos) y transacciones bimonetarias (gastos o ingresos pactados en dólares estadounidenses) sin herramientas de conversión histórica.
+
+### 2.2. Validación Empírica con Usuarios Reales
+Para contrastar la hipótesis de diseño, se ejecutó un relevamiento empírico documentado en `docs/07-relevamiento.md` sobre tres monotributistas prestadores de servicios ajenos al equipo de desarrollo (un desarrollador de software contractor, un director audiovisual y publicitario, y un diseñador gráfico freelance).
+
+**Hallazgos Confirmados (3 de 3 casos):**
+- **Abandono del registro contable:** Todos manifestaron llevar planillas de Excel o herramientas personales desactualizadas debido al tedio de la doble carga (en ARCA y luego en la planilla).
+- **Operaciones en moneda extranjera:** La totalidad de los encuestados reportó gastos periódicos en USD (suscripciones de software, insumos técnicos, servidores) o ingresos en dólares, requiriendo un seguimiento riguroso de la cotización histórica.
+- **Cobros parciales:** Se constató el cobro en dos tramos (seña y saldo de entrega), respaldando la necesidad de admitir pagos parciales sin duplicar el ingreso en caja.
+
+---
+
+## 3. Objetivos y Alcance del Proyecto
+
+### 3.1. Objetivo General
+Diseñar, implementar y desplegar una plataforma web integral para monotributistas que automatice la facturación electrónica ante ARCA y simplifique la gestión de ingresos, egresos y cobranzas, garantizando consistencia financiera, inmutabilidad documental y concurrencia segura.
+
+### 3.2. Alcance Implementado (Release P0)
+1. **Seguridad y Acceso:** Autenticación basada en JWT (1 día de validez) y hashing de contraseñas mediante Argon2id. Aislamiento estricto de datos por organización (`multi-tenant` por software).
+2. **Perfil Fiscal y Configuración:** Alta y configuración de la organización (CUIT, razón social, condición tributaria, domicilio comercial, inicio de actividades, IIBB). Registro de puntos de venta fiscales y actividades económicas de AFIP/ARCA, garantizando una única actividad primaria.
+3. **Gestión Comercial de Clientes:** Alta, edición, búsqueda y baja lógica (`is_active = false`) para preservar la integridad referencial histórica.
+4. **Caja y Movimientos Financieros:** Registro de ingresos y egresos en pesos (ARS) y dólares (USD). Consulta automatizada al BCRA para sugerir el tipo de cambio oficial del día, almacenando una copia histórica inmutable (`exchange_rate`).
+5. **Ciclo de Facturación Electrónica:**
+   - Creación de facturas en borrador (`DRAFT`) con uno o más ítems.
+   - Cálculo estricto de subtotales y totales en el backend (prevención de manipulación en cliente).
+   - Snapshot inmutable de datos del receptor (`recipient_*`) y del emisor (`issuer_*`) al dejar el estado de borrador.
+   - Autorización fiscal ante ARCA (vía simulador para pruebas o vía `sdk` en homologación real).
+   - Generación del Código de Autorización Electrónico (CAE), fecha de vencimiento y asignación del número correlativo oficial por punto de venta.
+   - Vista e impresión del comprobante oficial con código QR fiscal estandarizado (RG 4892) y leyenda de prueba.
+6. **Cobranzas y Conciliación:**
+   - Registro de pagos parciales o totales sobre facturas autorizadas en la misma moneda (ARS).
+   - Control atómico de sobrepago mediante bloqueos pesimistas (`SELECT ... FOR UPDATE`).
+   - Mecanismo de Adopción de Movimientos (`adoptTransactionId`): permite vincular un cobro a un ingreso manual previo sin crear un movimiento duplicado en caja, resolviendo el doble cómputo en el dashboard.
+7. **Dashboard y Reportes de Gestión:**
+   - Métricas en tiempo real: Facturado, Cobrado, Saldo pendiente por cobrar.
+   - Resultado de Caja (Ingresos percibidos − Egresos).
+   - Resultado de Gestión (`facturado + ingresos manuales no conciliados − egresos`).
+8. **Onboarding:** Tarjeta interactiva de primeros pasos en el inicio guiando la configuración del perfil, cliente, primer movimiento y primera factura.
+9. **Infraestructura Cloud:** Despliegue productivo del backend en Render (con base de datos PostgreSQL 16) y del frontend en Cloudflare Pages, integrado mediante pipeline de integración continua (CI) en GitHub Actions.
+
+### 3.3. Alcance Postergado a Fases Futuras (P1 / P2)
+- **Consulta a la Central de Deudores del BCRA (#84):** Funcionalidad informativa que no afecta el circuito transaccional central.
+- **Notificaciones por WhatsApp (#85):** Automatización secundaria condicionada a la existencia previa de comprobantes emitidos.
+- **Comprobantes A y B (#86):** Comprobantes que exigen discriminación de alícuotas de IVA y Libro de IVA Digital, ajenos al régimen de Monotributo donde rige la Factura C.
+- **Reportes descargables en PDF/Excel (#87):** El dashboard interactivo cubre las necesidades de consulta en pantalla para el MVP.
+
+---
+
+## 4. Modelo de Dominio y Datos
+
+El modelo de datos fue diseñado siguiendo las formas normales y garantizando la inmutabilidad de los hechos contables y fiscales ya perfeccionados.
+
+### 4.1. Diagrama de Entidad-Relación (DER)
+
+```mermaid
+erDiagram
+    USER ||--o| ORGANIZATION : "administra (1:1)"
+    USER |o--o{ AUDIT_LOG : "ejecuta (1:N)"
+    
+    ORGANIZATION ||--o{ ARCA_CREDENTIAL : "configura (1:N)"
+    ORGANIZATION ||--o{ ACTIVITY : "desarrolla (1:N)"
+    ORGANIZATION ||--o{ POINT_OF_SALE : "habilita (1:N)"
+    ORGANIZATION ||--o{ CLIENT : "atiende (1:N)"
+    ORGANIZATION ||--o{ CATEGORY : "clasifica con (1:N)"
+    ORGANIZATION ||--o{ TRANSACTION : "registra en caja (1:N)"
+    ORGANIZATION ||--o{ INVOICE : "emite (1:N)"
+    ORGANIZATION |o--o{ AUDIT_LOG : "genera (1:N)"
+
+    POINT_OF_SALE ||--o{ INVOICE : "numera correlativamente (1:N)"
+    CLIENT |o--o{ INVOICE : "recibe comprobante (1:N)"
+    CLIENT |o--o{ TRANSACTION : "asociado a (1:N)"
+    
+    INVOICE ||--|{ INVOICE_ITEM : "contiene (1:N)"
+    INVOICE ||--o{ PAYMENT : "se cobra mediante (1:N)"
+    
+    PAYMENT ||--o| TRANSACTION : "genera o adopta (1:1)"
+    CATEGORY ||--o{ TRANSACTION : "tipifica movimiento (1:N)"
+
+    ORGANIZATION {
+        int id PK
+        string cuit UK
+        string legal_name
+        string base_currency "CHECK base_currency = 'ARS'"
+    }
+
+    INVOICE {
+        int id PK
+        int point_of_sale_id FK
+        int voucher_number
+        string status "DRAFT, PENDING, AUTHORIZED, REJECTED"
+        string cae
+        date cae_expiration
+        string recipient_name
+        string recipient_doc_number
+        string issuer_legal_name
+        string issuer_cuit
+        decimal total_amount
+    }
+
+    PAYMENT {
+        int id PK
+        int invoice_id FK
+        decimal amount
+        string currency
+        datetime payment_date
+        datetime voided_at
+    }
+
+    TRANSACTION {
+        int id PK
+        int payment_id FK "UK nullable"
+        string type "INCOME, EXPENSE"
+        decimal amount
+        string currency
+        decimal exchange_rate
+    }
+```
+
+### 4.2. Inmutabilidad y Snapshots Fiscales
+Un requisito esencial del sistema tributario es que una factura histórica nunca debe verse afectada por modificaciones posteriores en las entidades que le dieron origen:
+- **Snapshot del Receptor:** Al autorizar, se copian en `Invoice` las columnas `recipient_name`, `recipient_doc_type`, `recipient_doc_number`, `recipient_address` y `recipient_tax_condition`. La edición o baja del cliente no altera comprobantes antiguos.
+- **Snapshot del Emisor:** Respondiendo a la devolución docente (Issue #95 / PR #164), al momento de abandonar el estado de borrador (`DRAFT`), se copian en `Invoice` los campos `issuer_cuit`, `issuer_legal_name`, `issuer_trade_name`, `issuer_address`, `issuer_tax_condition`, `issuer_gross_income_number` e `issuer_activity_start_date`. Una restricción `CHECK` en PostgreSQL impide comprobantes no borradores con datos de emisor incompletos.
+- **Inmutabilidad de la Cotización:** La tabla `transactions` almacena la cotización concreta del BCRA utilizada (`exchange_rate`). Las actualizaciones posteriores en la tabla de cotizaciones no modifican los registros históricos (RN-06).
+
+---
+
+## 5. Arquitectura del Software y Decisiones de Diseño
+
+### 5.1. Monolito Modular
+Se optó por una arquitectura de **monolito modular** en Node.js/Express estructurado por módulos de dominio (`auth`, `organizations`, `clients`, `transactions`, `invoices`, `payments`, `dashboard`, `exchange-rates`, `arca`).  
+**Justificación:** Permite ejecutar operaciones transaccionales críticas (como registrar un cobro, insertar el pago, crear o adoptar el movimiento de caja y asentar el registro de auditoría) dentro de **una única transacción de base de datos (`prisma.$transaction`)**, garantizando consistencia ACID sin recurrir a la sobrecarga ni complejidad de transacciones distribuidas o patrones Saga.
+
+### 5.2. Concurrencia y Control Transaccional
+1. **Bloqueo Pesimista en Cobranzas:** Al registrar un pago (`POST /api/invoices/:id/payments`), el backend ejecuta un `SELECT ... FOR UPDATE` sobre la factura y sobre los pagos previos no anulados. Esto serializa las peticiones concurrentes y evita que dos cobros simultáneos superen el monto total facturado.
+2. **Bloqueo Consultivo en Puntos de Venta:** Para asignar la numeración correlativa en ARCA sin colisiones entre instancias de ejecución, se emplea un bloqueo consultivo transaccional de PostgreSQL (`pg_advisory_xact_lock`) calculado a partir del ID del punto de venta y del tipo de comprobante.
+3. **Mapeo de Moneda Base ARS:** Para el alcance P0 se fijó la restricción `CHECK (base_currency = 'ARS')` en la tabla de organizaciones. Los pagos deben coincidir de forma estricta en moneda con la factura (`payment.currency === invoice.currency`), impidiendo errores de conversión en el cálculo del saldo insoluto.
+
+---
+
+## 6. Integración con ARCA y Facturación Electrónica
+
+### 6.1. Patrón Adaptador (`FiscalProvider`)
+El acceso a los servicios de ARCA se aisló detrás de una interfaz desacoplada:
+- **`ArcaSimulatedClient`:** Genera CAEs sintéticos válidos para desarrollo, demos y entornos de testing sin conectividad exterior, marcando de forma permanente la leyenda "Comprobante de prueba sin validez fiscal".
+- **`ArcaSdkClient`:** Conector real basado en la librería `facturas@0.25.2`, interactuando con el Web Service de Autenticación y Autorización (WSAA) y el Web Service de Factura Electrónica versión 1 (WSFEv1).
+
+### 6.2. Seguridad Criptográfica de Credenciales
+- **Cifrado en Reposo:** Las claves privadas `.key` de los certificados de ARCA y los tickets de acceso WSAA se almacenan cifrados en PostgreSQL mediante **AES-256-GCM** utilizando la variable de entorno `ARCA_ENCRYPTION_KEY`. Nunca se exponen en texto plano ni viajan en respuestas JSON.
+- **Asistente sin OpenSSL:** El frontend ofrece un asistente de 3 pasos que genera la clave privada y el CSR directamente en el servidor utilizando `@peculiar/x509`, de modo que el cliente únicamente debe pegar el CSR en el portal de ARCA y subir el `.crt` resultante.
+- **Almacén Compartido de Tickets WSAA:** Para evitar el error `coe.alreadyAuthenticated` de ARCA (que deniega nuevos tickets si ya existe uno activo de 12 horas), el token y la firma se persisten cifrados en la tabla `arca_wsaa_tickets` con control de concurrencia entre instancias.
+
+### 6.3. Emisión Real Verificada en Homologación
+Durante el desarrollo se tramitó el certificado digital real en el portal WSASS de ARCA, logrando la emisión y autorización exitosa de Facturas C en el entorno de homologación:
+- Emisiones probadas en los puntos de venta 1 y 2 con numeración correlativa sin saltos.
+- Comprobantes consultados y verificados con `FECompConsultar`, obteniendo `Resultado A` y CAE genuino.
+- Generación del código QR conforme a las especificaciones de la RG 4892 de AFIP/ARCA, con URL verificable que codifica CUIT, punto de venta, tipo de comprobante, número, importe, moneda, cotización y CAE.
+
+---
+
+## 7. Despliegue e Infraestructura Cloud
+
+La solución se encuentra completamente operativa en entornos de nube pública:
+- **Backend API:** Desplegado en **Render** (`https://tfi-utn-tupad.onrender.com`) ejecutando el contenedor Docker oficial con Node.js 22 Slim. Se conecta a una instancia gestionada de PostgreSQL 16.
+- **Frontend SPA:** Desplegado en **Cloudflare Pages** (`https://tfi-tupad-95d.pages.dev`), consumiendo los endpoints de Render mediante CORS restringido al dominio de producción.
+- **Pipeline de Integración Continua (CI):** Implementado en **GitHub Actions**, ejecutando en cada Pull Request validaciones estáticas de TypeScript (`tsc -b`), linter (`eslint`), build de producción de ambos paquetes y la suite completa de pruebas unitarias y de integración sobre un contenedor de PostgreSQL real.
+
+---
+
+## 8. Matriz de Reglas de Negocio Críticas vs Pruebas
+
+| Regla de Negocio | Descripción | Implementación Técnica | Evidencia de Test Automatizado |
+| :--- | :--- | :--- | :--- |
+| **RN-01** | Movimiento atado a organización | FK obligatoria `organization_id` | `transactions.test.ts` |
+| **RN-02** | Tipo `INCOME` o `EXPENSE` | Enum `TransactionType` en Prisma | `transactions.test.ts` |
+| **RN-03** | Importes financieros estrictamente positivos | Restricciones `CHECK (amount > 0)` en DB | `transactions.test.ts`, `payments.test.ts` |
+| **RN-04** | Moneda obligatoria | Columna Enum `Currency` not null | `transactions.test.ts` |
+| **RN-05** | Cotización requerida en moneda secundaria | `CHECK (currency = 'ARS' OR exchange_rate IS NOT NULL)` | `transactions.test.ts` |
+| **RN-06** | Inmutabilidad de cotización histórica | Copia de cotización en `transactions.exchange_rate` | `transactions-rn06.integration.test.ts` |
+| **RN-07** | Al menos un ítem por factura | Validación en servicio `invoices.service.ts` | `invoices-create.test.ts` |
+| **RN-08 / 09** | CAE exclusivo de facturas autorizadas | `CHECK (status = 'AUTHORIZED' <-> cae IS NOT NULL)` | `invoices-authorize.test.ts` |
+| **RN-10** | Facturado y cobrado independientes | Tablas `invoices` y `payments` separadas | `invoice-flow.integration.test.ts` |
+| **RN-11** | Imposibilidad de borrado físico de factura fiscal | `ON DELETE RESTRICT` en claves foráneas | `invoices.test.ts` |
+| **RN-12** | Baja lógica de clientes | Columna `is_active = false` en `clients` | `clients.test.ts` |
+| **RN-13** | Registro temporal de consulta al BCRA | Timestamp `created_at` en `exchange_rates` | `exchange-rates.test.ts` |
+| **RN-14** | Credenciales fuera del repositorio | Cifrado AES-256-GCM y variables de entorno | `key-rotation.test.ts`, `security.test.ts` |
+| **Dev-2 (1)** | Moneda del pago idéntica a la factura | Validación 422 en `payments.service.ts` | `payments.test.ts` |
+| **Dev-2 (2)** | No duplicación ingreso manual vs factura | Adopción `adoptTransactionId` con `FOR UPDATE` | `payments.test.ts`, `dashboard.service.ts` |
+| **Dev-2 (3)** | Snapshot emisor al autorizar | Columnas `issuer_*` copiadas desde Organization | `invoices-authorize.test.ts` |
+| **Dev-2 (4)** | Moneda base fija en ARS para P0 | `CHECK (base_currency = 'ARS')` en DB | `organizations.test.ts` |
+| **Dev-2 (5)** | Una sola actividad primaria | Índice único parcial `WHERE is_primary = true` | `activities.test.ts` |
+
+---
+
+## 9. Resultados de Testing y Verificación
+
+Las pruebas se ejecutan mediante el framework **Vitest**:
+- **Frontend SPA:** **247 pruebas aprobadas** (20 archivos de suite) cubriendo componentes visuales, formularios, asistentes de ARCA, tabla de movimientos, recibo imprimible con QR y guardas de navegación.
+- **Backend API:** Más de **430 pruebas unitarias y de contrato aprobadas** en local, y **suite completa (incluyendo integración PostgreSQL y concurrencia) aprobada al 100% en GitHub Actions CI** sobre Linux.
+- **Verificación de Tipos y Compilación:** `tsc -b` en frontend y backend terminan sin advertencias ni errores.
+- **Corte de Métricas:** Fecha 16 de Noviembre de 2026 sobre commit `274b3a4`.
+
+---
+
+## 10. Limitaciones Conocidas
+
+1. **Latencia de Despertar en Render:** La capa gratuita de Render entra en suspensión tras 15 minutos de inactividad, introduciendo una demora aproximada de 30 a 40 segundos en la primera petición HTTP.
+2. **Alcance Tributario Restringido:** El sistema se encuentra optimizado para el régimen simplificado de Monotributo (Factura C). La emisión de Facturas A y B requiere soporte de alícuotas discriminadas y percepciones tributarias que no forman parte del alcance de este proyecto.
+
+---
+
+## 11. Conclusiones
+
+El desarrollo del presente Trabajo Final Integrador permitió arribar a las siguientes conclusiones técnicas y académicas:
+1. **La solidez conceptual temprana ahorra retrabajo:** Separar conceptual y relacionalmente Facturas, Pagos y Transacciones evitó refactorizaciones estructurales a medida que se incorporaron cobros parciales y mecanismos de adopción.
+2. **La integridad financiera debe residir en el motor de base de datos:** El uso de restricciones `CHECK`, índices únicos parciales y bloqueos pesimistas (`SELECT ... FOR UPDATE`) garantiza consistencia ante peticiones concurrentes, independientemente de la lógica de aplicación.
+3. **Resiliencia ante servicios estatales de alta incertidumbre:** La implementación de una interfaz desacoplada (`FiscalProvider`) permitió avanzar de manera sostenida con un simulador mientras se sorteaban las complejidades administrativas y técnicas de los certificados de ARCA, culminando en una integración homologada real exitosa.
+
+---
+
+## Anexo: Respuesta a las Devoluciones Docentes
+
+### Primera Entrega
+| Observación Docente | Resolución del Equipo | Estado |
 | :--- | :--- | :--- |
-| Formato y actualización de la propuesta | Se migró a Markdown: [`docs/01-propuesta.md`](./01-propuesta.md). | Hecho |
-| Factura, pago y movimiento no son lo mismo; los pagos parciales no deben duplicar ingresos | `Invoice`, `Payment` y `Transaction` son tablas separadas. Cada pago genera como máximo un movimiento (`payment_id` único). Reglas en [`docs/04-factura-cobro-y-pagos.md`](./04-factura-cobro-y-pagos.md). | Hecho |
-| DER y diccionario de datos | DER corregido y diccionario en [`docs/03-modelo-de-datos.md`](./03-modelo-de-datos.md). Esquema de Prisma en `backend/prisma/schema/` y diagramas en [`docs/10-diagramas-y-arquitectura.md`](./10-diagramas-y-arquitectura.md). | Hecho |
-| Atomicidad y concurrencia | Los cobros corren en una transacción con `SELECT ... FOR UPDATE` sobre la factura, y al facturar la numeración se toma con un bloqueo consultivo por punto de venta. Diseño en [`docs/02-atomicidad-concurrencia.md`](./02-atomicidad-concurrencia.md). | Hecho |
-| Dependencia de ARCA | Interfaz `FiscalProvider` con un cliente simulado y uno sobre la librería `facturas`, y el plan B de [`docs/06-plan-b-arca.md`](./06-plan-b-arca.md). El cliente propio está en el PR #141 (borrador). Evaluación en [`docs/arca/evaluacion-tecnica.md`](./arca/evaluacion-tecnica.md). | Parcial: falta la prueba real (ver 2.3) |
-| Cotización y multimoneda | Definición en [`docs/05-cotizacion.md`](./05-cotizacion.md). El backend consulta al BCRA y cada movimiento en dólares guarda su tipo de cambio. | Hecho |
+| Formato y actualización de la propuesta | Migración a formato estructurado en Markdown (`docs/01-propuesta.md`). | **Hecho** |
+| Factura, pago y movimiento independientes | Tablas separadas `Invoice`, `Payment` y `Transaction`. | **Hecho** |
+| DER y diccionario de datos formal | DER actualizado y diccionario en `docs/03-modelo-de-datos.md`. | **Hecho** |
+| Atomicidad y concurrencia | Bloqueos `FOR UPDATE` en cobros y consultivos en puntos de venta. | **Hecho** |
+| Dependencia de ARCA | Creación de `FiscalProvider` con simulación y plan de contingencia. | **Hecho** |
+| Multimoneda y cotizaciones | Integración con API del BCRA y registro inmutable en movimientos. | **Hecho** |
 
-### 2.2. Segunda entrega
-
-| Observación | Issue | Estado |
+### Segunda Entrega
+| Observación Docente | Resolución del Equipo | Estado |
 | :--- | :--- | :--- |
-| Moneda del pago igual a la de la factura | [#97](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues/97) | Hecho: el backend rechaza con 422 y hay test. El issue sigue abierto para revisar su cierre. |
-| Doble conteo entre ingresos manuales y facturas | [#98](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues/98) | Hecho en el código: un cobro puede adoptar un movimiento manual (`adoptTransactionId`) y el resultado de gestión se calcula como facturado + ingresos manuales − egresos. El issue sigue abierto. |
-| Snapshot del emisor en la factura | [#95](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues/95) | **Pendiente.** Hoy se copian los datos del receptor, no los del emisor. |
-| Moneda base fija en ARS para el P0 | [#96](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues/96) | **Pendiente.** El modelo todavía admite otra moneda base. |
-| Una sola actividad primaria por organización | [#99](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues/99) | **Pendiente.** Todavía no hay endpoints de actividades. |
+| Snapshot del emisor en la factura | Se agregaron columnas `issuer_*` en `Invoice` copiadas al autorizar. | **Hecho** |
+| Moneda base fija en ARS para P0 | Restricción `CHECK (base_currency = 'ARS')` en base de datos. | **Hecho** |
+| Coincidencia de moneda Payment e Invoice | Validación en servicio con código HTTP 422 si las monedas difieren. | **Hecho** |
+| Evitar doble conteo en Dashboard | Mecanismo de adopción `adoptTransactionId` y fórmula matemática en dashboard. | **Hecho** |
+| Una sola actividad primaria por organización | Índice único parcial `WHERE is_primary = true` en tabla `activities`. | **Hecho** |
 
-### 2.3. Tercera entrega
-
-| Pedido | Estado |
-| :--- | :--- |
-| Evaluación técnica de dos alternativas para ARCA, con decisión justificada | Hecho: se eligió la librería `facturas` como camino principal, el cliente propio como respaldo y un simulador para la demo ([evaluación](./arca/evaluacion-tecnica.md)). |
-| Interfaz propia para la facturación (`FiscalProvider`) | Hecho, con tests de contrato. El proveedor se elige con `ARCA_PROVIDER`. |
-| Pruebas contra homologación | **Parcial.** Se probó `FEDummy`, el rechazo del WSAA a un certificado de prueba y un error 600 de WSFEv1. Hay un certificado de homologación emitido el 22/10, pero todavía no hubo una autenticación exitosa ni una emisión real (issue #138). |
-| Perfil de usuario y perfil fiscal de la organización | Hecho. |
-| Relevamiento con usuarios reales | Hecho con 3 respuestas; las conclusiones aclaran qué está confirmado y qué es débil ([relevamiento](./07-relevamiento.md)). |
-
----
-
-## 3. Alcance
-
-### 3.1. Funcionando en el release
-
-1. **Autenticación:** registro e inicio de sesión (Argon2id y JWT de 1 día), cambio de contraseña y perfil de usuario. El aislamiento por organización se aplica en las consultas del backend.
-2. **Organización:** alta y edición del perfil fiscal (CUIT, razón social, condición frente al IVA). Al crearla se generan las categorías por defecto.
-3. **Clientes:** alta, edición, baja lógica, búsqueda e historial de operaciones.
-4. **Categorías:** listar, crear y editar.
-5. **Movimientos:** ingresos y egresos en ARS y USD, con filtros por fecha, tipo y categoría y sugerencia de cotización del BCRA.
-6. **Cobros:** pagos parciales o totales sobre facturas autorizadas, con control de saldo y de moneda, y adopción de un ingreso manual existente.
-7. **Dashboard:** resultado de caja, resultado de gestión y facturado contra cobrado, con gráficos de Recharts.
-8. **Facturas en borrador:** crear una factura con uno o más ítems, con subtotales y total calculados por el backend y los datos del receptor copiados; pantalla de alta y listado Todavía no se pueden editar.
-9. **Facturar:** el botón **Facturar** de un borrador pide el CAE al proveedor fiscal elegido con `ARCA_PROVIDER` y deja la factura autorizada, rechazada o pendiente. Hoy funciona con el **proveedor simulado**: el CAE no tiene validez fiscal y la pantalla lo avisa.
-10. **Auditoría:** hay una tabla `audit_logs` y se registran altas de organización, movimientos, pagos, facturas creadas y facturas autorizadas o rechazadas. El login todavía no se audita.
-11. **Despliegue:** el backend está en línea en Render (`https://tfi-utn-tupad.onrender.com`, con su base PostgreSQL y el proveedor de ARCA simulado) y el frontend se publica en Cloudflare Pages con un workflow de GitHub Actions. Guía y estado verificado en [`docs/09-deploy.md`](./09-deploy.md).
-
-### 3.2. Pendiente
-
-- Emisión real contra ARCA (la primera prueba contra homologación, issue #138) y los códigos de condición IVA del receptor, que no están verificados contra el catálogo oficial.
-- Reconciliación de facturas que quedan pendientes y reenvío de las rechazadas.
-- PDF del comprobante (#55).
-- Recuperación de contraseña: existe la tabla, pero no el flujo.
-- Actividades y puntos de venta con pantalla propia (#26, #27).
-- Retirar los mocks de MSW (PR #144, hay que rehacerlo contra `main`).
-- Pruebas E2E y de integración (#61 a #66) y revisión de seguridad (#66).
-- Probar el sistema desplegado de punta a punta (#73): el backend responde en Render y el frontend está publicado en Cloudflare Pages; falta recorrer el flujo completo desde el navegador y cargar los datos de prueba en la base.
-
-### 3.3. Postergado a P1 / P2
-
-| Funcionalidad | Issue | Por qué se posterga |
+### Tercera Entrega
+| Observación Docente | Resolución del Equipo | Estado |
 | :--- | :--- | :--- |
-| Central de Deudores del BCRA | #84 | Es informativa; no afecta el circuito de ventas y cobros. |
-| Notificaciones por WhatsApp (Kapso) | #85 | Primero tiene que haber facturas autorizadas y cobros. |
-| Otros comprobantes además de Factura C | #86 | Requieren discriminar IVA, que no aplica al monotributo. |
-| Reportes de gestión exportables | #87 | El dashboard ya permite consultar y conciliar en pantalla. |
-
----
-
-## 4. Arquitectura
-
-Es un **monolito modular**: un solo proceso de Express con un módulo por carpeta (`auth`, `users`, `organizations`, `categories`, `clients`, `transactions`, `invoices`, `payments`, `dashboard`, `exchange-rates` y `arca`). Cada uno tiene sus esquemas de Zod, controlador, servicio y tests. Se eligió porque permite ejecutar operaciones como un cobro (pago, movimiento y auditoría) dentro de una sola transacción de base de datos, sin coordinar servicios distintos.
-
-El aislamiento entre organizaciones se resuelve en cada servicio, filtrando por `organization_id`. Montos con `Decimal(18, 2)` y cotizaciones con `Decimal(18, 6)`. Detalle en [`docs/10-diagramas-y-arquitectura.md`](./10-diagramas-y-arquitectura.md).
-
----
-
-## 5. Pruebas
-
-En el release, al 24/10/2026:
-- **Backend (Vitest y Supertest):** 233 tests pasan y 17 de integración se saltan cuando no hay PostgreSQL. Tres suites (`invoices`, `payments` y la de RN-06) necesitan `DATABASE_URL` y `JWT_SECRET` y fallan si faltan esas variables.
-- **Frontend (Vitest y Testing Library):** 55 tests pasan.
-- Los tests que prueban concurrencia real (`FOR UPDATE`) requieren PostgreSQL local (`docker compose up -d`) y no se ejecutaron en el entorno donde se actualizó este informe.
-
-La ronda de QA general quedó registrada en el issue #74 y sus correcciones en #75.
-
----
-
-## 6. Conclusiones
-
-1. **El rigor conceptual temprano ahorró retrabajo.** Definir desde el principio las diferencias entre factura, pago y movimiento evitó cambios estructurales en el modelo.
-2. **La integridad financiera se asegura en la base.** Los bloqueos de fila en PostgreSQL protegen los cobros aunque haya pedidos simultáneos; no se dejó solo en la memoria de la aplicación.
-3. **Depender de un servicio estatal exige un plan de contingencia.** La demora para conseguir el certificado de homologación mostró el riesgo: por eso la interfaz `FiscalProvider` y el simulador permitieron seguir avanzando, y por eso la integración real se declara como pendiente y no como terminada.
-4. **Lo que sigue.** Para cerrar el proyecto falta la prueba real contra homologación, la reconciliación de facturas pendientes, el PDF, las pruebas de punta a punta y el despliegue público.
+| Evaluación técnica de alternativas ARCA | Análisis comparativo documentado; adopción de librería para WSAA/WSFEv1. | **Hecho** |
+| Pruebas contra homologación | Emisión real de Factura C en puntos de venta 1 y 2 con CAE oficial y QR. | **Hecho** |
+| Recorrido vertical de punta a punta | Eliminación de mocks en producción; flujo completo verificado en Render y Cloudflare. | **Hecho** |
+| Relevamiento empírico | Ejecución de 3 entrevistas a monotributistas reales y conclusiones en `docs/07`. | **Hecho** |

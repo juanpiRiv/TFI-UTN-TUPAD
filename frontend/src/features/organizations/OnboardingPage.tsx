@@ -21,6 +21,14 @@ export function OnboardingPage() {
           Salir
         </button>
       </div>
+      <section className="mb-6 rounded-xl border border-brand-200 bg-brand-50/50 p-4 text-sm text-slate-700">
+        <h2 className="font-semibold text-slate-900">Qué sigue</h2>
+        <p className="mt-1">
+          Esto lleva un minuto. Cuando termines vas a poder cargar clientes, registrar movimientos,
+          crear facturas y cobrarlas. En el inicio te dejamos una lista de primeros pasos para
+          avanzar sin perderte.
+        </p>
+      </section>
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <OrganizationForm
           submitLabel="Crear organización"

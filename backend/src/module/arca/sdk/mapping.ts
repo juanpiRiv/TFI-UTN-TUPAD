@@ -88,7 +88,12 @@ export function wrapSdkError(error: unknown): ArcaSdkError {
     return new ArcaSdkInputError(error.message, field === undefined ? { cause: error } : { field, cause: error })
   }
   if (error instanceof ArcaAuthenticationError) {
-    return new ArcaSdkError('authentication', error.message, { cause: error })
+    const { reason, providerCode } = error as { reason?: string; providerCode?: string | number }
+    return new ArcaSdkError('authentication', error.message, {
+      ...(reason === undefined ? {} : { authReason: reason }),
+      ...(providerCode === undefined ? {} : { providerCode: String(providerCode) }),
+      cause: error,
+    })
   }
   if (error instanceof ArcaSoapFaultError) {
     return new ArcaSdkError('soap_fault', error.message, {

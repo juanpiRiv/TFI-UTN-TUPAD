@@ -17,6 +17,7 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
     css: false,
     restoreMocks: true,
-    testTimeout: 10000,
+    // Con todos los archivos a la vez (y en un runner de CI) las pantallas con rutas perezosas tardan en cargar.
+    testTimeout: 20000,
   },
 })
