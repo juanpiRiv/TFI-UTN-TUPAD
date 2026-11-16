@@ -121,21 +121,23 @@ export function OrganizationForm({
         />
         <Input
           id="commercialAddress"
-          label="Domicilio comercial (opcional)"
-          hint="Hace falta antes de facturar."
+          label="Domicilio comercial"
+          hint="Obligatorio para facturar."
           error={errors.commercialAddress?.message}
           {...register('commercialAddress')}
         />
         <Input
           id="activityStartDate"
-          label="Inicio de actividades (opcional)"
+          label="Inicio de actividades"
+          hint="Obligatorio para facturar."
           type="date"
           error={errors.activityStartDate?.message}
           {...register('activityStartDate')}
         />
         <Input
           id="grossIncomeNumber"
-          label="Ingresos brutos (opcional)"
+          label="Ingresos brutos"
+          hint="Obligatorio para facturar, salvo Monotributo. Podés escribir «Exento» o «Convenio»."
           error={errors.grossIncomeNumber?.message}
           {...register('grossIncomeNumber')}
         />

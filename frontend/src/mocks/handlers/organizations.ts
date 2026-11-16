@@ -61,13 +61,13 @@ export const organizationHandlers = [
     const context = resolveUser(request)
     if (context instanceof Response) return context
     if (context.organization) {
-      return HttpResponse.json({ error: 'Organization already exists' }, { status: 409 })
+      return HttpResponse.json({ error: 'Ya tenés una organización creada' }, { status: 409 })
     }
     const body = (await request.json()) as OrganizationBody
     const details = validate(body, false)
     if (details.length) return invalidData(details)
     if (cuitTaken(body.cuit)) {
-      return HttpResponse.json({ error: 'CUIT already registered' }, { status: 409 })
+      return HttpResponse.json({ error: 'Ese CUIT ya está registrado en otra organización' }, { status: 409 })
     }
 
     const now = nowIso()
@@ -109,7 +109,7 @@ export const organizationHandlers = [
     const details = validate(body, true)
     if (details.length) return invalidData(details)
     if (body.cuit !== undefined && cuitTaken(body.cuit, organization.id)) {
-      return HttpResponse.json({ error: 'CUIT already registered' }, { status: 409 })
+      return HttpResponse.json({ error: 'Ese CUIT ya está registrado en otra organización' }, { status: 409 })
     }
     Object.assign(organization, body, { updatedAt: nowIso() })
     saveDb()

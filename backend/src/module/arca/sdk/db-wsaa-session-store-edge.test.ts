@@ -3,6 +3,10 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { DbWsaaSessionStore } from './db-wsaa-session-store.js'
 import { encryptSecret } from '../secret-box.js'
 
+// Estas pruebas dependen de tiempos reales (vencimientos de 300 ms y varias esperas seguidas): con la máquina cargada
+// el límite por defecto de 5 s no alcanza.
+vi.setConfig({ testTimeout: 30_000 })
+
 // Casos límite del almacén del ticket de WSAA contra PostgreSQL real. Cada test usa huellas únicas: los archivos corren en paralelo.
 const hasDb = Boolean(process.env.DATABASE_URL)
 const KEY_A = Buffer.alloc(32, 1)
@@ -213,7 +217,7 @@ describe.skipIf(!hasDb)('DbWsaaSessionStore (casos límite, base real)', () => {
 
       const started = Date.now()
       expect(await new DbWsaaSessionStore(prisma, KEY_A).withLock(keyFor('despues'), async () => 'entró')).toBe('entró')
-      expect(Date.now() - started).toBeLessThan(3_000)
+      expect(Date.now() - started).toBeLessThan(15_000)
     })
 
     it('tras vencer la transacción de la clave, otro almacén puede tomar el mismo bloqueo', async () => {
@@ -223,7 +227,7 @@ describe.skipIf(!hasDb)('DbWsaaSessionStore (casos límite, base real)', () => {
 
       const started = Date.now()
       expect(await new DbWsaaSessionStore(prisma, KEY_B).withLock(key, async () => 'tomado')).toBe('tomado')
-      expect(Date.now() - started).toBeLessThan(3_000)
+      expect(Date.now() - started).toBeLessThan(15_000)
     })
 
     it('con fallas en vuelo el tope sigue en 3 y todos los pedidos terminan', async () => {

@@ -21,8 +21,8 @@ function prismaErrorCode(error: unknown): string | null {
 }
 
 const cuitTaken = () =>
-    new AppError(409, "CUIT already registered", [
-        { field: "cuit", message: "CUIT already registered" },
+    new AppError(409, "Ese CUIT ya está registrado en otra organización", [
+        { field: "cuit", message: "Ese CUIT ya está registrado en otra organización" },
     ]);
 
 /** Saca las claves undefined: Prisma no las acepta con exactOptionalPropertyTypes. */
@@ -58,7 +58,7 @@ export async function createOrganization(userId: number, input: CreateOrganizati
                 select: { id: true },
             });
             if (existing) {
-                throw new AppError(409, "Organization already exists");
+                throw new AppError(409, "Ya tenés una organización creada");
             }
             await ensureCuitAvailable(tx, input.cuit);
 
@@ -112,7 +112,7 @@ export async function createOrganization(userId: number, input: CreateOrganizati
                 where: { userId },
                 select: { id: true },
             });
-            throw sameUser ? new AppError(409, "Organization already exists") : cuitTaken();
+            throw sameUser ? new AppError(409, "Ya tenés una organización creada") : cuitTaken();
         }
         if (code === "P2003") {
             // El token es válido pero el usuario ya no existe
