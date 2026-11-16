@@ -2,7 +2,28 @@
 
 Guía para una persona monotributista que quiere facturar desde la aplicación. Hoy todo es en el ambiente de **homologación**: los comprobantes tienen CAE real de prueba y **no tienen validez fiscal**. El comprobante lo avisa en una franja amarilla.
 
-## Cómo se conecta: tres pasos
+## Conexión por delegación (recomendada)
+
+Con el **modo delegado** la persona no genera certificados ni solicitudes: le **delega** a la plataforma el servicio de facturación electrónica en ARCA, y la plataforma emite en su nombre con su propio certificado. El comprobante sale siempre con el CUIT de la persona como emisor. Está disponible cuando la plataforma lo tiene habilitado; si la tarjeta de ARCA de la organización no muestra la opción, se usa el camino con certificado propio de más abajo.
+
+1. **Delegar en ARCA.** La hace la persona titular del CUIT, con clave fiscal de **nivel 3** o superior. Ingresar a ARCA con su CUIT y clave fiscal, abrir el **Administrador de Relaciones de Clave Fiscal** y elegir **Nueva Relación**. En **Buscar**, seguir *ARCA > Web Services > Facturación Electrónica*. En **Representante**, poner el **CUIT de la plataforma** (la aplicación lo muestra en la tarjeta) y **Confirmar**.
+2. **Tener un punto de venta.** Con el tipo "Factura Electrónica - Web Services": ARCA no permite emitir por web service con un punto de venta de otro tipo. Hay que crearlo también en la aplicación.
+3. **Verificar en la aplicación.** En la tarjeta **Facturación electrónica con ARCA**, elegir **Verificar**. La aplicación hace una consulta de solo lectura (el último comprobante de su punto de venta) y, si ARCA acepta la delegación, queda **verificada** y ya se puede facturar. Si responde que todavía no figura, revisar los datos del paso 1 y volver a verificar.
+
+Notas:
+
+- A veces la delegación queda pendiente hasta que la plataforma la **acepta** como representante. Si la verificación falla justo después de delegar, esperar unos minutos y reintentar.
+- Se puede quitar la conexión desde la aplicación, pero la delegación solo se revoca en el Administrador de Relaciones de ARCA.
+- Una delegación verificada en homologación no vale en producción: en producción se vuelve a verificar.
+- En **homologación** el servicio de autorizaciones (WSASS) no permite delegar a otro CUIT, así que el caso real de dos CUIT distintos solo se puede comprobar en **producción**. En homologación el modo delegado se prueba con el mismo CUIT de la plataforma o con pruebas automáticas.
+
+### Límite conocido de la delegación
+
+Verificar prueba que **alguien** delegó el servicio de facturación de ese CUIT a la plataforma, no que quien lo pide sea el dueño del CUIT. Si un tercero registra en la aplicación el CUIT de un cliente que ya delegó, antes que el propio cliente, podría verificar y facturar a su nombre. Por eso el modo delegado conviene habilitarlo solo para clientes conocidos. Mitigaciones posibles, aún sin implementar: validar la razón social contra el padrón de ARCA, aprobación manual de cada alta o verificación por correo. Otras defensas ya activas: el CUIT de la plataforma no se puede registrar como organización, cambiar el CUIT de la organización borra la delegación verificada y la verificación admite un pedido cada 15 segundos por organización.
+
+## Conexión con certificado propio (alternativa)
+
+### Cómo se conecta: tres pasos
 
 No hace falta instalar `openssl` ni manejar la clave privada: la aplicación genera la clave y el pedido de certificado (CSR), y la persona solo lleva el CSR a ARCA y sube el certificado que ARCA le devuelve. El detalle de los pasos en ARCA está en el [plan B de ARCA](../06-plan-b-arca.md), sección "Cómo se tramita el certificado de homologación".
 
@@ -15,7 +36,7 @@ No hace falta instalar `openssl` ni manejar la clave privada: la aplicación gen
 
 Después: crear una factura, **Facturar** y, desde la factura, abrir **el comprobante** para imprimirlo o guardarlo como PDF.
 
-### Si ya tiene certificado y clave
+#### Si ya tiene certificado y clave
 
 Quien ya generó su propia clave y su certificado puede cargar los dos en la misma tarjeta (**Ya tengo certificado y clave**). La clave tiene que estar **sin contraseña** y guardada fuera de cualquier repositorio.
 

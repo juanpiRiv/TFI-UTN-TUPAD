@@ -48,6 +48,7 @@ model Organization {
     user            User             @relation(fields: [userId], references: [id])
     arcaCredentials ArcaCredential[]
     arcaCsrRequest  ArcaCsrRequest?
+    arcaDelegation  ArcaDelegation?
     activities      Activity[]
     pointsOfSale    PointOfSale[]
     clients         Client[]
@@ -94,6 +95,28 @@ model ArcaCsrRequest {
     organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
     @@map("arca_csr_requests")
+}
+
+// Delegación del servicio de facturación electrónica a la plataforma (modo delegado): el cliente se lo delega en el
+// Administrador de Relaciones de ARCA y la plataforma emite en su nombre con un único certificado. No guarda secretos:
+// solo el resultado de la última verificación y el ambiente en el que se verificó (una delegación de homologación no
+// sirve en producción ni al revés).
+model ArcaDelegation {
+    id             Int                  @id @default(autoincrement())
+    organizationId Int                  @unique @map("organization_id")
+    environment    ArcaEnvironment      @default(HOMOLOGACION)
+    status         ArcaDelegationStatus
+    // CUIT de la organización cuando se consultó a ARCA. Si el CUIT cambió después, la fila ya no vale.
+    verifiedCuit   String?              @map("verified_cuit") @db.VarChar(11)
+    verifiedAt     DateTime?            @map("verified_at")
+    lastCheckedAt  DateTime             @map("last_checked_at")
+    lastError      String?              @map("last_error") @db.VarChar(300)
+    createdAt      DateTime             @default(now()) @map("created_at")
+    updatedAt      DateTime             @updatedAt @map("updated_at")
+
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    @@map("arca_delegations")
 }
 
 // Ticket de acceso (TA) del WSAA compartido entre instancias del backend (ver DbWsaaSessionStore).

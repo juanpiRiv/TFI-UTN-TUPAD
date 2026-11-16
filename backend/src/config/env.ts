@@ -24,7 +24,13 @@ const schema = z.object({
     // Carpeta donde se comparte el ticket de acceso de WSAA entre procesos (ver FileWsaaSessionStore).
     ARCA_SESSION_DIR: z.string().optional(),
     // Con el proveedor sdk, producción solo se habilita escribiendo exactamente "true".
-    ARCA_ALLOW_PRODUCTION: z.string().optional()
+    ARCA_ALLOW_PRODUCTION: z.string().optional(),
+    // Modo delegado: la plataforma firma con su certificado (ARCA_CUIT y el certificado de arriba) y emite en nombre de
+    // cada cliente que le delegó el servicio de facturación. Solo se habilita escribiendo exactamente "true".
+    ARCA_DELEGATION: z.string().optional(),
+    // Correos (separados por coma) de quienes pueden registrar la organización con el CUIT de la plataforma (ARCA_CUIT).
+    // Vacío = nadie: el certificado de la plataforma no se puede usar registrando ese CUIT.
+    ARCA_PLATFORM_OWNER_EMAILS: z.string().optional()
 });
 
 export const env = schema.parse(process.env);

@@ -8,8 +8,14 @@ import { mapAuthorizationOutcome, wrapSdkError } from './mapping.js'
 export type ArcaSdkLogLevel = 'debug' | 'info' | 'warn' | 'error'
 
 export interface ArcaSdkClientOptions {
-  /** CUIT del emisor (11 digitos). Tiene que coincidir con el del certificado. */
+  /** CUIT del certificado (11 digitos): quien firma ante ARCA. Sin `representedCuit` es también el emisor. */
   cuit: string
+  /**
+   * Modo delegado: CUIT del contribuyente en cuyo nombre se emite (11 digitos). El certificado es el de la plataforma
+   * (`cuit`) y ARCA exige que el contribuyente le haya delegado el servicio. Con esta opcion cada llamada a ARCA
+   * lleva ese CUIT como representado y `issuerCuit` devuelve el del contribuyente.
+   */
+  representedCuit?: string
   certificatePem: string
   privateKeyPem: string
   /** 'test' = homologacion. Por defecto 'test'. */
@@ -56,11 +62,16 @@ export class ArcaSdkClient implements FiscalProvider {
   readonly name = 'arca-sdk(facturas)'
   private readonly client: ArcaClient
   private readonly cuit: string
+  private readonly representedCuit: string | undefined
   private readonly arcaEnvironment: 'test' | 'production'
 
   constructor(options: ArcaSdkClientOptions) {
     if (!CUIT.test(options.cuit)) throw new ArcaSdkInputError('cuit tiene que tener 11 digitos', { field: 'cuit' })
+    if (options.representedCuit !== undefined && !CUIT.test(options.representedCuit)) {
+      throw new ArcaSdkInputError('representedCuit tiene que tener 11 digitos', { field: 'representedCuit' })
+    }
     this.cuit = options.cuit
+    this.representedCuit = options.representedCuit
     this.arcaEnvironment = options.environment ?? 'test'
     const sink = options.log ?? (() => {})
     const config = {
@@ -79,7 +90,13 @@ export class ArcaSdkClient implements FiscalProvider {
     }
   }
 
+  /** CUIT en cuyo nombre se emite: el representado en modo delegado, el del certificado si no. */
   get issuerCuit(): string {
+    return this.representedCuit ?? this.cuit
+  }
+
+  /** CUIT del certificado con el que se firma ante ARCA (el de la plataforma en modo delegado). */
+  get signerCuit(): string {
     return this.cuit
   }
 
@@ -106,7 +123,7 @@ export class ArcaSdkClient implements FiscalProvider {
     try {
       // El SDK expone "proximo numero" (FECompUltimoAutorizado + 1); se resta 1 para devolver el ultimo.
       const next = await this.client.wsfe.getNextVoucherNumber({
-        representedTaxId: params.cuit,
+        representedTaxId: this.issuerCuit,
         salesPoint: params.pointOfSale,
         voucherType: params.voucherType,
       })
@@ -120,7 +137,7 @@ export class ArcaSdkClient implements FiscalProvider {
     const data = this.toVoucherInput(request)
     try {
       const outcome = await this.client.wsfe.issue({
-        representedTaxId: request.cuit,
+        representedTaxId: this.issuerCuit,
         voucherNumber: requireInt(request.voucherNumber, 'voucherNumber', 1),
         data,
       })
@@ -133,7 +150,7 @@ export class ArcaSdkClient implements FiscalProvider {
 
   private assertCuit(cuit: string): void {
     if (!CUIT.test(cuit)) throw new ArcaSdkInputError('cuit tiene que tener 11 digitos', { field: 'cuit' })
-    if (cuit !== this.cuit) {
+    if (cuit !== this.issuerCuit) {
       throw new ArcaSdkInputError('cuit distinto del configurado en el cliente (el certificado es de otro CUIT)', {
         field: 'cuit',
       })

@@ -8,21 +8,29 @@ import { ProviderUnavailableError } from './errors.js'
 import { clearProviderCache, getCachedProvider, setCachedProvider } from './provider-cache.js'
 import { CredentialError } from './credential-inspector.js'
 import { EncryptionKeyError } from './secret-box.js'
+import { isPlatformOwnerEmail, type PlatformOwnerEnv } from './platform-owner.js'
+import { environmentOf, getDelegatedProvider, loadDelegationForOrganization, loadPlatformCredentials, type DelegationEnv, type StoredDelegation } from './delegation-platform.js'
 
-export interface OrganizationProviderEnv extends FiscalProviderEnv {
+export interface OrganizationProviderEnv extends FiscalProviderEnv, Pick<DelegationEnv, 'ARCA_DELEGATION'>, Pick<PlatformOwnerEnv, 'NODE_ENV' | 'ARCA_PLATFORM_OWNER_EMAILS'> {
   ARCA_ENCRYPTION_KEY?: string | undefined
 }
 
 export interface OrganizationProviderDeps {
   loadCredentials?: (org: { id: number; cuit: string }, encryptionKeyHex: string | undefined) => Promise<StoredArcaCredentials | null>
+  /** Si el usuario de la organización está en ARCA_PLATFORM_OWNER_EMAILS. Solo se consulta en producción. */
+  isPlatformOwner?: (org: { id: number; cuit: string }, env: OrganizationProviderEnv) => Promise<boolean>
+  loadDelegation?: (org: { id: number; cuit: string }) => Promise<StoredDelegation | null>
 }
 
 /**
  * Proveedor fiscal que corresponde a una organización.
  *  - `simulated`: el simulador, para desarrollo y demo.
- *  - `sdk`: ARCA de verdad con la credencial que la organización cargó. Si no cargó ninguna, se usan las
- *    variables ARCA_* (camino de desarrollo); si tampoco están, falla con un mensaje claro en vez de
- *    emitir con el simulador sin avisar.
+ *  - `sdk`: ARCA de verdad. En este orden de prioridad:
+ *      1. la credencial propia que la organización cargó;
+ *      2. el modo delegado (ARCA_DELEGATION=true): el certificado de la plataforma, solo si la organización tiene una
+ *         delegación verificada en este ambiente;
+ *      3. las variables ARCA_* (camino de desarrollo), solo si el CUIT de la organización es el de esas variables;
+ *      4. si no, falla con un mensaje claro en vez de emitir con el simulador o con el certificado de otro CUIT.
  */
 export async function getFiscalProviderForOrganization(
   env: OrganizationProviderEnv,
@@ -65,11 +73,47 @@ async function build(env: OrganizationProviderEnv, org: { id: number; cuit: stri
     return provider
   }
 
-  if (env.ARCA_CUIT?.trim()) return getFiscalProviderFromEnv(env, createWsaaSessionStore(env, prisma))
+  const delegated = await loadDelegated(env, org, deps)
+  if (delegated) return delegated
+
+  // Las variables ARCA_* firman por su propio CUIT: solo sirven a la organización que tiene ese CUIT. En producción,
+  // además, solo si su usuario es uno de los dueños de la plataforma: el CUIT lo puede registrar cualquiera.
+  if (env.ARCA_CUIT?.trim() === org.cuit && (await mayUsePlatformCuit(env, org, deps))) return getFiscalProviderFromEnv(env, createWsaaSessionStore(env, prisma))
   throw new ProviderUnavailableError(
     'La organización todavía no cargó su credencial de ARCA. Se carga en la pantalla de la organización.',
     'Todavía no conectaste tu cuenta con ARCA. Hacelo en «Mi negocio» y volvé a facturar.',
   )
+}
+
+async function mayUsePlatformCuit(env: OrganizationProviderEnv, org: { id: number; cuit: string }, deps: OrganizationProviderDeps): Promise<boolean> {
+  if (env.NODE_ENV !== 'production') return true
+  const check =
+    deps.isPlatformOwner ??
+    (async (o: { id: number }, e: OrganizationProviderEnv) => {
+      const owner = await prisma.organization.findUnique({ where: { id: o.id }, select: { user: { select: { email: true } } } })
+      return isPlatformOwnerEmail(e, owner?.user.email)
+    })
+  return check(org, env)
+}
+
+/** Proveedor del modo delegado, o null si no corresponde (apagado, sin plataforma, sin delegación verificada en este ambiente). */
+async function loadDelegated(env: OrganizationProviderEnv, org: { id: number; cuit: string }, deps: OrganizationProviderDeps): Promise<FiscalProvider | null> {
+  const platform = loadPlatformCredentials(env)
+  if (!platform) return null
+  // Si la organización es la dueña del certificado no hay nada que delegar: sigue el camino de las variables.
+  if (platform.credentials.cuit === org.cuit) return null
+  let row: StoredDelegation | null
+  try {
+    row = await (deps.loadDelegation ?? loadDelegationForOrganization)(org)
+  } catch (error) {
+    if (error instanceof ProviderUnavailableError) throw error
+    console.error(`[arca] no se pudo leer la delegación de la organización ${org.id}: ${error instanceof Error ? error.name : 'Error'}`)
+    throw new ProviderUnavailableError('No se pudo leer la delegación de ARCA de la organización.')
+  }
+  // Una delegación verificada en homologación no vale en producción, ni al revés.
+  // Tampoco vale si el CUIT de la organización cambió desde que se verificó.
+  if (!row || row.status !== 'VERIFIED' || row.environment !== environmentOf(env) || row.verifiedCuit !== org.cuit) return null
+  return getDelegatedProvider(env, org, platform)
 }
 
 /** Lee la credencial guardada. Un error de la base no se muestra al usuario: se registra y se informa de forma genérica. */

@@ -5,6 +5,7 @@ import { createOrganizationSchema, updateOrganizationSchema } from "./organizati
 import { create, getMine, updateMine } from "./organizations.controller.js";
 import { arcaCertificateSchema, arcaCredentialSchema } from "./arca-credential.schemas.js";
 import * as arcaCredential from "./arca-credential.controller.js";
+import * as arcaDelegation from "./arca-delegation.controller.js";
 
 export const organizationsRouter = Router();
 
@@ -21,3 +22,8 @@ organizationsRouter.post("/me/arca-credential", validateBody(arcaCredentialSchem
 organizationsRouter.post("/me/arca-credential/csr", arcaCredential.createCsr);
 organizationsRouter.post("/me/arca-credential/certificate", validateBody(arcaCertificateSchema), arcaCredential.attachCertificate);
 organizationsRouter.delete("/me/arca-credential", arcaCredential.remove);
+
+// Delegación del servicio de facturación a la plataforma (modo delegado): no se envía ningún secreto
+organizationsRouter.get("/me/arca-delegation", arcaDelegation.getStatus);
+organizationsRouter.post("/me/arca-delegation/verify", arcaDelegation.verify);
+organizationsRouter.delete("/me/arca-delegation", arcaDelegation.remove);
