@@ -33,6 +33,8 @@ export const invoiceDetailSchema = z.object({
   cae: z.string().nullable().optional(),
   // true si la autorizó el proveedor simulado: el CAE no tiene validez fiscal.
   simulated: z.boolean().optional(),
+  // true si es de prueba: la generó el simulador o se emitió en homologación. No tiene validez fiscal.
+  testEnvironment: z.boolean().optional(),
   // Datos del emisor al momento de facturar; null mientras sea borrador.
   issuer: z
     .object({
@@ -47,6 +49,34 @@ export const invoiceDetailSchema = z.object({
     .nullable()
     .optional(),
   recipientName: z.string().optional(),
+  // Datos del receptor copiados a la factura, y lo demás que se imprime en el comprobante.
+  recipient: z
+    .object({
+      name: z.string(),
+      docType: z.string().nullable().optional(),
+      docNumber: z.string().nullable().optional(),
+      taxCondition: z.string().nullable().optional(),
+      address: z.string().nullable().optional(),
+    })
+    .optional(),
+  pointOfSale: z.number().nullable().optional(),
+  caeExpiration: z.string().nullable().optional(),
+  // URL que va dentro del QR de ARCA; null si no está autorizada por ARCA o la generó el simulador.
+  qrUrl: z.string().nullable().optional(),
+  serviceFrom: z.string().nullable().optional(),
+  serviceTo: z.string().nullable().optional(),
+  paymentDueDate: z.string().nullable().optional(),
+  items: z
+    .array(
+      z.object({
+        id: z.number(),
+        description: z.string(),
+        quantity: z.string(),
+        unitPrice: z.string(),
+        subtotal: z.string(),
+      }),
+    )
+    .optional(),
   client: z
     .object({
       id: z.number(),

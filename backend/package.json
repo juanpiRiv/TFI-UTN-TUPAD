@@ -14,7 +14,11 @@
     "start": "node dist/server.js",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "arca:smoke": "tsx --env-file-if-exists=.env scripts/arca-smoke.ts",
+    "arca:e2e": "tsx --env-file-if-exists=.env scripts/arca-e2e.ts",
+    "arca:journey": "tsx --env-file-if-exists=.env scripts/arca-journey.ts",
+    "arca:rotate-key": "tsx --env-file-if-exists=.env scripts/arca-rotate-key.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -24,6 +28,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
+    "@peculiar/x509": "1.12.3",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "7",
     "argon2": "^0.45.1",

@@ -4,7 +4,7 @@ import { createInvoiceSchema, invoiceIdParamSchema } from "./invoices.schemas.js
 import * as invoicesService from "./invoices.service.js";
 import { authorizeInvoice } from "./invoice-authorization.js";
 import { env } from "../../config/env.js";
-import { createFiscalProvider, parseArcaProviderKind } from "../arca/provider-factory.js";
+import { getFiscalProviderForOrganization } from "../arca/provider-for-organization.js";
 
 /**
  * GET /api/invoices
@@ -86,8 +86,6 @@ export async function authorize(req: Request, res: Response) {
     throw new AppError(400, "Parámetros inválidos", details);
   }
 
-  const result = await authorizeInvoice(req.userId, paramResult.data.invoiceId, () =>
-    createFiscalProvider(parseArcaProviderKind(env.ARCA_PROVIDER), { mode: env.ARCA_MODE }),
-  );
+  const result = await authorizeInvoice(req.userId, paramResult.data.invoiceId, (org) => getFiscalProviderForOrganization(env, org));
   res.status(result.fiscal.outcome === "INDETERMINATE" ? 202 : 200).json(result);
 }

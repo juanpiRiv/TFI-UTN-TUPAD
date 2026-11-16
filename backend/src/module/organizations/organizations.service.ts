@@ -2,6 +2,9 @@ import { Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/error.js";
 import { getUserOrganization } from "../../lib/organizations.js";
+import { env } from "../../config/env.js";
+import { evictOrganizationProviders } from "../arca/provider-cache.js";
+import { isPlatformCuit, isPlatformOwnerEmail } from "../arca/platform-owner.js";
 import type { CreateOrganizationInput, UpdateOrganizationInput } from "./organizations.schemas.js";
 
 // Categorías que se crean con la organización (docs/08-contrato-api.md).
@@ -21,8 +24,8 @@ function prismaErrorCode(error: unknown): string | null {
 }
 
 const cuitTaken = () =>
-    new AppError(409, "CUIT already registered", [
-        { field: "cuit", message: "CUIT already registered" },
+    new AppError(409, "Ese CUIT ya está registrado en otra organización", [
+        { field: "cuit", message: "Ese CUIT ya está registrado en otra organización" },
     ]);
 
 /** Saca las claves undefined: Prisma no las acepta con exactOptionalPropertyTypes. */
@@ -30,6 +33,19 @@ function definedOnly<T extends object>(input: T) {
     return Object.fromEntries(
         Object.entries(input).filter(([, value]) => value !== undefined),
     ) as { [K in keyof T]?: Exclude<T[K], undefined> };
+}
+
+/**
+ * El CUIT de la plataforma (ARCA_CUIT) es el del certificado con el que se firma: si cualquiera pudiera registrarlo,
+ * emitiría con él. Se rechaza con el mismo error que un CUIT ocupado, para no revelar nada, salvo a los dueños
+ * (ARCA_PLATFORM_OWNER_EMAILS).
+ */
+async function ensureNotPlatformCuit(tx: Prisma.TransactionClient, userId: number, cuit: string) {
+    if (!isPlatformCuit(env, cuit)) return;
+    const user = await tx.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (user && !isPlatformOwnerEmail(env, user.email)) {
+        throw cuitTaken();
+    }
 }
 
 async function ensureCuitAvailable(
@@ -58,8 +74,9 @@ export async function createOrganization(userId: number, input: CreateOrganizati
                 select: { id: true },
             });
             if (existing) {
-                throw new AppError(409, "Organization already exists");
+                throw new AppError(409, "Ya tenés una organización creada");
             }
+            await ensureNotPlatformCuit(tx, userId, input.cuit);
             await ensureCuitAvailable(tx, input.cuit);
 
             const organization = await tx.organization.create({
@@ -112,7 +129,7 @@ export async function createOrganization(userId: number, input: CreateOrganizati
                 where: { userId },
                 select: { id: true },
             });
-            throw sameUser ? new AppError(409, "Organization already exists") : cuitTaken();
+            throw sameUser ? new AppError(409, "Ya tenés una organización creada") : cuitTaken();
         }
         if (code === "P2003") {
             // El token es válido pero el usuario ya no existe
@@ -131,9 +148,10 @@ export async function updateOrganization(userId: number, input: UpdateOrganizati
     const { id } = await getUserOrganization(userId);
     const data = definedOnly(input);
 
+    let cuitChanged = false;
     try {
         // Chequeos y update en la misma transacción
-        return await prisma.$transaction(async (tx) => {
+        const updated = await prisma.$transaction(async (tx) => {
             const current = await tx.organization.findUniqueOrThrow({ where: { id } });
 
             if (data.cuit !== undefined && data.cuit !== current.cuit) {
@@ -146,7 +164,11 @@ export async function updateOrganization(userId: number, input: UpdateOrganizati
                         { field: "cuit", message: "CUIT cannot change after issuing authorized invoices" },
                     ]);
                 }
+                await ensureNotPlatformCuit(tx, userId, data.cuit);
                 await ensureCuitAvailable(tx, data.cuit, id);
+                // La delegación se verificó para el CUIT anterior: con otro CUIT hay que volver a verificar.
+                await tx.arcaDelegation.deleteMany({ where: { organizationId: id } });
+                cuitChanged = true;
             }
 
             const organization = await tx.organization.update({ where: { id }, data });
@@ -165,6 +187,9 @@ export async function updateOrganization(userId: number, input: UpdateOrganizati
 
             return organization;
         });
+        // Fuera de la transacción confirmada: ningún cliente armado para el CUIT anterior se sigue usando.
+        if (cuitChanged) evictOrganizationProviders(id);
+        return updated;
     } catch (error) {
         if (prismaErrorCode(error) === "P2002") {
             throw cuitTaken();

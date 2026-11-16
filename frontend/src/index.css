@@ -19,4 +19,11 @@
   body {
     @apply bg-slate-50 text-slate-900 antialiased;
   }
+
+  /* Un comprobante impreso o guardado como PDF va sobre fondo blanco, sin el gris de la aplicación. */
+  @media print {
+    body {
+      @apply bg-white;
+    }
+  }
 }

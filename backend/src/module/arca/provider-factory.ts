@@ -1,4 +1,5 @@
 import type { FiscalProvider } from './fiscal-provider.js'
+import { ProviderUnavailableError } from './errors.js'
 import { ArcaSdkClient, type ArcaSdkClientOptions } from './sdk/arca-sdk-client.js'
 import { ArcaSimulatedClient } from './simulated/arca-simulated-client.js'
 
@@ -21,6 +22,8 @@ export interface CreateFiscalProviderOptions {
   credentials?: ArcaCredentials
   /** Por defecto homologación: producción hay que pedirla de forma explícita. */
   mode?: ArcaMode
+  /** Producción con `sdk` emite comprobantes con validez fiscal: además de `mode` hay que confirmarlo acá. */
+  allowProduction?: boolean
   /** Solo para tests: pisa opciones del cliente sobre la librería. */
   overrides?: Partial<ArcaSdkClientOptions>
 }
@@ -31,10 +34,10 @@ const VALID = ARCA_PROVIDER_KINDS.join(', ')
 export function parseArcaProviderKind(value: string | undefined): ArcaProviderKind {
   const kind = value?.trim()
   if (!kind) {
-    throw new Error(`ARCA_PROVIDER es obligatoria. Valores válidos: ${VALID}.`)
+    throw new ProviderUnavailableError(`ARCA_PROVIDER es obligatoria. Valores válidos: ${VALID}.`)
   }
   if (!(ARCA_PROVIDER_KINDS as readonly string[]).includes(kind)) {
-    throw new Error(`ARCA_PROVIDER="${kind}" no es válida. Valores válidos: ${VALID}.`)
+    throw new ProviderUnavailableError(`ARCA_PROVIDER="${kind}" no es válida. Valores válidos: ${VALID}.`)
   }
   return kind as ArcaProviderKind
 }
@@ -49,7 +52,10 @@ export function createFiscalProvider(
       return new ArcaSimulatedClient()
     case 'sdk': {
       if (!options.credentials) {
-        throw new Error('ARCA_PROVIDER=sdk necesita las credenciales (CUIT, certificado y clave) de la organización.')
+        throw new ProviderUnavailableError('ARCA_PROVIDER=sdk necesita las credenciales (CUIT, certificado y clave) de la organización.')
+      }
+      if (options.mode === 'produccion' && !options.allowProduction) {
+        throw new ProviderUnavailableError('ARCA_MODE=produccion con el proveedor sdk emite comprobantes con validez fiscal y está bloqueado. Para habilitarlo hay que confirmarlo de forma explícita (ARCA_ALLOW_PRODUCTION=true).')
       }
       return new ArcaSdkClient({
         ...options.credentials,
@@ -58,6 +64,6 @@ export function createFiscalProvider(
       })
     }
     case 'direct':
-      throw new Error('ARCA_PROVIDER=direct todavía no está disponible: el cliente propio está en el PR #141.')
+      throw new ProviderUnavailableError('ARCA_PROVIDER=direct todavía no está disponible: el cliente propio está en el PR #141.')
   }
 }

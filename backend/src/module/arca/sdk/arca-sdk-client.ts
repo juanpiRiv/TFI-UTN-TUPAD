@@ -1,4 +1,4 @@
-import { createArcaClient, type ArcaClient, type WsfeVoucherInput } from 'facturas'
+import { createArcaClient, type ArcaClient, type ArcaWsaaSessionStore, type WsfeVoucherInput } from 'facturas'
 import type { CaeRequest, CaeResult, FiscalProvider, LastAuthorizedParams } from '../fiscal-provider.js'
 import { decimalStringToCents, centsToSdkNumber } from './amounts.js'
 import { serviceDatesError } from '../service-dates.js'
@@ -8,18 +8,35 @@ import { mapAuthorizationOutcome, wrapSdkError } from './mapping.js'
 export type ArcaSdkLogLevel = 'debug' | 'info' | 'warn' | 'error'
 
 export interface ArcaSdkClientOptions {
-  /** CUIT del emisor (11 digitos). Tiene que coincidir con el del certificado. */
+  /** CUIT del certificado (11 digitos): quien firma ante ARCA. Sin `representedCuit` es también el emisor. */
   cuit: string
+  /**
+   * Modo delegado: CUIT del contribuyente en cuyo nombre se emite (11 digitos). El certificado es el de la plataforma
+   * (`cuit`) y ARCA exige que el contribuyente le haya delegado el servicio. Con esta opcion cada llamada a ARCA
+   * lleva ese CUIT como representado y `issuerCuit` devuelve el del contribuyente.
+   */
+  representedCuit?: string
   certificatePem: string
   privateKeyPem: string
   /** 'test' = homologacion. Por defecto 'test'. */
   environment?: 'test' | 'production'
   timeoutMs?: number
+  /**
+   * Almacén del ticket de acceso de WSAA. ARCA no entrega otro ticket mientras el anterior sigue vigente (12 h):
+   * si varios procesos piden el suyo, los siguientes fallan con `coe.alreadyAuthenticated`. Compartirlo lo evita.
+   */
+  wsaaSessionStore?: ArcaWsaaSessionStore
   /** Sumidero de logs del SDK. Por defecto se descartan (el SDK imprime por consola si no). */
   log?: (level: ArcaSdkLogLevel, message: string, ...args: unknown[]) => void
   /** Solo para tests: reemplaza la construccion del cliente del SDK. */
   clientFactory?: (config: Parameters<typeof createArcaClient>[0]) => ArcaClient
 }
+
+/**
+ * Tiempo máximo de cada pedido a ARCA. Tiene que ser bastante menor que los 60 s del bloqueo del ticket de WSAA
+ * (DbWsaaSessionStore): si el pedido sigue vivo cuando se libera el bloqueo, otra instancia podría pedir un segundo ticket.
+ */
+const DEFAULT_TIMEOUT_MS = 25_000
 
 const CUIT = /^\d{11}$/
 const YYYYMMDD = /^\d{8}$/
@@ -45,17 +62,25 @@ export class ArcaSdkClient implements FiscalProvider {
   readonly name = 'arca-sdk(facturas)'
   private readonly client: ArcaClient
   private readonly cuit: string
+  private readonly representedCuit: string | undefined
+  private readonly arcaEnvironment: 'test' | 'production'
 
   constructor(options: ArcaSdkClientOptions) {
     if (!CUIT.test(options.cuit)) throw new ArcaSdkInputError('cuit tiene que tener 11 digitos', { field: 'cuit' })
+    if (options.representedCuit !== undefined && !CUIT.test(options.representedCuit)) {
+      throw new ArcaSdkInputError('representedCuit tiene que tener 11 digitos', { field: 'representedCuit' })
+    }
     this.cuit = options.cuit
+    this.representedCuit = options.representedCuit
+    this.arcaEnvironment = options.environment ?? 'test'
     const sink = options.log ?? (() => {})
     const config = {
       taxId: options.cuit,
       certificatePem: options.certificatePem,
       privateKeyPem: options.privateKeyPem,
       environment: options.environment ?? 'test',
-      ...(options.timeoutMs === undefined ? {} : { timeout: options.timeoutMs }),
+      timeout: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      ...(options.wsaaSessionStore === undefined ? {} : { wsaaSessionStore: options.wsaaSessionStore }),
       logger: { log: sink },
     } as const
     try {
@@ -63,6 +88,20 @@ export class ArcaSdkClient implements FiscalProvider {
     } catch (error) {
       throw wrapSdkError(error)
     }
+  }
+
+  /** CUIT en cuyo nombre se emite: el representado en modo delegado, el del certificado si no. */
+  get issuerCuit(): string {
+    return this.representedCuit ?? this.cuit
+  }
+
+  /** CUIT del certificado con el que se firma ante ARCA (el de la plataforma en modo delegado). */
+  get signerCuit(): string {
+    return this.cuit
+  }
+
+  get environment(): 'homologacion' | 'produccion' {
+    return this.arcaEnvironment === 'production' ? 'produccion' : 'homologacion'
   }
 
   async healthCheck(): Promise<{ ok: boolean; detail: string }> {
@@ -84,7 +123,7 @@ export class ArcaSdkClient implements FiscalProvider {
     try {
       // El SDK expone "proximo numero" (FECompUltimoAutorizado + 1); se resta 1 para devolver el ultimo.
       const next = await this.client.wsfe.getNextVoucherNumber({
-        representedTaxId: params.cuit,
+        representedTaxId: this.issuerCuit,
         salesPoint: params.pointOfSale,
         voucherType: params.voucherType,
       })
@@ -98,7 +137,7 @@ export class ArcaSdkClient implements FiscalProvider {
     const data = this.toVoucherInput(request)
     try {
       const outcome = await this.client.wsfe.issue({
-        representedTaxId: request.cuit,
+        representedTaxId: this.issuerCuit,
         voucherNumber: requireInt(request.voucherNumber, 'voucherNumber', 1),
         data,
       })
@@ -111,7 +150,7 @@ export class ArcaSdkClient implements FiscalProvider {
 
   private assertCuit(cuit: string): void {
     if (!CUIT.test(cuit)) throw new ArcaSdkInputError('cuit tiene que tener 11 digitos', { field: 'cuit' })
-    if (cuit !== this.cuit) {
+    if (cuit !== this.issuerCuit) {
       throw new ArcaSdkInputError('cuit distinto del configurado en el cliente (el certificado es de otro CUIT)', {
         field: 'cuit',
       })

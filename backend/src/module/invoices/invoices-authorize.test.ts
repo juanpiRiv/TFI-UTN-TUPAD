@@ -19,7 +19,7 @@ const current = vi.hoisted(() => ({ provider: null as unknown, factoryError: nul
 vi.mock("../../lib/prisma.js", () => ({
   prisma: {
     organization: { findUnique: vi.fn() },
-    invoice: { findFirst: vi.fn() },
+    invoice: { findFirst: vi.fn(), updateMany: vi.fn() },
     $transaction: vi.fn(async (callback: (t: typeof tx) => unknown) => callback(tx)),
   },
 }));
@@ -36,6 +36,7 @@ import { prisma } from "../../lib/prisma.js";
 import { env } from "../../config/env.js";
 import { ArcaSimulatedClient, type SimulatedScenario } from "../arca/simulated/arca-simulated-client.js";
 import type { FiscalProvider } from "../arca/fiscal-provider.js";
+import { ProviderUnavailableError } from "../arca/errors.js";
 
 describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => {
   const userId = 10;
@@ -69,6 +70,8 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     recipientDocType: "CUIT",
     recipientDocNumber: "30712345678",
     recipientTaxCondition: "RESPONSABLE_INSCRIPTO",
+    recipientAddress: null,
+    caeExpiration: null,
     currency: "ARS",
     fiscalExchangeRate: "1",
     serviceFrom: null,
@@ -77,7 +80,6 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     totalAmount: "215.02",
     status: "DRAFT",
     cae: null,
-    caeExpiration: null,
     pointOfSale: { id: 3, number: 3 },
   });
 
@@ -130,6 +132,136 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     expect(updates()[1]!.arcaResponse).toMatchObject({ simulated: true });
   });
 
+  const realProvider = (environment: "homologacion" | "produccion") =>
+    ({
+      name: "proveedor-real",
+      environment,
+      healthCheck: async () => ({ ok: true, detail: "" }),
+      getLastAuthorized: async () => ({ voucherNumber: 0 }),
+      requestCae: async () => ({
+        outcome: "AUTHORIZED" as const,
+        cae: "74123456789012",
+        caeExpiration: "20261104",
+        observations: [],
+        errors: [],
+        simulated: false,
+      }),
+    }) satisfies FiscalProvider;
+
+  it("emitida en homologación guarda el ambiente y se marca como de prueba aunque no sea simulada", async () => {
+    current.provider = realProvider("homologacion");
+    const res = await post();
+
+    expect(updates()[1]!.arcaResponse).toMatchObject({ simulated: false, environment: "homologacion" });
+    expect(res.body.invoice.simulated).toBe(false);
+    expect(res.body.invoice.testEnvironment).toBe(true);
+  });
+
+  it("una factura autorizada por ARCA trae la dirección del QR con los datos del comprobante", async () => {
+    current.provider = realProvider("homologacion");
+    const res = await post();
+
+    const url = new URL(res.body.invoice.qrUrl);
+    expect(`${url.origin}${url.pathname}`).toBe("https://www.afip.gob.ar/fe/qr/");
+    const payload = JSON.parse(Buffer.from(url.searchParams.get("p")!, "base64").toString("utf8"));
+    expect(payload).toMatchObject({
+      ver: 1,
+      cuit: Number(org.cuit),
+      ptoVta: 3,
+      tipoCmp: 11,
+      nroCmp: 1,
+      moneda: "PES",
+      ctz: 1,
+      tipoCodAut: "E",
+      codAut: 74123456789012,
+    });
+  });
+
+  it("lo que genera el simulador no trae QR: su CAE es inventado", async () => {
+    const res = await post();
+
+    expect(res.body.invoice.simulated).toBe(true);
+    expect(res.body.invoice.qrUrl).toBeNull();
+  });
+
+  it("un borrador no trae QR", async () => {
+    const detail = await request(app).get("/api/invoices/99").set("Authorization", `Bearer ${token}`);
+
+    expect(detail.body.status).toBe("DRAFT");
+    expect(detail.body.qrUrl).toBeNull();
+  });
+
+  describe("datos del emisor incompletos (ARCA real)", () => {
+    const incomplete = (patch: Record<string, unknown>) =>
+      vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...org, taxCondition: "RESPONSABLE_INSCRIPTO", ...patch } as never);
+
+    it.each([
+      ["legalName", "", "Razón social"],
+      ["commercialAddress", null, "Domicilio comercial"],
+      ["activityStartDate", null, "Fecha de inicio de actividades"],
+      ["grossIncomeNumber", "  ", "Ingresos Brutos"],
+    ])("sin %s responde 422 sin reservar, sin numerar y sin llamar a ARCA", async (field, value, label) => {
+      const provider = realProvider("homologacion");
+      const requestCae = vi.spyOn(provider, "requestCae");
+      current.provider = provider;
+      incomplete({ [field]: value });
+
+      const res = await post();
+
+      expect(res.status).toBe(422);
+      expect(res.body.code).toBe("ISSUER_INCOMPLETE");
+      expect(res.body.missing).toEqual([field]);
+      expect(res.body.message).toBe(`Faltan datos del emisor para facturar: ${res.body.missingFields[0].label}.`);
+      expect(res.body.message).toContain(label);
+      expect(tx.invoice.update).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(requestCae).not.toHaveBeenCalled();
+      expect(row.status).toBe("DRAFT");
+    });
+
+    it("lista todos los faltantes juntos con el mensaje estable", async () => {
+      current.provider = realProvider("homologacion");
+      incomplete({ commercialAddress: null, activityStartDate: null, grossIncomeNumber: "Exento" });
+
+      const res = await post();
+
+      expect(res.status).toBe(422);
+      expect(res.body.message).toBe("Faltan datos del emisor para facturar: Domicilio comercial, Fecha de inicio de actividades.");
+      expect(res.body.missing).toEqual(["commercialAddress", "activityStartDate"]);
+    });
+
+    it("con los datos completos autoriza (Ingresos Brutos puede ser 'Exento')", async () => {
+      current.provider = realProvider("homologacion");
+      incomplete({ grossIncomeNumber: "Exento" });
+
+      const res = await post();
+
+      expect(res.status).toBe(200);
+      expect(res.body.invoice.status).toBe("AUTHORIZED");
+    });
+
+    it("un monotributista sin Ingresos Brutos autoriza", async () => {
+      current.provider = realProvider("homologacion");
+      vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...org, grossIncomeNumber: null } as never);
+
+      expect((await post()).status).toBe(200);
+    });
+
+    it("con el simulador no bloquea, aunque falten datos", async () => {
+      incomplete({ commercialAddress: null, activityStartDate: null, grossIncomeNumber: null });
+
+      expect((await post()).status).toBe(200);
+    });
+  });
+
+  it("emitida en producción no se marca como de prueba", async () => {
+    current.provider = realProvider("produccion");
+    const res = await post();
+
+    expect(updates()[1]!.arcaResponse).toMatchObject({ simulated: false, environment: "produccion" });
+    expect(res.body.invoice.testEnvironment).toBe(false);
+  });
+
   it("con un proveedor real el detalle no marca la factura como simulada", async () => {
     current.provider = {
       name: "proveedor-real",
@@ -154,6 +286,38 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     const detail = await request(app).get("/api/invoices/99").set("Authorization", `Bearer ${token}`);
 
     expect(detail.body.simulated).toBe(false);
+  });
+
+  it("el detalle trae lo necesario para armar el comprobante (receptor, punto de venta, fechas y vencimiento del CAE)", async () => {
+    row.concept = "SERVICIOS";
+    row.serviceFrom = new Date("2026-10-01T00:00:00.000Z");
+    row.serviceTo = new Date("2026-10-31T00:00:00.000Z");
+    row.paymentDueDate = new Date("2026-11-23T00:00:00.000Z");
+    const res = await post();
+
+    expect(res.body.invoice).toMatchObject({
+      pointOfSale: 3,
+      serviceFrom: "2026-10-01",
+      serviceTo: "2026-10-31",
+      paymentDueDate: "2026-11-23",
+      recipient: {
+        name: "Estudio García",
+        docType: "CUIT",
+        docNumber: "30712345678",
+        taxCondition: "RESPONSABLE_INSCRIPTO",
+        address: null,
+      },
+    });
+    expect(res.body.invoice.caeExpiration).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("en un borrador el vencimiento del CAE y el número no existen todavía", async () => {
+    row.status = "DRAFT";
+    const detail = await request(app).get("/api/invoices/99").set("Authorization", `Bearer ${token}`);
+
+    expect(detail.body.caeExpiration).toBeNull();
+    expect(detail.body.voucherNumber).toBeNull();
+    expect(detail.body.serviceFrom).toBeNull();
   });
 
   it("devuelve 401 sin token", async () => {
@@ -233,7 +397,8 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     expect(res.body.fiscal.outcome).toBe("INDETERMINATE");
   });
 
-  it("si el proveedor falla de forma inesperada responde 502 y deja la factura PENDING", async () => {
+  it("si falla antes de pedir el CAE (login, último número) responde 502 y vuelve la factura a borrador", async () => {
+    vi.mocked(prisma.invoice.updateMany).mockResolvedValue({ count: 1 } as never);
     current.provider = {
       name: "roto",
       healthCheck: async () => ({ ok: false, detail: "" }),
@@ -247,9 +412,44 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     const res = await post();
 
     expect(res.status).toBe(502);
-    expect(res.body.error).toMatch(/pendiente/i);
-    expect(updates()).toHaveLength(1);
-    expect(updates()[0]).toMatchObject({ status: "PENDING" });
+    expect(res.body.error).toMatch(/sigue en borrador/i);
+    const revert = vi.mocked(prisma.invoice.updateMany).mock.calls[0]![0];
+    expect(revert.where).toEqual({ id: 99, organizationId: orgId, status: "PENDING", voucherNumber: null });
+    expect(revert.data).toMatchObject({ status: "DRAFT", issuerCuit: null, issuerLegalName: null, issuerActivityStartDate: null });
+  });
+
+  it("si no se puede volver a borrador, la factura queda PENDING y se informa", async () => {
+    vi.mocked(prisma.invoice.updateMany).mockRejectedValue(new Error("db caída"));
+    current.provider = {
+      name: "roto",
+      healthCheck: async () => ({ ok: false, detail: "" }),
+      getLastAuthorized: async () => {
+        throw new Error("ECONNRESET");
+      },
+      requestCae: async () => {
+        throw new Error("no debería llamarse");
+      },
+    } satisfies FiscalProvider;
+    const res = await post();
+
+    expect(res.status).toBe(502);
+    expect(res.body.error).toMatch(/quedó pendiente/i);
+  });
+
+  it("si falla DESPUÉS de pedir el CAE queda PENDING y no vuelve a borrador (ARCA pudo haberlo registrado)", async () => {
+    current.provider = {
+      name: "roto",
+      healthCheck: async () => ({ ok: false, detail: "" }),
+      getLastAuthorized: async () => ({ voucherNumber: 0 }),
+      requestCae: async () => {
+        throw new Error("ECONNRESET");
+      },
+    } as unknown as FiscalProvider;
+    const res = await post();
+
+    expect(res.status).toBe(502);
+    expect(res.body.error).toMatch(/quedó pendiente/i);
+    expect(vi.mocked(prisma.invoice.updateMany)).not.toHaveBeenCalled();
   });
 
   it("registra invoice.authorized en la auditoría con el CAE", async () => {
@@ -299,8 +499,46 @@ describe("POST /api/invoices/:id/authorize (botón Facturar, Issue #59)", () => 
     const res = await post();
 
     expect(res.status).toBe(503);
-    expect(res.body.error).toMatch(/proveedor fiscal/i);
+    expect(res.body.error).toMatch(/no está disponible en este momento/i);
+    expect(JSON.stringify(res.body)).not.toMatch(/ARCA_|servidor|sdk/i);
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("devuelve 409 sin reservar la factura si el CUIT del certificado no es el de la organización", async () => {
+    current.provider = Object.assign(new ArcaSimulatedClient(), { issuerCuit: "30000000008" });
+    const requestCae = vi.spyOn(current.provider as ArcaSimulatedClient, "requestCae");
+    const res = await post();
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/CUIT de la organización/i);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(requestCae).not.toHaveBeenCalled();
+  });
+
+  it("autoriza si el CUIT del certificado es el de la organización", async () => {
+    current.provider = Object.assign(new ArcaSimulatedClient(), { issuerCuit: org.cuit });
+    const res = await post();
+
+    expect(res.status).toBe(200);
+  });
+
+  it("el 503 muestra los motivos que el usuario puede corregir, pero no los errores internos", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    current.factoryError = new ProviderUnavailableError(
+      "La organización todavía no cargó su credencial de ARCA.",
+      "Todavía no conectaste tu cuenta con ARCA. Hacelo en «Mi negocio» y volvé a facturar.",
+    );
+    const known = await post();
+    current.factoryError = new Error("Can't reach database server at db.interno:5432");
+    const internal = await post();
+
+    expect(known.status).toBe(503);
+    expect(known.body.error).toMatch(/Todavía no conectaste tu cuenta con ARCA/);
+    expect(JSON.stringify(known.body)).not.toMatch(/ARCA_|servidor|pantalla de la organización/i);
+    expect(internal.status).toBe(503);
+    expect(internal.body.error).toMatch(/no está disponible en este momento/i);
+    expect(internal.body.error).not.toMatch(/db\.interno|database/);
+    log.mockRestore();
   });
 
   it("rechaza un ID de factura inválido", async () => {

@@ -108,6 +108,13 @@ describe('botón Facturar de un borrador (Issue #59)', () => {
     expect(await screen.findByTestId('simulated-legend')).toHaveTextContent(/sin validez fiscal/i)
   })
 
+  it('una factura emitida en homologación muestra la leyenda aunque no sea simulada', async () => {
+    current = { ...authorized, simulated: false, testEnvironment: true }
+    renderApp('/facturas/1')
+
+    expect(await screen.findByTestId('simulated-legend')).toHaveTextContent(/sin validez fiscal.*homologación/i)
+  })
+
   it('con un proveedor real no aparece la leyenda', async () => {
     current = { ...authorized, simulated: false }
     renderApp('/facturas/1')
@@ -121,6 +128,32 @@ describe('botón Facturar de un borrador (Issue #59)', () => {
 
     await screen.findByRole('button', { name: 'Facturar' })
     expect(screen.queryByTestId('invoice-issuer')).not.toBeInTheDocument()
+  })
+
+  it('con datos del emisor incompletos lista lo que falta y enlaza a Mi negocio', async () => {
+    server.use(
+      http.post(`${API_URL}/api/invoices/1/authorize`, () =>
+        HttpResponse.json(
+          {
+            message: 'Faltan datos del emisor.',
+            code: 'ISSUER_INCOMPLETE',
+            missing: ['commercialAddress', 'grossIncomeNumber'],
+          },
+          { status: 422 },
+        ),
+      ),
+    )
+    const view = renderApp('/facturas/1')
+
+    await view.user.click(await screen.findByRole('button', { name: 'Facturar' }))
+
+    expect(await screen.findByText(/Faltan datos de tu negocio/)).toBeInTheDocument()
+    expect(screen.getByText('Domicilio comercial')).toBeInTheDocument()
+    expect(screen.getByText('Ingresos Brutos')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Completar los datos en Mi negocio/ })).toHaveAttribute(
+      'href',
+      '/organizacion',
+    )
   })
 
   it('si se cancela la confirmación no llama a la API', async () => {

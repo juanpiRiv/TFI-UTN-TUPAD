@@ -13,17 +13,20 @@ export class ArcaSdkError extends Error {
   readonly kind: ArcaSdkErrorKind
   readonly faultCode?: string
   readonly providerCode?: string
+  /** Solo en `authentication`: motivo que clasifico la libreria (por ejemplo `missing_relationship`). */
+  readonly authReason?: string
 
   constructor(
     kind: ArcaSdkErrorKind,
     message: string,
-    extra: { faultCode?: string; providerCode?: string; cause?: unknown } = {},
+    extra: { faultCode?: string; providerCode?: string; authReason?: string; cause?: unknown } = {},
   ) {
     super(message, extra.cause === undefined ? undefined : { cause: extra.cause })
     this.name = 'ArcaSdkError'
     this.kind = kind
     if (extra.faultCode !== undefined) this.faultCode = extra.faultCode
     if (extra.providerCode !== undefined) this.providerCode = extra.providerCode
+    if (extra.authReason !== undefined) this.authReason = extra.authReason
   }
 }
 

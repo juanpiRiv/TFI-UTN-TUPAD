@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Contexto para la presentación del Proyecto Final</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  body { font: 11pt/1.5 "Helvetica Neue", Arial, sans-serif; color: #13202b; margin: 0; }
+  h1 { font-size: 22pt; margin: 0 0 4pt; color: #0d6a73; }
+  h2 { font-size: 15pt; margin: 22pt 0 6pt; color: #0d6a73; border-bottom: 1.5pt solid #0d6a73; padding-bottom: 3pt; page-break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 12pt 0 4pt; page-break-after: avoid; }
+  p, li { margin: 3pt 0; }
+  ul { margin: 4pt 0 4pt 16pt; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 6pt 0; font-size: 10pt; page-break-inside: avoid; }
+  th, td { border: 0.75pt solid #b9c6cf; padding: 4pt 6pt; text-align: left; vertical-align: top; }
+  th { background: #e4f0f1; }
+  pre { background: #f2f5f7; border: 0.75pt solid #d3dce3; padding: 8pt; font: 8.5pt/1.4 Menlo, Consolas, monospace; white-space: pre-wrap; page-break-inside: avoid; }
+  .meta { color: #4a5b69; font-size: 10pt; }
+  .todo { background: #fbe9c8; padding: 0 3pt; border-radius: 2pt; }
+  .box { border-left: 3pt solid #0d6a73; background: #eef6f7; padding: 6pt 10pt; margin: 8pt 0; }
+</style>
+</head>
+<body>
+
+<h1>Proyecto Final: plataforma de gestión financiera y facturación para monotributistas</h1>
+<p class="meta">Tecnicatura Universitaria en Programación, UTN. Materia: Proyecto Final. Grupo 170. Integrantes: Juan Pablo Rivero, Brian Rios y Nahuel Riveros. Año 2026.</p>
+
+<div class="box">
+  <p><b>Para quien arma la presentación.</b> Este documento es la única fuente de contenido; las instrucciones de armado están en la sección 15. Todo lo que aparece acá existe en el repositorio y fue verificado. Los textos marcados con <span class="todo">COMPLETAR</span> o <span class="todo">AJUSTAR</span> todavía no tienen dato final: dejarlos visibles como marcador y no inventar el contenido. Hay que distinguir siempre lo implementado y probado de lo simulado y de lo que queda como evolución futura.</p>
+</div>
+
+<h2>1. Resumen del proyecto</h2>
+<p>Es una aplicación web para monotributistas argentinos que prestan servicios. Reúne en un solo lugar tres cosas que hoy suelen estar separadas: el registro de ingresos y egresos, el manejo de pesos y dólares con la cotización oficial del BCRA, y la emisión de facturas electrónicas contra ARCA (ex AFIP).</p>
+<p>La idea central del dominio es que <b>una factura, un cobro y un movimiento financiero son tres cosas distintas</b>. Una factura autorizada es un hecho fiscal; el cobro es la plata que efectivamente entró; el movimiento es el registro de caja. Mantenerlas separadas permite los pagos parciales sin duplicar ingresos.</p>
+
+<h2>2. Problema, usuarios y evidencia</h2>
+<ul>
+  <li><b>Problema:</b> el monotributista lleva sus cobros y gastos de forma abandonada o desactualizada, maneja dólares y carga cada factura a mano en la web de ARCA.</li>
+  <li><b>Usuarios:</b> personas que trabajan por su cuenta y prestan servicios.</li>
+  <li><b>Evidencia:</b> relevamiento a 3 personas que prestan servicios: un programador (P1), un creativo publicitario y director audiovisual (P2) y un diseñador freelance (P3). Las respuestas son anónimas.</li>
+</ul>
+<table>
+  <tr><th>Hallazgo</th><th>Cuántos</th><th>Lectura</th></tr>
+  <tr><td>El registro de cobros y gastos está abandonado o desactualizado</td><td>3 de 3</td><td>Confirmado</td></tr>
+  <tr><td>Manejan dólares</td><td>3 de 3</td><td>Confirmado. Respalda registrar movimientos en dólares con su cotización</td></tr>
+  <tr><td>Quieren facturación y finanzas en un solo lugar</td><td>2 de 3</td><td>Débil</td></tr>
+  <tr><td>Facturan a mano</td><td>2 de 3</td><td>Débil</td></tr>
+  <tr><td>Cobran en partes</td><td>1 de 3</td><td>Débil. Respalda que un pago parcial no duplique ingresos</td></tr>
+</table>
+<p><b>Límite de la evidencia:</b> con solo tres respuestas, todo se lee como señal y no como prueba. La evidencia valida el perfil de prestación de servicios. Productos y modalidad mixta no están validados.</p>
+
+<h2>3. Objetivo y alcance</h2>
+<p><b>Objetivo general:</b> que un monotributista pueda registrar, facturar y ver el resultado real de su actividad en una sola herramienta.</p>
+<h3>Implementado</h3>
+<ul>
+  <li>Registro, inicio de sesión y organización con su perfil fiscal.</li>
+  <li>Clientes con historial y baja lógica; categorías; actividades económicas; puntos de venta.</li>
+  <li>Movimientos de ingreso y egreso con filtros, en pesos y dólares.</li>
+  <li>Cotización oficial del BCRA con caché y respaldo.</li>
+  <li>Facturas: borrador, emisión con el proveedor fiscal y estados.</li>
+  <li>Cobros parciales con protección frente a cobros simultáneos.</li>
+  <li>Dashboard: facturado, cobrado y resultado.</li>
+  <li>Auditoría de operaciones.</li>
+</ul>
+<p class="meta"><span class="todo">AJUSTAR</span> con la decisión de alcance del grupo: comprobante en PDF imprimible, QR de la RG 4892, reconciliación de facturas pendientes y recuperación de contraseña.</p>
+<h3>Evolución futura</h3>
+<ul>
+  <li>Otros tipos de comprobante además de Factura C.</li>
+  <li>Envío de comprobantes y recordatorios por WhatsApp.</li>
+  <li>Consulta de la Central de Deudores del BCRA.</li>
+  <li>Reportes de gestión exportables.</li>
+</ul>
+
+<h2>4. Modelo y reglas del dominio</h2>
+<h3>Entidades principales</h3>
+<ul>
+  <li><b>Organization:</b> el contribuyente. Todo dato de negocio pertenece a una organización.</li>
+  <li><b>Client, Category, Activity y PointOfSale:</b> catálogos de la organización.</li>
+  <li><b>Invoice e InvoiceItem:</b> la factura y sus ítems.</li>
+  <li><b>Payment:</b> un cobro, parcial o total, de una factura.</li>
+  <li><b>Transaction:</b> un movimiento de ingreso o egreso. Cada cobro genera exactamente un movimiento de ingreso.</li>
+  <li><b>ExchangeRate:</b> cotizaciones guardadas. <b>AuditLog:</b> registro de operaciones.</li>
+</ul>
+<h3>Estados de la factura</h3>
+<table>
+  <tr><th>Estado</th><th>Significado</th><th>Editable</th><th>Se cobra</th></tr>
+  <tr><td>Borrador</td><td>Todavía no se mandó a ARCA</td><td>Sí</td><td>No</td></tr>
+  <tr><td>Pendiente</td><td>Se mandó y se espera la respuesta</td><td>No</td><td>No</td></tr>
+  <tr><td>Autorizada</td><td>ARCA la aprobó y tiene CAE</td><td>Nunca más</td><td>Sí</td></tr>
+  <tr><td>Rechazada</td><td>ARCA la rechazó; se guardan las observaciones</td><td>Vuelve a borrador</td><td>No</td></tr>
+</table>
+<p>El estado comercial (pendiente, cobrada en parte, cobrada) no se guarda: se calcula cada vez a partir de los pagos, para que nunca quede desincronizado.</p>
+<h3>Reglas relevantes</h3>
+<ul>
+  <li>Todo movimiento pertenece a una organización. Los importes no pueden ser negativos.</li>
+  <li>La moneda base de la organización es el peso argentino. Cada organización tiene una sola actividad primaria.</li>
+  <li>Facturado y cobrado son independientes (tablas separadas). Una factura autorizada no se edita ni se borra.</li>
+  <li>El CAE solo existe en facturas autorizadas; una rechazada no queda autorizada.</li>
+  <li>Al pasar de borrador a pendiente se copian los datos del emisor y del receptor en la factura (snapshot): si cambian después, el comprobante no cambia.</li>
+  <li>Cada movimiento en dólares guarda su tipo de cambio. Cambiar la cotización después no modifica los movimientos viejos.</li>
+  <li>La moneda de un pago debe coincidir con la de la factura. El dashboard no cuenta dos veces un ingreso manual y una factura.</li>
+  <li>Los ítems de la factura son un dato interno: no son lo que se manda a ARCA.</li>
+</ul>
+
+<h2>5. Recorrido de demostración</h2>
+<p>El sistema se muestra con datos de prueba, en este orden:</p>
+<ul>
+  <li><b>Ingreso y organización:</b> inicio de sesión y perfil fiscal (CUIT, razón social, condición frente al IVA).</li>
+  <li><b>Clientes y categorías:</b> listado, búsqueda, historial y baja lógica; categorías de ingreso y egreso.</li>
+  <li><b>Movimientos:</b> un egreso en pesos y un ingreso en dólares con la cotización del BCRA sugerida, que puede cambiarse.</li>
+  <li><b>Factura:</b> se crea un borrador con un ítem de servicios, todavía no se puede cobrar; al facturar se obtiene el CAE y aparece el aviso &laquo;comprobante de prueba, sin validez fiscal&raquo;, porque la autorización es simulada.</li>
+  <li><b>Cobro parcial:</b> sobre una factura de $250.000 se cobran $100.000; el estado pasa a &laquo;cobrada en parte&raquo; y el saldo baja a $150.000.</li>
+  <li><b>Dashboard:</b> total facturado, total cobrado y la diferencia; resultado de caja (plata que entró menos la que salió) y resultado de gestión (facturado más ingresos manuales menos egresos).</li>
+</ul>
+
+<h2>6. Cobros parciales y concurrencia (regla crítica)</h2>
+<p><b>Ejemplo:</b> una factura de $100.000 que el cliente paga en dos partes. La factura se emite una vez; cada cobro es un registro aparte. Cada cobro crea, en la misma operación, un pago y su movimiento de ingreso: si una de las dos cosas falla, no se guarda ninguna.</p>
+<p><b>El riesgo:</b> dos cobros al mismo tiempo (doble clic, dos pestañas) que juntos superen el total de la factura.</p>
+<p><b>La solución:</b> una transacción de base de datos que bloquea la fila de la factura con <code>SELECT ... FOR UPDATE</code>, valida que lo ya cobrado más el cobro nuevo no supere el total y recién entonces guarda. Los cobros sobre facturas distintas siguen en paralelo.</p>
+<p><b>Fragmento clave</b> (simplificado de la documentación técnica):</p>
+<pre>await prisma.$transaction(async (tx) =&gt; {
+  // 1. Bloqueamos la factura. Otro pago sobre la misma factura espera acá hasta el commit.
+  const [invoice] = await tx.$queryRaw`
+    SELECT id, total_amount, status FROM invoices
+    WHERE id = ${invoiceId} AND organization_id = ${orgId}
+    FOR UPDATE`;
+  if (invoice.status !== 'AUTHORIZED') throw new AppError(422, 'Solo se cobran facturas autorizadas');
+
+  // 2. Con el bloqueo tomado, lo ya cobrado no cambia hasta el commit.
+  const paid = sum de pagos no anulados de la factura;
+  if (paid + amount &gt; invoice.total_amount) throw new AppError(422, 'El pago supera el saldo pendiente');
+
+  // 3. Pago, movimiento y auditoría: se guardan los tres o ninguno.
+  crear Payment; crear Transaction de ingreso; crear AuditLog;
+});</pre>
+<p><b>Cómo se comprueba:</b></p>
+<ul>
+  <li>Test de dos cobros simultáneos de $80 sobre una factura de $100: entra uno y el otro se rechaza.</li>
+  <li>Test de dos cobros simultáneos sobre facturas distintas que no pueden adoptar el mismo movimiento.</li>
+  <li>Test de dos pedidos simultáneos de facturar el mismo borrador: solo uno autoriza.</li>
+</ul>
+
+<h2>7. Cotizaciones y dashboard</h2>
+<ul>
+  <li>Hay <b>dos cotizaciones distintas</b> que no se mezclan. La de gestión, para movimientos y dashboard, es la oficial del BCRA (Estadísticas Cambiarias, USD a pesos). La fiscal es la que exige ARCA para facturar en moneda extranjera (RG 5616/2024) y se guarda aparte en la factura.</li>
+  <li>Se consulta al BCRA una vez por día. Si la serie falla, se usa la última cotización guardada y, si no hay, la carga manual.</li>
+  <li>Cada movimiento guarda una copia de la cotización usada.</li>
+  <li>El dashboard muestra total facturado, total cobrado y su diferencia, con montos multimoneda convertidos.</li>
+</ul>
+
+<h2>8. Arquitectura y tecnologías</h2>
+<p>No es una lista de tecnologías: cada componente tiene una responsabilidad y un motivo.</p>
+<table>
+  <tr><th>Componente</th><th>Responsabilidad</th><th>Motivo</th></tr>
+  <tr><td>Frontend: Vite, React 19, TypeScript, TanStack Query (Cloudflare Pages)</td><td>Pantallas, formularios y caché de datos</td><td>Aplicación de una sola página con tipado estricto y caché de las consultas</td></tr>
+  <tr><td>Backend: Node.js, Express, TypeScript (Render)</td><td>Reglas de negocio y API, un módulo por área con validación de entrada con Zod</td><td>Monolito modular: un solo despliegue y responsabilidades separadas por módulo</td></tr>
+  <tr><td>Base de datos: PostgreSQL 16 con Prisma (Render)</td><td>Persistencia, restricciones y transacciones</td><td>ACID y bloqueo de fila para los cobros concurrentes</td></tr>
+  <tr><td>FiscalProvider (interfaz)</td><td>Habla con ARCA: proveedor simulado y proveedor sobre la librería facturas, elegido por configuración</td><td>El certificado de homologación llegó tarde: no frenó el resto y permite separar claramente lo simulado</td></tr>
+  <tr><td>Integración BCRA</td><td>Cotización oficial USD a pesos</td><td>Fuente oficial, pública y gratuita</td></tr>
+  <tr><td>Seguridad: JWT y Argon2id</td><td>Autenticación y almacenamiento de contraseñas</td><td>Estándar para una API sin estado</td></tr>
+  <tr><td>CI: GitHub Actions con PostgreSQL</td><td>Lint, build y tests en cada pull request</td><td>Detectar regresiones antes de integrar</td></tr>
+</table>
+<p>Decisión que cambió: el frontend empezó con datos simulados (MSW) para diseñar el contrato de la API, y después se reemplazó por el backend real.</p>
+
+<h2>9. ARCA y homologación</h2>
+<p>El sistema habla con ARCA a través de una interfaz, no directamente. Estado real, con fechas:</p>
+<table>
+  <tr><th>Parte</th><th>Detalle</th></tr>
+  <tr><td><b>Probado</b></td><td>19/10/2026: <code>FEDummy</code> real en homologación respondió bien en los tres campos. Errores reales del WSAA con un pedido inválido (<code>cms.bad</code>) y con un certificado de prueba no confiable (<code>cms.cert.untrusted</code>). WSFEv1 con credenciales inventadas respondió error 600.<br>22/10/2026: se emitió el certificado de homologación, válido hasta el 21/10/2028, y se autorizó el servicio <code>wsfe</code>.</td></tr>
+  <tr><td><b>Simulado</b></td><td>La emisión de facturas de la demo usa el proveedor simulado. Sus comprobantes se marcan como &laquo;de prueba, sin validez fiscal&raquo;.</td></tr>
+  <tr><td><b>Limitación encontrada</b></td><td>Faltaba el alta del punto de venta para web service y la primera prueba completa con ticket de acceso. <span class="todo">COMPLETAR</span> con la fecha, la respuesta real de ARCA y el punto exacto donde se bloqueó, o con el resultado si la emisión se completó.</td></tr>
+</table>
+<p>Flujo: certificado, WSAA, ticket de acceso, WSFEv1, respuesta. <span class="todo">COMPLETAR</span> cuál paso se logró.</p>
+
+<h2>10. Pruebas y validación</h2>
+<ul>
+  <li><b>Qué se usa:</b> Vitest y Supertest en el backend, Vitest en el frontend. Hay 24 archivos de test en el backend y 12 en el frontend.</li>
+  <li>Las pruebas de integración corren contra PostgreSQL real, tanto en local como en el CI de cada pull request.</li>
+  <li><b>Reglas críticas con prueba propia:</b> cobros simultáneos que superan el saldo; emisión simultánea del mismo borrador; recorrido completo de facturar y cobrar; cambio de cotización que no toca movimientos viejos; seguridad básica.</li>
+  <li><b>Resultado de la suite sobre el commit final:</b> <span class="todo">COMPLETAR</span> con cantidad que pasa, cantidad que falla, fecha y commit.</li>
+  <li><b>Lo que no existe:</b> pruebas de punta a punta en navegador.</li>
+</ul>
+
+<h2>11. Dificultades, limitaciones y evolución</h2>
+<h3>Dificultades técnicas y de dominio</h3>
+<ul>
+  <li>Evitar cobros duplicados cuando llegan pedidos simultáneos (bloqueo de fila) y que dos cobros no adopten el mismo movimiento o creen a la vez la categoría de cobros (alta atómica).</li>
+  <li>Integrar ARCA: depender de un trámite externo, el certificado, y de un protocolo con firma del pedido.</li>
+  <li>Separar claramente factura, cobro y movimiento sin duplicar ingresos en el dashboard.</li>
+</ul>
+<h3>Limitaciones actuales</h3>
+<ul>
+  <li>La autorización de ARCA es simulada salvo que la homologación se haya completado (ver sección 9).</li>
+  <li>La cotización de gestión no es la fiscal.</li>
+  <li>El token de sesión se guarda en el navegador (localStorage): decisión de simplicidad para el alcance, con riesgo conocido frente a ataques XSS.</li>
+  <li>La reconciliación de facturas pendientes es una acción manual.</li>
+  <li>Sin pruebas de navegador de punta a punta. La evidencia del relevamiento es de 3 prestadores de servicios.</li>
+</ul>
+<h3>Si continuara el proyecto</h3>
+<p>Otros comprobantes, WhatsApp, Central de Deudores y reportes exportables; y completar la emisión fiscal real si la homologación quedó incompleta.</p>
+
+<h2>12. Reparto del video (12 a 15 minutos, en español)</h2>
+<p>Los tres integrantes hablan sin leer. Cada uno puede responder sobre cualquier parte del proyecto.</p>
+<table>
+  <tr><th>#</th><th>Bloque</th><th>Quién</th><th>Tiempo</th><th>Pregunta del docente que responde</th></tr>
+  <tr><td>1</td><td>Equipo, problema y usuarios</td><td>Juan Pablo</td><td>1:30</td><td>¿Qué problema resolvieron?</td></tr>
+  <tr><td>2</td><td>Objetivo y alcance</td><td>Juan Pablo</td><td>1:00</td><td></td></tr>
+  <tr><td>3</td><td>Modelo y reglas del dominio</td><td>Nahuel</td><td>2:30</td><td>¿Por qué tomaron esas decisiones?</td></tr>
+  <tr><td>4</td><td>Demo: del alta a la factura</td><td>Nahuel</td><td>2:00</td><td></td></tr>
+  <tr><td>5</td><td>Cobros parciales y concurrencia</td><td>Brian</td><td>2:30</td><td>¿Cuál fue el mayor desafío técnico o de dominio?</td></tr>
+  <tr><td>6</td><td>Cotización BCRA y dashboard</td><td>Brian</td><td>1:30</td><td></td></tr>
+  <tr><td>7</td><td>Arquitectura y decisiones técnicas</td><td>Juan Pablo</td><td>2:00</td><td>¿Por qué tomaron esas decisiones?</td></tr>
+  <tr><td>8</td><td>ARCA y homologación</td><td>Juan Pablo</td><td>1:30</td><td></td></tr>
+  <tr><td>9</td><td>Pruebas y validación</td><td>Nahuel</td><td>1:30</td><td>¿Cómo sabemos que la solución funciona?</td></tr>
+  <tr><td>10</td><td>Dificultades, limitaciones, evolución y conclusión</td><td>Los tres</td><td>2:00</td><td>¿Qué harían diferente o qué continuarían desarrollando?</td></tr>
+</table>
+
+<h2>13. Guiones por integrante</h2>
+<p>Ideas fuerza para que cada integrante explique su parte con palabras propias, sin leer. Sirven como notas del orador de cada pantalla. Los tres pueden responder sobre cualquier parte del proyecto.</p>
+<h3>Preguntas clave del docente y quién responde</h3>
+<ul><li>¿Qué problema resolvieron? Juan Pablo</li><li>¿Por qué tomaron esas decisiones? Juan Pablo y Nahuel</li><li>¿Cómo sabemos que la solución funciona? Nahuel y Brian</li><li>¿Cuál fue el mayor desafío técnico o de dominio? Brian (concurrencia) y Juan Pablo (ARCA)</li><li>¿Qué harían diferente o qué continuarían? Los tres</li></ul>
+<h3>Guion de Juan Pablo</h3>
+<p><b>B1. Equipo, problema y usuarios</b> (1:30)</p><ul><li>Somos Juan Pablo, Brian y Nahuel, grupo 170. Construimos una plataforma para que un monotributista lleve sus finanzas y facture en un solo lugar.</li><li>El problema que encontramos: el registro de cobros y gastos está abandonado o desactualizado, se maneja plata en dólares y facturar se hace a mano en la web de ARCA.</li><li>Lo validamos con 3 relevamientos a personas que prestan servicios: un programador, un creativo audiovisual y un diseñador freelance.</li><li>Los 3 coinciden en el registro abandonado y en los dólares. Facturar a mano lo cuentan 2 de 3 y los pagos en partes 1 de 3. Lo leemos como señal, no como prueba.</li><li>Decirlo con naturalidad: la evidencia es de prestadores de servicios; productos y modalidad mixta quedan sin validar.</li></ul><p class="meta">En pantalla: Diapositiva del problema con los tres perfiles relevados.</p>
+<p><b>B2. Objetivo y alcance</b> (1:00)</p><ul><li>Objetivo: una herramienta donde registrás, facturás y ves el resultado real de su actividad.</li><li>Implementado: cuenta y organización, clientes, categorías, actividades y puntos de venta, movimientos, dashboard, facturas, cobros parciales, cotización BCRA y auditoría.</li><li>Evolución futura, según lo que apruebe el grupo: otros comprobantes, WhatsApp, Central de Deudores y reportes. AJUSTAR con la tabla de decisiones.</li><li>No prometer nada que no exista: lo que está simulado se dice como simulado.</li></ul><p class="meta">En pantalla: Dos columnas: implementado y evolución futura.</p>
+<p><b>B7. Arquitectura y decisiones técnicas</b> (2:00)</p><ul><li>Backend como monolito modular: un módulo por área (auth, organizaciones, clientes, facturas, pagos, cotizaciones, arca). Elegimos eso por el tamaño del equipo y del plazo, y porque se despliega como una sola pieza.</li><li>PostgreSQL con Prisma. Lo importante es la transacción: el cobro de una factura bloquea la fila para que dos cobros simultáneos no dupliquen ingresos.</li><li>ARCA detrás de una interfaz, FiscalProvider, con un proveedor simulado y otro sobre la librería facturas. Se elige por configuración. Lo hicimos porque el certificado tardó y no queríamos frenar el resto, y para dejar claro qué es simulado.</li><li>Empezamos con mocks del frontend para diseñar el contrato de la API y después los reemplazamos por el backend real.</li><li>Frontend en Cloudflare Pages, backend y base en Render, y CI con PostgreSQL en cada pull request.</li><li>Seguridad básica: JWT y contraseñas con Argon2id.</li><li>En pantalla, una tabla corta de componente, responsabilidad y motivo en vez de una lista de tecnologías.</li></ul><p class="meta">En pantalla: Diagrama de arquitectura de docs/10, sección 2, y el sitio publicado.</p>
+<p><b>B8. ARCA y homologación real</b> (1:30)</p><ul><li>Qué hicimos de verdad: el 19/10 llamamos a FEDummy real y respondió bien; probamos el WSAA y WSFE y obtuvimos errores reales de ARCA.</li><li>El 22/10 emitimos el certificado de homologación, válido hasta el 21/10/2028, y autorizamos el servicio wsfe.</li><li>Faltaba el punto de venta para web service y la primera prueba completa con ticket de acceso. COMPLETAR: qué pasó en la prueba real, con fecha, respuesta y dónde se bloqueó.</li><li>Si no se completó, decirlo así: seguimos con el proveedor simulado, identificado como sin validez fiscal, y dejamos documentado el último paso logrado.</li><li>La dificultad real fue un trámite externo y la firma del pedido, no el código.</li><li>Ordenarlo en tres partes: lo probado, lo simulado y la limitación encontrada.</li></ul><p class="meta">En pantalla: Flujo certificado, WSAA, ticket, WSFEv1, respuesta, con el paso logrado marcado; respuestas reales de docs/arca.</p>
+<p><b>B10. Cierre personal</b> (0:40)</p><ul><li>Mayor dificultad: depender de un trámite externo, el certificado de ARCA, y entender el protocolo WSAA y WSFE.</li><li>Una limitación: la emisión fiscal real no está verificada de punta a punta si la homologación no se completó.</li><li>Conclusión propia: qué se aprendió y qué se seguiría desarrollando.</li></ul><p class="meta">En pantalla: Cámara, sin diapositiva.</p>
+<h3>Guion de Nahuel</h3>
+<p><b>B3. Modelo y reglas del dominio</b> (2:30)</p><ul><li>La idea central del modelo: factura, cobro y movimiento financiero son tres cosas distintas. La factura es lo que se emitió; el cobro es la plata que efectivamente entró; el movimiento es el registro de caja.</li><li>La factura tiene un estado fiscal: borrador, pendiente, autorizada o rechazada. Solo una autorizada se puede cobrar y nunca más se edita ni se borra.</li><li>El estado comercial, cuánto se cobró, no se guarda: se calcula cada vez a partir de los pagos, así nunca queda desincronizado.</li><li>Al pasar de borrador a pendiente se copian los datos del emisor en la factura (snapshot): si el contribuyente cambia sus datos, la factura vieja no cambia.</li><li>Reglas que protege la base de datos: importes no negativos, una factura rechazada no queda autorizada, el CAE solo existe en facturas autorizadas, y la moneda base es pesos.</li><li>Cada organización tiene una sola actividad primaria, controlado con un índice único parcial.</li><li>Los ítems de la factura son un dato interno: no son lo que se manda a ARCA.</li></ul><p class="meta">En pantalla: DER de docs/10 (sección 1) y un esquema con tres cajas: Factura, Cobro, Movimiento.</p>
+<p><b>B4. Demo: del alta a la factura</b> (2:00)</p><ul><li>Entrar con el usuario de prueba y mostrar la organización: CUIT, razón social y condición frente al IVA.</li><li>Clientes: listado, búsqueda y detalle con historial. Mostrar que dar de baja un cliente no lo borra, porque tiene historial.</li><li>Categorías: las de ingreso y egreso, y crear una nueva.</li><li>Nueva factura: cliente, concepto servicios, un ítem con precio. Crear el borrador y mostrar que todavía no se puede cobrar.</li><li>Facturar: se ve el CAE y el aviso de comprobante de prueba sin validez fiscal. Decirlo claro: acá la autorización es simulada.</li><li>Narrar siempre por qué: no mostrar pantallas en silencio.</li></ul><p class="meta">En pantalla: El sitio en vivo: login, organización, clientes, categorías, nueva factura.</p>
+<p><b>B9. Pruebas y validación</b> (1:30)</p><ul><li>Qué probamos: backend con Vitest y Supertest, y frontend con Vitest. Hay 24 archivos de test en backend y 12 en frontend.</li><li>Las pruebas de integración corren contra PostgreSQL real, tanto en el CI de cada pull request como en local.</li><li>Reglas críticas con prueba propia: dos cobros simultáneos que superan el saldo, y dos pedidos simultáneos de facturar el mismo borrador: en ambos entra uno solo.</li><li>También hay tests de seguridad y de cada módulo: clientes, facturas, pagos, dashboard, cotizaciones y proveedor fiscal.</li><li>COMPLETAR con el resultado real de la suite sobre el commit final: cantidad que pasa, cantidad que falla, fecha y commit. No usar cifras viejas.</li><li>Decir con naturalidad lo que falta: no hay pruebas E2E de navegador.</li><li>Mostrar brevemente un fragmento de test, por ejemplo el de dos pedidos simultáneos de facturar el mismo borrador, y explicar qué comprueba.</li></ul><p class="meta">En pantalla: La terminal con la suite corriendo y la tabla de reglas críticas contra la prueba que las cubre.</p>
+<p><b>B10. Cierre personal</b> (0:40)</p><ul><li>Mayor dificultad técnica: elegir una real, por ejemplo integrar organizaciones con el resto de los módulos, o hacer que las pruebas de concurrencia corran contra PostgreSQL.</li><li>Una limitación honesta del sistema: la autorización de ARCA es simulada si la homologación no se completó.</li><li>Conclusión propia: qué se aprendió y qué se seguiría desarrollando.</li></ul><p class="meta">En pantalla: Cámara, sin diapositiva.</p>
+<h3>Guion de Brian</h3>
+<p><b>B5. Cobros parciales y concurrencia</b> (2:30)</p><ul><li>El caso: una factura de $100.000 que el cliente paga en dos partes. La factura se emite una vez; cada cobro es un registro aparte.</li><li>Cada cobro crea, en la misma operación, un Payment y su movimiento de ingreso. Si una de las dos cosas falla, no se guarda ninguna.</li><li>Demo: factura de $250.000, cobro de $100.000. El estado pasa a cobrada en parte y el saldo baja a $150.000.</li><li>El riesgo: dos cobros al mismo tiempo, por un doble clic o dos pestañas, que juntos pasen el total.</li><li>La solución: una transacción que bloquea la fila de la factura con SELECT FOR UPDATE, valida que lo cobrado más el cobro nuevo no supere el total y recién después guarda.</li><li>La prueba: dos cobros simultáneos de $80 sobre una factura de $100. Entra uno y el otro se rechaza. Los cobros sobre facturas distintas siguen en paralelo.</li><li>Como pasa con la emisión: dos pedidos simultáneos de facturar el mismo borrador, solo uno autoriza.</li><li>Mostrar brevemente un fragmento significativo, la consulta de bloqueo (SELECT ... FOR UPDATE) o el test de dos cobros simultáneos, y explicar qué hace y por qué importa.</li></ul><p class="meta">En pantalla: Una factura autorizada: registrar un cobro parcial y ver el saldo; luego el test de dos cobros simultáneos.</p>
+<p><b>B6. Cotización BCRA y dashboard</b> (1:30)</p><ul><li>Hay dos cotizaciones distintas y no hay que mezclarlas. La de gestión, que usamos para el dashboard, sale del BCRA, de Estadísticas Cambiarias. La que exige ARCA para facturar en moneda extranjera es otra y se guarda aparte en la factura.</li><li>Consultamos al BCRA una vez por día y la guardamos. Si la serie falla, se usa la última guardada y, si no, la carga manual.</li><li>El movimiento guarda una copia de la cotización: si cambia después, los movimientos viejos no se tocan.</li><li>Demo: registrar un ingreso en dólares, el formulario sugiere la cotización y se puede cambiar.</li><li>Dashboard: total facturado, total cobrado y la diferencia. El resultado de caja es la plata que entró menos la que salió; el de gestión suma lo facturado.</li><li>Sin doble conteo: un ingreso manual y una factura no se cuentan dos veces.</li></ul><p class="meta">En pantalla: Un movimiento en dólares con la cotización sugerida, y el dashboard con facturado, cobrado y resultado.</p>
+<p><b>B10. Cierre personal</b> (0:40)</p><ul><li>Mayor dificultad técnica: la concurrencia en los cobros, por ejemplo cuando dos cobros intentan usar el mismo movimiento o crear a la vez la categoría Cobro de facturas, que se resolvió con bloqueo y con un upsert atómico.</li><li>Una limitación honesta: la cotización de gestión no es la fiscal, y la autorización de ARCA es simulada si no se completó la homologación.</li><li>Conclusión propia: qué se aprendió y qué se seguiría desarrollando.</li></ul><p class="meta">En pantalla: Cámara, sin diapositiva.</p>
+<h3>Reglas del video</h3><ul><li>Cada uno debe poder responder sobre cualquier módulo, no solo el propio: ensayo cruzado antes de grabar.</li><li>Narrar la demo mientras se usa; nada de pantallas en silencio.</li><li>El Prezi es apoyo visual, sin texto para leer.</li><li>Decir las limitaciones con naturalidad, en especial que ARCA va simulado si la homologación no se completó.</li><li>Plan B: capturas y entorno local por si falla el sitio publicado.</li><li>Mostrar al menos un fragmento significativo (código, consulta, algoritmo o prueba) explicado brevemente; no hace falta recorrer todo el código.</li><li>El video y el informe describen la misma versión: la pantalla final identifica el tag o release del repositorio.</li><li>Los enlaces y la cuenta de demostración se verifican desde una sesión que no pertenece a ningún integrante.</li></ul>
+<h2>14. Enlaces y versión</h2>
+<ul>
+  <li><b>Sistema desplegado (frontend):</b> https://tfi-tupad-95d.pages.dev</li>
+  <li><b>Backend:</b> https://tfi-utn-tupad.onrender.com</li>
+  <li><b>Repositorio:</b> https://github.com/juanpiRiv/TFI-UTN-TUPAD</li>
+  <li><b>Informe Final en PDF:</b> <span class="todo">COMPLETAR</span> enlace dentro del repositorio.</li>
+  <li><b>Video final:</b> <span class="todo">COMPLETAR</span> enlace.</li>
+  <li><b>Versión presentada:</b> <span class="todo">COMPLETAR</span> tag o release del repositorio.</li>
+  <li><b>Cuenta de demostración:</b> <span class="todo">COMPLETAR</span> usuario de prueba para entrar al sistema desplegado.</li>
+</ul>
+
+<h2>15. Instrucciones para armar la presentación</h2>
+<p>Armá una presentación de Prezi a partir del documento adjunto, que es la única fuente de contenido. Es el apoyo visual de un video de 12 a 15 minutos, en español, del Proyecto Final del grupo 170 (UTN), donde hablan los tres integrantes sin leer.</p>
+<p>Reglas:</p>
+<ul><li>Usá solo lo que está en el documento. No inventes datos, cifras ni funcionalidades. Donde diga COMPLETAR o AJUSTAR, dejá un marcador visible.</li>
+<li>Poco texto: una frase y hasta tres palabras clave por pantalla. Diagramas, tablas cortas e íconos en lugar de párrafos. Agregá notas del orador de tres viñetas por pantalla.</li>
+<li>Separá siempre lo implementado y probado de lo simulado y de la evolución futura. En ARCA usá tres columnas: Probado, Simulado, Limitación.</li>
+<li>Estilo sobrio y técnico, fondo claro, un solo color de acento verde petróleo, tipografía sans-serif limpia.</li>
+<li>Usá el zoom de Prezi para pasar entre estas zonas del mapa: Problema, Modelo, Demo, Cobros, Arquitectura, ARCA, Pruebas y Cierre.</li><li>En cada pantalla poné, bien visible, el nombre de quien la presenta: Juan Pablo, Nahuel o Brian. Juan Pablo presenta los bloques 1, 2, 7 y 8; Nahuel, los bloques 3, 4 y 9; Brian, los bloques 5 y 6. En el bloque 10 y en la pantalla final de enlaces figuran los tres.</li></ul>
+<p>Estructura, siguiendo la sección 12 del documento: 10 bloques con su responsable y su tiempo. Total: 14 pantallas, repartidas así: bloque 1 (2), bloque 2 (1), bloque 3 (2), bloque 4 (1), bloque 5 (2), bloque 6 (1), bloque 7 (1), bloque 8 (1), bloque 9 (1), bloque 10 (1) y la pantalla final de enlaces (1). Incluí una pantalla de fragmento clave (la consulta SELECT ... FOR UPDATE de la sección 6, con tres líneas resaltadas), una tabla de componente, responsabilidad y motivo en arquitectura (sección 8), y una tabla de reglas críticas contra la prueba que las cubre en pruebas (sección 10). Cerrá con una pantalla de enlaces, versión presentada y cuenta de demostración (sección 14).</p>
+
+</body>
+</html>

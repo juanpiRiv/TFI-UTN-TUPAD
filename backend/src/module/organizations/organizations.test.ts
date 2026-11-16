@@ -1,7 +1,7 @@
 import "dotenv/config";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { isValidCuit } from "../../lib/cuit.js";
+import { uniqueCuit } from "../../test-utils/unique-cuit.js";
 import { createOrganizationSchema, updateOrganizationSchema } from "./organizations.schemas.js";
 
 let app: any;
@@ -19,17 +19,7 @@ if (process.env.DATABASE_URL && process.env.JWT_SECRET) {
     }
 }
 
-/** Genera un CUIT válido y distinto en cada llamada. */
-let cuitSeed = Date.now() % 100_000_000;
-function nextCuit(): string {
-    for (; ;) {
-        cuitSeed = (cuitSeed + 7919) % 100_000_000;
-        const base = `20${String(cuitSeed).padStart(8, "0")}`;
-        for (let digit = 0; digit <= 9; digit++) {
-            if (isValidCuit(`${base}${digit}`)) return `${base}${digit}`;
-        }
-    }
-}
+const nextCuit = () => uniqueCuit("20");
 
 const validBody = () => ({
     cuit: nextCuit(),
@@ -144,6 +134,16 @@ describe.skipIf(!dbAvailable)("organizations (integration)", () => {
         const me = await request(app).get("/api/auth/me").set(as(tokenA));
         expect(me.body.organization.id).toBe(res.body.id);
         expect((await request(app).get("/api/clients").set(as(tokenA))).status).toBe(200);
+    });
+
+    it("GET /me expone issuerCompleteness con lo que falta para facturar", async () => {
+        const me = await request(app).get("/api/organizations/me").set(as(tokenA));
+        expect(me.status).toBe(200);
+        // validBody: monotributo sin domicilio comercial ni Ingresos Brutos
+        expect(me.body.issuerCompleteness).toEqual({
+            complete: false,
+            missing: [{ field: "commercialAddress", label: "Domicilio comercial" }],
+        });
     });
 
     it("no deja crear una segunda organización ni repetir un CUIT", async () => {

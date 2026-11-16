@@ -1,0 +1,45 @@
+Prueba real de punta a punta contra la HOMOLOGACION de ARCA: concepto servicios y receptor identificado
+Fecha: 15/11/2026 (hora de Argentina). Ambiente: wsaahomo / wswhomo. Sin validez fiscal.
+Cliente: backend del proyecto con ARCA_PROVIDER=sdk (libreria facturas 0.25.2) y el recorrido `pnpm arca:e2e`
+(scripts/arca-e2e.ts, escenarios services y receiver). Factura C (CbteTipo 11) por $ 1500, puntos de venta 1 y 2.
+Datos que no se publican: CUIT del emisor (terminado en 3967), certificado, clave privada, token y firma del ticket.
+Cada comprobante se verifico despues con FECompConsultar: Resultado "A" y CodAutorizacion igual al CAE guardado.
+
+1) Concepto servicios (Concepto 2), consumidor final (DocTipo 99, DocNro 0, CondicionIVAReceptorId 5)
+   Fechas informadas: FchServDesde 20261017, FchServHasta 20261115, FchVtoPago 20261125 (devueltas por FECompConsultar).
+   Punto de venta 1 -> comprobante 6,  CAE 86461069306797, Resultado A
+   Punto de venta 2 -> comprobante 5,  CAE 86461069306815, Resultado A
+
+2) Receptor identificado con CUIT (DocTipo 80), Responsable Inscripto (CondicionIVAReceptorId 1), productos
+   Punto de venta 1 -> comprobante 7,  CAE 86461069306828, Resultado A   (otros: 10 -> 86461069306917, 13 -> 86461069306975)
+   Punto de venta 2 -> comprobante 6,  CAE 86461069306831, Resultado A   (otro: 9 -> 86461069306920)
+   El CUIT del receptor es ficticio, con digito verificador valido; ARCA lo acepto.
+
+3) Receptor identificado con CUIT (DocTipo 80), Monotributo (CondicionIVAReceptorId 6), productos
+   Con un CUIT inventado (valido segun el digito verificador) ARCA rechaza el comprobante, en los dos puntos de venta:
+     10015  Comprobante C (CbteDesde igual a CbteHasta), DocTipo: 80, DocNro <CUIT> no se encuentra registrado en los
+            padrones de AFIP y no corresponde a una cuit pais.
+   Con el CUIT del propio emisor tambien lo rechaza:
+     10069  Campo DocNro no puede ser igual al del emisor.
+   Con un CUIT publico que si esta en el padron (el de la propia ARCA, terminado en 0239):
+   Punto de venta 1 -> comprobante 14, CAE 86461069306988, Resultado A, CondicionIVAReceptorId 6
+   Punto de venta 2 -> comprobante 12, CAE 86461069307036, Resultado A, CondicionIVAReceptorId 6
+   Conclusion: la homologacion valida que el CUIT del receptor exista en el padron; no valida que la condicion
+   de IVA informada coincida con la del padron.
+
+4) Receptor identificado con DNI (DocTipo 96), consumidor final (CondicionIVAReceptorId 5), productos
+   Punto de venta 1 -> comprobante 8,  CAE 86461069306857, Resultado A   (otros: 11 -> 86461069306933, 15 -> 86461069306991)
+   Punto de venta 2 -> comprobante 7,  CAE 86461069306860, Resultado A   (otro: 10 -> 86461069306946)
+   El DNI es ficticio; ARCA no lo valida contra ningun padron.
+
+5) Servicios (Concepto 2) a un receptor con CUIT Responsable Inscripto (DocTipo 80, CondicionIVAReceptorId 1)
+   Punto de venta 1 -> comprobante 9,  CAE 86461069306873, Resultado A   (otros: 12 -> 86461069306959, 16 -> 86461069307007)
+   Punto de venta 2 -> comprobante 8,  CAE 86461069306886, Resultado A   (otro: 11 -> 86461069306962)
+
+Observacion operativa: numeracion con facturas simuladas
+   Una primera emision con el proveedor simulado dejo en la base local una factura "autorizada" con numero 6 en el
+   punto de venta 1. La aplicacion numera con el mayor entre el ultimo de ARCA y el ultimo guardado en la base, asi que
+   la factura siguiente salio con numero 7 y ARCA la rechazo:
+     10016  El numero o fecha del comprobante no se corresponde con el proximo a autorizar. Consultar metodo FECompUltimoAutorizado.
+   Se borro esa factura simulada de la base local y la emision siguiente salio con el numero correcto (6).
+   Una organizacion que pase del simulador a ARCA con facturas simuladas ya "autorizadas" tiene el mismo problema.
