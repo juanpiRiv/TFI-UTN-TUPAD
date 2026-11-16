@@ -2,7 +2,7 @@
 
 Este documento describe los endpoints que el frontend espera del backend para el recorrido de la segunda entrega: usuario, organización, cliente, movimiento y dashboard.
 
-Hoy el backend (PR #90) solo tiene autenticación. El resto lo simulamos en el frontend con MSW (ver [`frontend/README.md`](../frontend/README.md#mocks)), siguiendo exactamente este contrato. Cuando el backend implemente un endpoint, alcanza con borrar su handler de `frontend/src/mocks/handlers/`: las pantallas no cambian.
+El backend implementa todos los endpoints de este contrato y el frontend consume la API real por defecto. Si hace falta, `VITE_MOCK_MODULES` permite simular módulos puntuales con MSW (ver [`frontend/README.md`](../frontend/README.md#mocks)), siguiendo exactamente este contrato.
 
 Los nombres de los campos salen del [modelo de datos](./03-modelo-de-datos.md), pasados a camelCase como los devuelve Prisma (`legal_name` pasa a ser `legalName`). Si algo no está definido en el modelo, lo dejamos como pregunta al final en vez de inventarlo.
 
@@ -285,7 +285,7 @@ Si este endpoint falla, el formulario igual deja cargar el movimiento con el tip
 
 ## Dashboard
 
-Cubre RF-31 y RF-32. Por ahora solo el resultado de caja, porque todavía no hay facturas (ver [Factura, cobro y pagos](./04-factura-cobro-y-pagos.md#resultado-de-gestión-y-resultado-de-caja)).
+Cubre RF-31 y RF-32: el resultado de caja (`income`, `expense`, `net`) y el de gestión con lo facturado y lo cobrado (`invoiced`, `collected`, `difference`, `managementResult`). Ver [Factura, cobro y pagos](./04-factura-cobro-y-pagos.md#resultado-de-gestión-y-resultado-de-caja).
 
 | Método y ruta | Response |
 | --- | --- |
@@ -299,6 +299,10 @@ Cubre RF-31 y RF-32. Por ahora solo el resultado de caja, porque todavía no hay
   "income": "918750.00",
   "expense": "92500.50",
   "net": "826249.50",
+  "invoiced": "950000.00",
+  "collected": "700000.00",
+  "difference": "250000.00",
+  "managementResult": "1076249.50",
   "transactionCount": 5,
   "byCategory": [
     { "categoryId": 12, "name": "Ventas", "type": "INCOME", "total": "873750.00" },
@@ -310,6 +314,7 @@ Cubre RF-31 y RF-32. Por ahora solo el resultado de caja, porque todavía no hay
 - Suma los movimientos no anulados cuya `transactionDate` está dentro del período.
 - Todo va en la moneda base (`currency`). Los movimientos en otra moneda se convierten con el `exchangeRate` guardado en cada uno, redondeando a 2 decimales.
 - `net` es `income` menos `expense`, y puede ser negativo (`"-1500.00"`).
+- `difference` es `invoiced` menos `collected`. `managementResult` es `invoiced` más los ingresos manuales menos `expense`. Los valores del ejemplo son ilustrativos.
 - El frontend no suma ni convierte: muestra estos valores tal como llegan.
 
 ## Preguntas abiertas
@@ -317,7 +322,7 @@ Cubre RF-31 y RF-32. Por ahora solo el resultado de caja, porque todavía no hay
 1. **Baja de clientes:** proponemos `PATCH` con `{ "isActive": false }`. ¿Preferimos un `DELETE /api/clients/:id` que haga la baja lógica?
 2. **Paginación:** las listas de clientes y movimientos vienen completas. ¿Paginamos desde ahora (`page`, `pageSize`) o cuando haya volumen?
 3. ~~**Categorías por defecto:** además de "Cobro de facturas", ¿cuáles creamos?~~ **Resuelta:** se crean las 7 de la tabla de arriba, en la misma transacción que la organización.
-4. ~~**Organización pendiente:** ¿`403` es el código correcto cuando el usuario todavía no tiene organización?~~ **Resuelta:** sí, `403`. Todos los módulos la obtienen con `getUserOrganization` (`lib/organization.ts`).
+4. ~~**Organización pendiente:** ¿`403` es el código correcto cuando el usuario todavía no tiene organización?~~ **Resuelta:** sí, `403`. Todos los módulos la obtienen con `getUserOrganization` (`lib/organizations.ts`).
 5. ~~**Movimientos en USD con moneda base USD:** ¿Limitamos la moneda base a `ARS` en el P0?~~ **Resuelta:** sí, la moneda base es siempre `ARS` en el P0 (#96).
 6. **Anulación de movimientos:** el modelo tiene `voidedAt`, pero no definimos el endpoint. ¿`POST /api/transactions/:id/void`?
 7. **Formato de fechas:** ¿el backend devuelve `transactionDate` como `YYYY-MM-DD` o deja el formato de Prisma con hora?

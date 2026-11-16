@@ -23,8 +23,8 @@ agregar como campo custom en el Project (no hace falta ahora).
 observación, en qué fase de este backlog queda resuelta. Es la forma de
 no perder ningún punto en el camino.
 **Criterios de cierre:**
-- [ ] Cada observación del docente tiene una tarea asociada en este backlog.
-- [ ] El documento de la primera entrega queda linkeado desde acá
+- [x] Cada observación del docente tiene una tarea asociada en este backlog.
+- [x] El documento de la primera entrega queda linkeado desde acá
       ([`01-propuesta.md`](./01-propuesta.md)).
 **Prioridad:** P0
 **Área:** Documentación
@@ -35,9 +35,9 @@ no perder ningún punto en el camino.
 algunos puntos (stack, alcance). Antes de seguir, alinearlo con lo que
 realmente vamos a construir.
 **Criterios de cierre:**
-- [ ] Propuesta migrada a Markdown y actualizada en
+- [x] Propuesta migrada a Markdown y actualizada en
       [`docs/01-propuesta.md`](./01-propuesta.md).
-- [ ] El stack tecnológico coincide con lo que hay en el repo.
+- [x] El stack tecnológico coincide con lo que hay en el repo.
 **Prioridad:** P1
 **Área:** Documentación
 **Dependencias:** Sin dependencia bloqueante.
@@ -47,8 +47,8 @@ realmente vamos a construir.
 reales, con su fase, prioridad y área, para poder repartir el trabajo
 después.
 **Criterios de cierre:**
-- [ ] Todas las tareas de fases 0 a 10 están cargadas como issues.
-- [ ] Cada issue está en el board con Status (`Todo`, `In progress`,
+- [x] Todas las tareas de fases 0 a 10 están cargadas como issues.
+- [x] Cada issue está en el board con Status (`Todo`, `In progress`,
       `Done`, `Blocked`) y Priority (`P0`/`P1`/`P2`).
 **Prioridad:** P0
 **Área:** DevOps
@@ -64,8 +64,8 @@ conocidos) que vendan productos, presten servicios o hagan ambas cosas,
 para confirmar que el problema es real y que el P0 tiene sentido para
 ellos.
 **Criterios de cierre:**
-- [ ] Al menos 3-5 monotributistas entrevistados o encuestados.
-- [ ] Queda un resumen escrito de lo que dijeron.
+- [x] Al menos 3-5 monotributistas entrevistados o encuestados.
+- [x] Queda un resumen escrito de lo que dijeron.
 **Prioridad:** P0
 **Área:** Investigación
 **Dependencias:** Sin dependencia bloqueante.
@@ -74,8 +74,8 @@ ellos.
 **Descripción:** A partir de las entrevistas, escribir qué confirma
 nuestras hipótesis, qué no, y si hay que tocar el alcance del P0.
 **Criterios de cierre:**
-- [ ] Documento corto con los hallazgos.
-- [ ] El P0 queda confirmado o ajustado por escrito.
+- [x] Documento corto con los hallazgos.
+- [x] El P0 queda confirmado o ajustado por escrito.
 **Prioridad:** P0
 **Área:** Documentación
 **Dependencias:** Hacer el relevamiento con usuarios reales.
@@ -86,8 +86,8 @@ lo facturado, Payment es un cobro de una factura y Transaction es el
 movimiento real de plata. Una factura puede tener varios pagos, y cada
 pago genera como máximo un movimiento de ingreso.
 **Criterios de cierre:**
-- [ ] Documento (o sección del DER) con la definición de los tres conceptos.
-- [ ] Queda claro qué genera qué: Invoice no genera Transaction directamente, Payment sí.
+- [x] Documento (o sección del DER) con la definición de los tres conceptos.
+- [x] Queda claro qué genera qué: Invoice no genera Transaction directamente, Payment sí.
 - [ ] Los tres lo revisamos y quedamos de acuerdo.
 **Prioridad:** P0
 **Área:** Documentación
@@ -100,9 +100,9 @@ rechazada por ARCA no puede quedar como autorizada, el CAE solo se guarda
 si la factura fue autorizada, facturado y cobrado son cosas
 independientes.
 **Criterios de cierre:**
-- [ ] Lista de reglas escrita (puede partir de la de la propuesta, revisada).
-- [ ] Cada regla tiene claro qué módulo la aplica.
-- [ ] Las reglas de pagos parciales están incluidas.
+- [x] Lista de reglas escrita (puede partir de la de la propuesta, revisada).
+- [x] Cada regla tiene claro qué módulo la aplica.
+- [x] Las reglas de pagos parciales están incluidas.
 **Prioridad:** P0
 **Área:** Documentación
 **Dependencias:** Definir cómo se relacionan factura, pago y movimiento.
@@ -113,9 +113,9 @@ recibe dos pagos de $6.000 y $4.000, tiene que quedar un ingreso por cada
 pago (nunca uno por la factura completa) y el saldo pendiente tiene que
 dar $0 al final.
 **Criterios de cierre:**
-- [ ] Documento con el flujo de pago parcial paso a paso.
-- [ ] Queda definido qué pasa si un pago supera el saldo pendiente.
-- [ ] Se valida con un ejemplo numérico completo.
+- [x] Documento con el flujo de pago parcial paso a paso.
+- [x] Queda definido qué pasa si un pago supera el saldo pendiente.
+- [x] Se valida con un ejemplo numérico completo.
 **Prioridad:** P0
 **Área:** Documentación
 **Dependencias:** Definir cómo se relacionan factura, pago y movimiento.
@@ -125,9 +125,9 @@ dar $0 al final.
 (montos, cliente, fecha) no se pueden pisar aunque el cliente cambie de
 nombre o de CUIT después. Definir cómo se guarda esa foto histórica.
 **Criterios de cierre:**
-- [ ] Queda definido si se usa un snapshot embebido o una tabla separada.
-- [ ] Queda explícito que una factura autorizada no se puede borrar físicamente.
-- [ ] Se anota en las reglas de negocio.
+- [x] Queda definido si se usa un snapshot embebido o una tabla separada.
+- [x] Queda explícito que una factura autorizada no se puede borrar físicamente.
+- [x] Se anota en las reglas de negocio.
 **Prioridad:** P0
 **Área:** Documentación
 **Dependencias:** Definir cómo se relacionan factura, pago y movimiento.
@@ -142,9 +142,9 @@ dominio: User, Organization, Activity, PointOfSale, Client, Category,
 ExchangeRate, Invoice, InvoiceItem, Payment y Transaction, con sus
 relaciones y cardinalidades.
 **Criterios de cierre:**
-- [ ] Diagrama publicado en `docs/` (imagen o mermaid).
-- [ ] Todas las entidades del núcleo están presentes.
-- [ ] La relación Invoice-Payment-Transaction está dibujada explícitamente.
+- [x] Diagrama publicado en `docs/` (imagen o mermaid).
+- [x] Todas las entidades del núcleo están presentes.
+- [x] La relación Invoice-Payment-Transaction está dibujada explícitamente.
 **Prioridad:** P0
 **Área:** Documentación, Base de datos
 **Dependencias:** Definir cómo se relacionan factura, pago y movimiento; Diseñar cómo funcionan los pagos parciales sin duplicar ingresos.
@@ -154,8 +154,8 @@ relaciones y cardinalidades.
 si son obligatorios y una frase de qué significan. Sirve para que los
 tres usemos los mismos nombres y no haya ambigüedad al codear.
 **Criterios de cierre:**
-- [ ] Cada entidad del DER tiene su tabla de campos documentada.
-- [ ] Los campos de Invoice/Payment/Transaction distinguen estado fiscal de estado comercial.
+- [x] Cada entidad del DER tiene su tabla de campos documentada.
+- [x] Los campos de Invoice/Payment/Transaction distinguen estado fiscal de estado comercial.
 **Prioridad:** P0
 **Área:** Documentación, Base de datos
 **Dependencias:** Armar el DER inicial completo.
@@ -166,8 +166,8 @@ tres usemos los mismos nombres y no haya ambigüedad al codear.
 exchange-rates, arca, bcra, dashboard) y qué puede importar a qué, para
 no terminar con todo mezclado.
 **Criterios de cierre:**
-- [ ] Estructura de carpetas de `backend/src` definida y documentada.
-- [ ] Queda claro qué módulo es dueño de qué entidad.
+- [x] Estructura de carpetas de `backend/src` definida y documentada.
+- [x] Queda claro qué módulo es dueño de qué entidad.
 **Prioridad:** P0
 **Área:** Backend, Documentación
 **Dependencias:** Sin dependencia bloqueante.
@@ -177,9 +177,9 @@ no terminar con todo mezclado.
 estructura de módulos definida, con la configuración base (tsconfig,
 linter, variables de entorno, conexión a la base).
 **Criterios de cierre:**
-- [ ] `npm run dev` levanta el servidor sin errores.
-- [ ] Existe un endpoint de salud (`/health`).
-- [ ] La estructura de carpetas sigue lo definido en F2-3.
+- [x] `npm run dev` levanta el servidor sin errores.
+- [x] Existe un endpoint de salud (`/health`).
+- [x] La estructura de carpetas sigue lo definido en F2-3.
 **Prioridad:** P0
 **Área:** Backend
 **Dependencias:** Definir la arquitectura del backend como monolito modular.
@@ -189,9 +189,9 @@ linter, variables de entorno, conexión a la base).
 Tailwind, con el router y la estructura de carpetas base para ir
 agregando pantallas.
 **Criterios de cierre:**
-- [ ] `npm run dev` levanta la app sin errores.
-- [ ] Tailwind funciona (una clase de prueba se ve aplicada).
-- [ ] Hay pantallas placeholder para login y dashboard.
+- [x] `npm run dev` levanta la app sin errores.
+- [x] Tailwind funciona (una clase de prueba se ve aplicada).
+- [x] Hay pantallas placeholder para login y dashboard.
 **Prioridad:** P0
 **Área:** Frontend
 **Dependencias:** Sin dependencia bloqueante.
@@ -201,9 +201,9 @@ agregando pantallas.
 `schema.prisma`, con los modelos, relaciones y enums (tipo de movimiento,
 estado de factura, etc.).
 **Criterios de cierre:**
-- [ ] `schema.prisma` incluye todas las entidades del núcleo.
-- [ ] La relación Invoice 1:N Payment y Payment → Transaction queda explícita.
-- [ ] `prisma validate` no tira errores.
+- [x] `schema.prisma` incluye todas las entidades del núcleo.
+- [x] La relación Invoice 1:N Payment y Payment → Transaction queda explícita.
+- [x] `prisma validate` no tira errores.
 **Prioridad:** P0
 **Área:** Base de datos, Backend
 **Dependencias:** Escribir el diccionario de datos; Inicializar el proyecto de backend.
@@ -212,8 +212,8 @@ estado de factura, etc.).
 **Descripción:** Levantar PostgreSQL (local o en Railway/Supabase) y
 correr la migración inicial de Prisma para tener las tablas creadas.
 **Criterios de cierre:**
-- [ ] `prisma migrate dev` corre sin errores contra una base real.
-- [ ] Las tablas del núcleo existen en la base.
+- [x] `prisma migrate dev` corre sin errores contra una base real.
+- [x] Las tablas del núcleo existen en la base.
 **Prioridad:** P0
 **Área:** Base de datos, DevOps
 **Dependencias:** Modelar el schema de Prisma.
@@ -223,8 +223,8 @@ correr la migración inicial de Prisma para tener las tablas creadas.
 organización, clientes, categorías) para no tener que cargar todo a mano
 cada vez que se resetea la base.
 **Criterios de cierre:**
-- [ ] Un comando corre el seed y deja datos usables.
-- [ ] El seed no rompe si se corre dos veces.
+- [x] Un comando corre el seed y deja datos usables.
+- [x] El seed no rompe si se corre dos veces.
 **Prioridad:** P1
 **Área:** Base de datos
 **Dependencias:** Configurar la base de datos y correr la primera migración.
@@ -240,9 +240,9 @@ dashboard** funcionando de punta a punta.
 **Descripción:** Endpoint y pantalla para registrarse, loguearse y
 cerrar sesión, con contraseña hasheada y JWT.
 **Criterios de cierre:**
-- [ ] Un usuario nuevo se puede registrar.
-- [ ] El login devuelve un JWT válido.
-- [ ] Las contraseñas se guardan con bcrypt/Argon2, nunca en texto plano.
+- [x] Un usuario nuevo se puede registrar.
+- [x] El login devuelve un JWT válido.
+- [x] Las contraseñas se guardan con bcrypt/Argon2, nunca en texto plano.
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** Inicializar el proyecto de backend; Inicializar el proyecto de frontend; Configurar la base de datos y correr la primera migración.
@@ -251,8 +251,8 @@ cerrar sesión, con contraseña hasheada y JWT.
 **Descripción:** Middleware que valide el token en cada request y que
 asegure que un usuario no pueda ver datos de otra organización.
 **Criterios de cierre:**
-- [ ] Un request sin token a un endpoint privado devuelve 401.
-- [ ] Un usuario no puede acceder a datos de otra organización aunque adivine el ID.
+- [x] Un request sin token a un endpoint privado devuelve 401.
+- [x] Un usuario no puede acceder a datos de otra organización aunque adivine el ID.
 **Prioridad:** P0
 **Área:** Backend, Testing
 **Dependencias:** Armar el registro e inicio de sesión.
@@ -261,8 +261,8 @@ asegure que un usuario no pueda ver datos de otra organización.
 **Descripción:** Que el usuario pueda ver y modificar sus datos básicos
 (nombre, email, contraseña) una vez logueado.
 **Criterios de cierre:**
-- [ ] Se puede editar el perfil sin volver a loguearse.
-- [ ] Cambiar la contraseña pide la actual.
+- [x] Se puede editar el perfil sin volver a loguearse.
+- [x] Cambiar la contraseña pide la actual.
 **Prioridad:** P1
 **Área:** Backend, Frontend
 **Dependencias:** Armar el registro e inicio de sesión.
@@ -272,9 +272,9 @@ asegure que un usuario no pueda ver datos de otra organización.
 cargar los datos de su actividad: CUIT, razón social, condición fiscal y
 moneda base.
 **Criterios de cierre:**
-- [ ] Se puede crear y editar la Organization del usuario.
-- [ ] La moneda base queda guardada y no se puede dejar vacía.
-- [ ] Un usuario sin Organization no puede avanzar a cargar clientes o movimientos.
+- [x] Se puede crear y editar la Organization del usuario.
+- [x] La moneda base queda guardada y no se puede dejar vacía.
+- [x] Un usuario sin Organization no puede avanzar a cargar clientes o movimientos.
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** Proteger los endpoints privados con JWT.
@@ -284,9 +284,9 @@ moneda base.
 (por ejemplo "venta de indumentaria" o "desarrollo de software"), que
 después se usan para clasificar facturas e ítems.
 **Criterios de cierre:**
-- [ ] Se puede crear, editar y listar actividades de la organización.
-- [ ] Una organización puede tener más de una actividad.
-- [ ] Queda modelado que una actividad puede ser de productos, servicios o ambas.
+- [x] Se puede crear, editar y listar actividades de la organización.
+- [x] Una organización puede tener más de una actividad.
+- [x] Queda modelado que una actividad puede ser de productos, servicios o ambas.
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** Crear el perfil fiscal de la organización.
@@ -296,8 +296,8 @@ después se usan para clasificar facturas e ítems.
 que más adelante van a ser obligatorios para emitir cualquier
 comprobante.
 **Criterios de cierre:**
-- [ ] Se puede crear y listar puntos de venta de la organización.
-- [ ] El número de punto de venta es obligatorio y único por organización.
+- [x] Se puede crear y listar puntos de venta de la organización.
+- [x] El número de punto de venta es obligatorio y único por organización.
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** Crear el perfil fiscal de la organización.
@@ -307,9 +307,9 @@ comprobante.
 sus datos básicos (nombre/razón social, CUIT/CUIL, condición fiscal,
 contacto).
 **Criterios de cierre:**
-- [ ] Se puede crear, editar, buscar y dar de baja un cliente.
-- [ ] La baja es lógica, no borra el registro.
-- [ ] Un cliente dado de baja no aparece en el buscador por defecto, pero se puede consultar su historial.
+- [x] Se puede crear, editar, buscar y dar de baja un cliente.
+- [x] La baja es lógica, no borra el registro.
+- [x] Un cliente dado de baja no aparece en el buscador por defecto, pero se puede consultar su historial.
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** Crear el perfil fiscal de la organización.
@@ -318,8 +318,8 @@ contacto).
 **Descripción:** Pantalla donde, al entrar a un cliente, se vean sus
 movimientos y (más adelante) sus facturas y pagos.
 **Criterios de cierre:**
-- [ ] Se ve una lista de movimientos asociados al cliente.
-- [ ] Se puede filtrar por fecha.
+- [x] Se ve una lista de movimientos asociados al cliente.
+- [x] Se puede filtrar por fecha.
 **Prioridad:** P1
 **Área:** Backend, Frontend
 **Dependencias:** CRUD de clientes.
@@ -328,7 +328,7 @@ movimientos y (más adelante) sus facturas y pagos.
 **Descripción:** Crear categorías para clasificar ingresos y egresos
 (por ejemplo "venta de productos", "alquiler", "servicios contratados").
 **Criterios de cierre:**
-- [ ] Se puede crear, editar y listar categorías.
+- [x] Se puede crear, editar y listar categorías.
 - [ ] Cada categoría tiene un tipo asociado (ingreso, egreso, o ambos).
 **Prioridad:** P0
 **Área:** Backend, Frontend
@@ -339,9 +339,9 @@ movimientos y (más adelante) sus facturas y pagos.
 con tipo, importe, moneda, categoría, fecha y cliente opcional, sin pasar
 todavía por una factura.
 **Criterios de cierre:**
-- [ ] Se puede registrar un ingreso y un egreso.
-- [ ] El importe no puede ser negativo.
-- [ ] La moneda es obligatoria y, si no es la moneda base, se guarda el tipo de cambio usado.
+- [x] Se puede registrar un ingreso y un egreso.
+- [x] El importe no puede ser negativo.
+- [x] La moneda es obligatoria y, si no es la moneda base, se guarda el tipo de cambio usado.
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** CRUD de categorías; CRUD de clientes.
@@ -350,8 +350,8 @@ todavía por una factura.
 **Descripción:** Ver la lista de movimientos filtrando por período, tipo
 y categoría, para no tener que scrollear todo.
 **Criterios de cierre:**
-- [ ] Se puede filtrar por rango de fechas.
-- [ ] Se puede filtrar por tipo y por categoría, combinados.
+- [x] Se puede filtrar por rango de fechas.
+- [x] Se puede filtrar por tipo y por categoría, combinados.
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** Registrar ingresos y egresos a mano.
@@ -361,9 +361,9 @@ y categoría, para no tener que scrollear todo.
 elegido y el resultado (ingresos menos egresos), cerrando la vertical
 login → organización → cliente → movimiento → dashboard.
 **Criterios de cierre:**
-- [ ] Se ve el total de ingresos y egresos del período.
-- [ ] Se ve el resultado neto.
-- [ ] Los números coinciden con los movimientos cargados (se valida a mano).
+- [x] Se ve el total de ingresos y egresos del período.
+- [x] Se ve el resultado neto.
+- [x] Los números coinciden con los movimientos cargados (se valida a mano).
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** Filtros e historial de movimientos.
@@ -378,8 +378,8 @@ el tipo de cambio para uso interno (dashboard, conversión de
 movimientos), y dejar claro que es una decisión distinta de la cotización
 que se va a usar al facturar fiscalmente.
 **Criterios de cierre:**
-- [ ] Queda escrito qué cotización se usa para gestión (oficial, blue, mayorista) y por qué.
-- [ ] Queda explícito que esta decisión no aplica a la cotización fiscal de ARCA.
+- [x] Queda escrito qué cotización se usa para gestión (oficial, blue, mayorista) y por qué.
+- [x] Queda explícito que esta decisión no aplica a la cotización fiscal de ARCA.
 **Prioridad:** P0
 **Área:** Investigación, Documentación
 **Dependencias:** Sin dependencia bloqueante.
@@ -389,8 +389,8 @@ que se va a usar al facturar fiscalmente.
 entender qué endpoints hay disponibles y probar una consulta real antes
 de integrarla al backend.
 **Criterios de cierre:**
-- [ ] Se identifica el endpoint que da la cotización elegida en F4-1.
-- [ ] Se hace al menos una llamada de prueba exitosa (Postman o script).
+- [x] Se identifica el endpoint que da la cotización elegida en F4-1.
+- [x] Se hace al menos una llamada de prueba exitosa (Postman o script).
 **Prioridad:** P0
 **Área:** Investigación, BCRA
 **Dependencias:** Definir qué cotización usamos para gestión.
@@ -400,9 +400,9 @@ de integrarla al backend.
 con la fecha de actualización y lo exponga para usarlo al registrar
 movimientos.
 **Criterios de cierre:**
-- [ ] Un endpoint propio devuelve la cotización actual.
-- [ ] La consulta se cachea, no se pega a la API en cada request.
-- [ ] Si el BCRA no responde, el sistema no se cae.
+- [x] Un endpoint propio devuelve la cotización actual.
+- [x] La consulta se cachea, no se pega a la API en cada request.
+- [x] Si el BCRA no responde, el sistema no se cae.
 **Prioridad:** P0
 **Área:** Backend, BCRA
 **Dependencias:** Investigar y probar la API del BCRA.
@@ -412,9 +412,9 @@ movimientos.
 base, traer automáticamente la cotización del día en vez de tipearla a
 mano.
 **Criterios de cierre:**
-- [ ] Al elegir otra moneda, se sugiere la cotización actual.
-- [ ] El usuario puede sobreescribirla.
-- [ ] El tipo de cambio queda guardado en el movimiento, no se recalcula después.
+- [x] Al elegir otra moneda, se sugiere la cotización actual.
+- [x] El usuario puede sobreescribirla.
+- [x] El tipo de cambio queda guardado en el movimiento, no se recalcula después.
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** Integrar la consulta de cotizaciones del BCRA al backend; Registrar ingresos y egresos a mano.
@@ -423,8 +423,8 @@ mano.
 **Descripción:** Escribir un test que pruebe que, si la cotización de hoy
 cambia, los movimientos ya registrados con la de ayer no se alteran.
 **Criterios de cierre:**
-- [ ] Existe un test automático para este caso.
-- [ ] Queda documentado en las reglas de negocio.
+- [x] Existe un test automático para este caso.
+- [x] Queda documentado en las reglas de negocio.
 **Prioridad:** P0
 **Área:** Testing, Backend
 **Dependencias:** Usar la cotización del BCRA al registrar movimientos.
@@ -434,8 +434,8 @@ cambia, los movimientos ya registrados con la de ayer no se alteran.
 tipo de cambio histórico de cada movimiento, para que el resultado del
 período tenga sentido aunque haya ingresos en dólares y en pesos.
 **Criterios de cierre:**
-- [ ] El dashboard convierte y suma todo en la moneda base.
-- [ ] Un movimiento en USD se refleja con su propio tipo de cambio histórico, no el actual.
+- [x] El dashboard convierte y suma todo en la moneda base.
+- [x] Un movimiento en USD se refleja con su propio tipo de cambio histórico, no el actual.
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** Confirmar que modificar la cotización actual no toca movimientos viejos; Armar el dashboard con lo mínimo.
@@ -449,8 +449,8 @@ período tenga sentido aunque haya ingresos en dólares y en pesos.
 para autenticarse contra el ambiente de homologación (WSAA), el primer
 paso obligatorio antes de hablar con cualquier otro servicio.
 **Criterios de cierre:**
-- [ ] El certificado y la clave están generados.
-- [ ] Quedan guardados fuera del repositorio (nunca committeados).
+- [x] El certificado y la clave están generados.
+- [x] Quedan guardados fuera del repositorio (nunca committeados).
 **Prioridad:** P0
 **Área:** ARCA, Investigación
 **Dependencias:** Sin dependencia bloqueante.
@@ -493,7 +493,7 @@ integrar ARCA completo lleva más tiempo del planeado: qué queda como P0
 igual (el modelo de Invoice sin CAE, por ejemplo) y qué se puede mover a
 P1.
 **Criterios de cierre:**
-- [ ] Queda una lista escrita de qué funcionalidades pasan a P1 si hace falta.
+- [x] Queda una lista escrita de qué funcionalidades pasan a P1 si hace falta.
 - [ ] La decisión está acordada entre los tres.
 **Prioridad:** P0
 **Área:** Documentación, ARCA
@@ -507,9 +507,9 @@ P1.
 **Descripción:** Crear una factura con uno o más ítems, calculando
 subtotales y total, guardada como borrador antes de mandarla a autorizar.
 **Criterios de cierre:**
-- [ ] Se puede crear una factura con al menos un ítem.
-- [ ] El sistema calcula subtotales y total solo.
-- [ ] Una factura sin ítems no se puede guardar.
+- [x] Se puede crear una factura con al menos un ítem.
+- [x] El sistema calcula subtotales y total solo.
+- [x] Una factura sin ítems no se puede guardar.
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** CRUD de puntos de venta; CRUD de clientes.
@@ -520,8 +520,8 @@ autorización, autorizada, rechazada. Una vez autorizada, no puede volver
 para atrás. Una rechazada se corrige y se reenvía (un rechazo no consume
 número de comprobante). "Aprobada con observaciones" es autorizada, con su CAE.
 **Criterios de cierre:**
-- [ ] Los estados posibles están definidos en el schema (enum).
-- [ ] Las transiciones inválidas están bloqueadas en el backend, no solo en el frontend.
+- [x] Los estados posibles están definidos en el schema (enum).
+- [x] Las transiciones inválidas están bloqueadas en el backend, no solo en el frontend.
 **Prioridad:** P0
 **Área:** Backend, Documentación
 **Dependencias:** CRUD de facturas sin ARCA todavía.
@@ -532,8 +532,8 @@ servicios o ambas cosas, y eso cambia algunos campos obligatorios (como
 las fechas de servicio). Definir cómo lo resolvemos según la actividad y
 los ítems cargados.
 **Criterios de cierre:**
-- [ ] Queda definida la regla para decidir el concepto de la factura.
-- [ ] El caso "productos y servicios" está contemplado, no solo los dos extremos.
+- [x] Queda definida la regla para decidir el concepto de la factura.
+- [x] El caso "productos y servicios" está contemplado, no solo los dos extremos.
 **Prioridad:** P0
 **Área:** ARCA, Documentación
 **Dependencias:** CRUD de actividades del monotributista; Definir los estados de una factura.
@@ -543,8 +543,8 @@ los ítems cargados.
 cualquier receptor). Dejar el modelo preparado para otros tipos más
 adelante, pero implementar y probar solo este.
 **Criterios de cierre:**
-- [ ] Se puede armar (en borrador) una Factura C con los datos mínimos que pide ARCA.
-- [ ] El tipo de comprobante queda como un campo, no hardcodeado en la lógica.
+- [x] Se puede armar (en borrador) una Factura C con los datos mínimos que pide ARCA.
+- [x] El tipo de comprobante queda como un campo, no hardcodeado en la lógica.
 **Prioridad:** P0
 **Área:** ARCA, Backend
 **Dependencias:** Resolver el concepto: productos, servicios o ambos.
@@ -555,8 +555,8 @@ comprobante, no el detalle de ítems. Separar el modelo interno de
 InvoiceItem (que sí queremos guardar para nuestros reportes) de lo que
 efectivamente viaja en el request a ARCA.
 **Criterios de cierre:**
-- [ ] Queda documentada la diferencia entre InvoiceItem interno y el payload de WSFEv1.
-- [ ] La función que arma el request a ARCA no asume una relación 1:1 automática.
+- [x] Queda documentada la diferencia entre InvoiceItem interno y el payload de WSFEv1.
+- [x] La función que arma el request a ARCA no asume una relación 1:1 automática.
 **Prioridad:** P0
 **Área:** ARCA, Backend
 **Dependencias:** Armar el tipo de comprobante Factura C.
@@ -566,8 +566,8 @@ efectivamente viaja en el request a ARCA.
 (nombre, CUIT, condición fiscal) dentro de la factura misma, para que si
 el cliente cambia esos datos después, la factura vieja no se altere.
 **Criterios de cierre:**
-- [ ] La factura guarda su propia copia de los datos del receptor.
-- [ ] Cambiar los datos del cliente no modifica facturas ya emitidas.
+- [x] La factura guarda su propia copia de los datos del receptor.
+- [x] Cambiar los datos del cliente no modifica facturas ya emitidas.
 **Prioridad:** P0
 **Área:** Backend, Base de datos
 **Dependencias:** CRUD de facturas sin ARCA todavía; Definir qué pasa con los datos de una factura ya autorizada.
@@ -577,9 +577,9 @@ el cliente cambia esos datos después, la factura vieja no se altere.
 contra una factura genera un movimiento de ingreso, nunca más de uno, y
 el saldo pendiente de la factura se recalcula solo.
 **Criterios de cierre:**
-- [ ] Registrar un pago crea exactamente un Transaction de tipo ingreso.
-- [ ] El saldo pendiente de la factura baja en la misma proporción.
-- [ ] Registrar dos pagos parciales no duplica ingresos (test automático).
+- [x] Registrar un pago crea exactamente un Transaction de tipo ingreso.
+- [x] El saldo pendiente de la factura baja en la misma proporción.
+- [x] Registrar dos pagos parciales no duplica ingresos (test automático).
 **Prioridad:** P0
 **Área:** Backend, Testing
 **Dependencias:** CRUD de facturas sin ARCA todavía; Diseñar cómo funcionan los pagos parciales sin duplicar ingresos.
@@ -588,8 +588,8 @@ el saldo pendiente de la factura se recalcula solo.
 **Descripción:** Ver, desde una factura, cuánto se cobró, cuánto falta y
 cargar un pago nuevo sin salir de esa pantalla.
 **Criterios de cierre:**
-- [ ] Se ve el saldo pendiente actualizado.
-- [ ] Se puede cargar un pago parcial o total desde ahí.
+- [x] Se ve el saldo pendiente actualizado.
+- [x] Se puede cargar un pago parcial o total desde ahí.
 **Prioridad:** P0
 **Área:** Frontend
 **Dependencias:** Generar un Payment y como máximo un Transaction por cada pago.
@@ -599,8 +599,8 @@ cargar un pago nuevo sin salir de esa pantalla.
 el período de cuánto efectivamente se cobró, que son cosas distintas por
 definición del dominio.
 **Criterios de cierre:**
-- [ ] El dashboard muestra ambos números por separado.
-- [ ] La diferencia surge de datos reales, no de una resta manual.
+- [x] El dashboard muestra ambos números por separado.
+- [x] La diferencia surge de datos reales, no de una resta manual.
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** Mostrar los montos multimoneda convertidos en el dashboard; Generar un Payment y como máximo un Transaction por cada pago.
@@ -610,8 +610,8 @@ definición del dominio.
 y su fecha de vencimiento una vez que ARCA autorice la factura (todavía
 sin integración real, eso es Fase 7).
 **Criterios de cierre:**
-- [ ] El modelo tiene los campos de CAE y vencimiento.
-- [ ] Una factura sin CAE no se puede marcar como autorizada.
+- [x] El modelo tiene los campos de CAE y vencimiento.
+- [x] Una factura sin CAE no se puede marcar como autorizada.
 **Prioridad:** P0
 **Área:** Backend, Base de datos
 **Dependencias:** Definir los estados de una factura.
@@ -635,7 +635,7 @@ todavía) para poder descargarlo o mandarlo al cliente.
 request de autorización (FECAESolicitar) a partir de una factura en
 estado pendiente, reutilizando lo aprendido en el spike.
 **Criterios de cierre:**
-- [ ] El módulo arma un request válido a partir de una Invoice real.
+- [x] El módulo arma un request válido a partir de una Invoice real.
 - [ ] Se prueba contra homologación con al menos una Factura C real.
 **Prioridad:** P0
 **Área:** ARCA, Backend
@@ -646,8 +646,8 @@ estado pendiente, reutilizando lo aprendido en el spike.
 autorizada o rechazada, el CAE y el vencimiento si corresponde, y pasar
 la factura al estado correcto.
 **Criterios de cierre:**
-- [ ] Una factura autorizada queda con su CAE y vencimiento guardados.
-- [ ] Una factura rechazada queda marcada como tal, con el motivo.
+- [x] Una factura autorizada queda con su CAE y vencimiento guardados.
+- [x] Una factura rechazada queda marcada como tal, con el motivo.
 **Prioridad:** P0
 **Área:** ARCA, Backend
 **Dependencias:** Armar el servicio que arma y firma el request a WSFEv1; Guardar el campo para el CAE y su vencimiento.
@@ -694,8 +694,8 @@ homologación para confirmar que no quedó ningún caso raro sin cubrir.
 convierten moneda y deciden estados de factura, que son las que más
 rompen si alguien las toca sin querer.
 **Criterios de cierre:**
-- [ ] Los cálculos de pagos parciales tienen test.
-- [ ] Los cálculos de multimoneda tienen test.
+- [x] Los cálculos de pagos parciales tienen test.
+- [x] Los cálculos de multimoneda tienen test.
 **Prioridad:** P0
 **Área:** Testing, Backend
 **Dependencias:** Generar un Payment y como máximo un Transaction por cada pago; Usar la cotización del BCRA al registrar movimientos.
@@ -705,8 +705,8 @@ rompen si alguien las toca sin querer.
 clientes, movimientos, facturas y pagos responden lo esperado y rechazan
 lo que no corresponde.
 **Criterios de cierre:**
-- [ ] Cada módulo principal tiene al menos un test de éxito y uno de error.
-- [ ] Los tests de autorización (401/403) están cubiertos.
+- [x] Cada módulo principal tiene al menos un test de éxito y uno de error.
+- [x] Los tests de autorización (401/403) están cubiertos.
 **Prioridad:** P0
 **Área:** Testing, Backend
 **Dependencias:** Proteger los endpoints privados con JWT.
@@ -727,8 +727,8 @@ frontend.
 un cliente, un movimiento, y verifique que el dashboard refleja bien los
 números, todo en un solo recorrido.
 **Criterios de cierre:**
-- [ ] El test corre contra una base de test, no la de desarrollo.
-- [ ] Cubre el flujo login → organización → cliente → movimiento → dashboard.
+- [x] El test corre contra una base de test, no la de desarrollo.
+- [x] Cubre el flujo login → organización → cliente → movimiento → dashboard.
 **Prioridad:** P0
 **Área:** Testing
 **Dependencias:** Armar el dashboard con lo mínimo; Escribir tests de los endpoints principales.
@@ -738,7 +738,7 @@ números, todo en un solo recorrido.
 tiempo), probar el recorrido completo desde el navegador: login, cliente,
 movimiento, facturar, cobrar y ver el dashboard.
 **Criterios de cierre:**
-- [ ] El flujo de facturación y el de pagos parciales están cubiertos.
+- [x] El flujo de facturación y el de pagos parciales están cubiertos.
 - [ ] Se documenta cómo correrlos para quien no los escribió.
 **Prioridad:** P1
 **Área:** Testing
@@ -750,9 +750,9 @@ las contraseñas estén hasheadas, que no haya credenciales de servicios
 externos en el código, y que las validaciones de importes/monedas estén
 antes de guardar en la base.
 **Criterios de cierre:**
-- [ ] No hay ningún secreto commiteado en el repo.
-- [ ] Todos los endpoints privados exigen JWT.
-- [ ] Las validaciones de importe y moneda están del lado del backend.
+- [x] No hay ningún secreto commiteado en el repo.
+- [x] Todos los endpoints privados exigen JWT.
+- [x] Las validaciones de importe y moneda están del lado del backend.
 **Prioridad:** P0
 **Área:** Backend, Testing
 **Dependencias:** Tests de integración de punta a punta del flujo principal.
@@ -762,7 +762,7 @@ antes de guardar en la base.
 creación de facturas, pagos) con quién y cuándo, para poder rastrear qué
 pasó si algo sale mal.
 **Criterios de cierre:**
-- [ ] Los eventos clave quedan registrados con fecha y usuario.
+- [x] Los eventos clave quedan registrados con fecha y usuario.
 - [ ] Se puede consultar el historial de una factura puntual.
 **Prioridad:** P1
 **Área:** Backend
@@ -787,8 +787,8 @@ facturación se puedan usar razonablemente desde una tablet o el celular.
 (conexión a la base, JWT secret, certificados de ARCA, claves de API) y
 asegurarse de que nada quede en el repo.
 **Criterios de cierre:**
-- [ ] Existe un `.env.example` sin valores reales.
-- [ ] El `.gitignore` cubre todos los archivos de secretos.
+- [x] Existe un `.env.example` sin valores reales.
+- [x] El `.gitignore` cubre todos los archivos de secretos.
 **Prioridad:** P0
 **Área:** DevOps
 **Dependencias:** Sin dependencia bloqueante.
@@ -797,7 +797,7 @@ asegurarse de que nada quede en el repo.
 **Descripción:** Dejar el backend corriendo en Railway conectado a la
 base online, con las variables de entorno configuradas ahí.
 **Criterios de cierre:**
-- [ ] El backend responde en una URL pública.
+- [x] El backend responde en una URL pública.
 - [ ] Los logs se pueden ver desde Railway.
 **Prioridad:** P0
 **Área:** DevOps, Backend
@@ -807,8 +807,8 @@ base online, con las variables de entorno configuradas ahí.
 **Descripción:** Migrar de una base local a Railway o Supabase, corriendo
 las migraciones de Prisma contra la base real.
 **Criterios de cierre:**
-- [ ] La base online tiene el mismo schema que la de desarrollo.
-- [ ] Las migraciones corren sin intervención manual.
+- [x] La base online tiene el mismo schema que la de desarrollo.
+- [x] Las migraciones corren sin intervención manual.
 **Prioridad:** P0
 **Área:** Base de datos, DevOps
 **Dependencias:** Configurar las variables de entorno y los secretos.
@@ -817,8 +817,8 @@ las migraciones de Prisma contra la base real.
 **Descripción:** Publicar el build de producción del frontend en
 Cloudflare Pages, apuntando al backend ya desplegado.
 **Criterios de cierre:**
-- [ ] El frontend se ve en una URL pública.
-- [ ] Las llamadas al backend funcionan desde ese dominio (CORS configurado).
+- [x] El frontend se ve en una URL pública.
+- [x] Las llamadas al backend funcionan desde ese dominio (CORS configurado).
 **Prioridad:** P0
 **Área:** DevOps, Frontend
 **Dependencias:** Desplegar el backend en Railway.
@@ -839,7 +839,7 @@ local.
 cualquier cosa rara, aunque no rompa nada, para priorizar qué arreglar
 antes de entregar.
 **Criterios de cierre:**
-- [ ] Se completa un checklist de QA de las pantallas principales.
+- [x] Se completa un checklist de QA de las pantallas principales.
 - [ ] Cada bug encontrado queda como issue con pasos para reproducirlo.
 **Prioridad:** P0
 **Área:** Testing
@@ -849,8 +849,8 @@ antes de entregar.
 **Descripción:** Resolver los issues marcados como bloqueantes en F9-6
 antes de armar la documentación final.
 **Criterios de cierre:**
-- [ ] No queda ningún bug marcado como bloqueante sin resolver.
-- [ ] Se vuelve a probar cada caso puntual después del fix.
+- [x] No queda ningún bug marcado como bloqueante sin resolver.
+- [x] Se vuelve a probar cada caso puntual después del fix.
 **Prioridad:** P0
 **Área:** Backend, Frontend
 **Dependencias:** Hacer una ronda de QA general y anotar bugs.
@@ -863,8 +863,8 @@ antes de armar la documentación final.
 **Descripción:** Que cualquiera pueda clonar el repo y levantar el
 proyecto local siguiendo el README, sin tener que preguntarnos nada.
 **Criterios de cierre:**
-- [ ] Incluye cómo instalar dependencias, variables de entorno y cómo correr frontend y backend.
-- [ ] Incluye cómo correr migraciones y seeds.
+- [x] Incluye cómo instalar dependencias, variables de entorno y cómo correr frontend y backend.
+- [x] Incluye cómo correr migraciones y seeds.
 **Prioridad:** P0
 **Área:** Documentación
 **Dependencias:** Sin dependencia bloqueante.
@@ -873,8 +873,8 @@ proyecto local siguiendo el README, sin tener que preguntarnos nada.
 **Descripción:** Completar el documento de arquitectura con cómo quedó
 realmente el sistema, no solo cómo se planeó al principio.
 **Criterios de cierre:**
-- [ ] Incluye el diagrama de módulos del backend actualizado.
-- [ ] Incluye las decisiones que cambiaron durante el desarrollo y por qué.
+- [x] Incluye el diagrama de módulos del backend actualizado.
+- [x] Incluye las decisiones que cambiaron durante el desarrollo y por qué.
 **Prioridad:** P0
 **Área:** Documentación
 **Dependencias:** Corregir los bugs bloqueantes de la ronda de QA.
@@ -883,8 +883,8 @@ realmente el sistema, no solo cómo se planeó al principio.
 **Descripción:** Dejar documentado cada endpoint (método, parámetros,
 respuesta) para que sirva de referencia interna y para la defensa.
 **Criterios de cierre:**
-- [ ] Todos los endpoints públicos del backend están documentados.
-- [ ] Incluye ejemplos de request y response reales.
+- [x] Todos los endpoints públicos del backend están documentados.
+- [x] Incluye ejemplos de request y response reales.
 **Prioridad:** P1
 **Área:** Documentación
 **Dependencias:** Documentar la arquitectura final.
@@ -893,8 +893,8 @@ respuesta) para que sirva de referencia interna y para la defensa.
 **Descripción:** Dejar el DER actualizado con los cambios que hubo
 durante el desarrollo, más un diagrama de arquitectura general.
 **Criterios de cierre:**
-- [ ] El DER refleja el `schema.prisma` real, no el de la propuesta inicial.
-- [ ] Hay un diagrama de arquitectura (frontend, backend, base, integraciones).
+- [x] El DER refleja el `schema.prisma` real, no el de la propuesta inicial.
+- [x] Hay un diagrama de arquitectura (frontend, backend, base, integraciones).
 **Prioridad:** P0
 **Área:** Documentación
 **Dependencias:** Documentar la arquitectura final.

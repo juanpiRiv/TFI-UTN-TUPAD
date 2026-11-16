@@ -3,7 +3,7 @@
 Este documento da cumplimiento al requerimiento **F10-4 (Issue #79: docs(der): armar los diagramas finales)** del proyecto. Reúne el Diagrama de Entidad-Relación (DER) con las tablas y columnas del esquema de Prisma (`backend/prisma/schema/`), el diagrama de arquitectura y los diagramas de secuencia de dos flujos críticos.
 
 Qué parte está implementada:
-- El DER coincide, tabla por tabla y columna por columna, con el esquema de Prisma. Lo que aparece en el esquema no siempre tiene pantalla o endpoint (por ejemplo, `PASSWORD_RESET_TOKEN`, `ACTIVITY` y `ARCA_CREDENTIAL` existen como tablas, pero todavía no hay recuperación de contraseña ni carga de actividades o credenciales).
+- El DER coincide, tabla por tabla y columna por columna, con el esquema de Prisma. Lo que aparece en el esquema no siempre tiene pantalla o endpoint (por ejemplo, `PASSWORD_RESET_TOKEN`, `ACTIVITY` y `ARCA_CREDENTIAL` existen como tablas, pero todavía no hay recuperación de contraseña ni carga de credenciales de ARCA; las actividades sí tienen endpoints y pantalla).
 - Los dos flujos de secuencia están implementados. El de facturar funciona con el proveedor fiscal simulado.
 
 ---
@@ -233,7 +233,7 @@ erDiagram
 2. **Inmutabilidad y Snapshot Histórico:**
    - La tabla `Invoice` contiene campos de snapshot del receptor (`recipient_*`). Si el cliente asociado cambia de domicilio o razón social posteriormente, el comprobante fiscal permanece inalterado.
    - Todo movimiento en moneda extranjera (`USD`) guarda su tipo de cambio histórico en `exchange_rate`, asegurando que fluctuaciones cambiarias posteriores no alteren la caja histórica.
-   - El snapshot del emisor (`Organization`) todavía no está: hoy la factura copia solo los datos del receptor (issue #95, pendiente).
+   - El snapshot del emisor (`Organization`) se copia a la factura al pasar de borrador a pendiente, igual que el del receptor (issue #95, resuelto).
 3. **Desacoplamiento Fiscal y Comercial (Factura vs. Pago vs. Movimiento):**
    - Una `Invoice` autorizada representa un hecho fiscal y comercial, pero no mueve la caja por sí sola.
    - Cada `Payment` representa un cobro parcial o total y se vincula de forma exactamente 1:1 con un `Transaction` (`payment_id UNIQUE`).
