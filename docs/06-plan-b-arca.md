@@ -25,7 +25,7 @@ Para el spike, "primera llamada válida a WSFEv1" es consultar el último compro
 
 ## Estado al 22/10/2026
 
-El hito del 12/10 (certificado de homologación y ticket de acceso funcionando) **no se cumplió**: el certificado se emitió recién el 22/10 y se autorizó al servicio `wsfe`. Faltan el punto de venta y la primera prueba real contra el WSAA (#138). Pasamos al escalón 1. Si el 20/10 tampoco se llegó a una factura con CAE de prueba, seguimos en el escalón 2. Hoy la demo corre con el cliente simulado, más la evidencia real del registro de abajo.
+El hito del 12/10 (certificado de homologación y ticket de acceso funcionando) **no se cumplió en fecha**: el certificado se emitió recién el 22/10 y se autorizó al servicio `wsfe`. Se cumplió después: el 14/11 se obtuvo el primer ticket de WSAA real y se emitieron Factura C con CAE de prueba en los puntos de venta 1 y 2 (#138, #109), y el 15/11 se probaron servicios y receptores identificados. Con eso quedó superado el escalón 1 y la demo puede mostrar emisión real en homologación. Las pruebas están en el registro de abajo y los comprobantes llevan la leyenda "comprobante de prueba, sin validez fiscal" (#135). Sigue pendiente el PDF generado en el servidor: hoy el comprobante se guarda como PDF desde el navegador, con la misma leyenda.
 
 ### Registro del spike
 
