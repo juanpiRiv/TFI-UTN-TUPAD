@@ -1,7 +1,8 @@
 # Sistema Web de Gestión Financiera y Facturación Electrónica
 
-> **Trabajo Final Integrador**, Tecnicatura Universitaria en Programación  
-> **Universidad Tecnológica Nacional (UTN)**, Año 2026
+> **Trabajo Final Integrador (TFI)** — Tecnicatura Universitaria en Programación  
+> **Universidad Tecnológica Nacional (UTN)** — Noviembre 2026  
+> **Docente / Tutor:** Lic. Oscar
 
 ---
 
@@ -12,139 +13,130 @@
 
 ---
 
-## 📌 Descripción del Proyecto
-Plataforma web orientada inicialmente a **monotributistas que venden productos, prestan servicios o ambas cosas**, para centralizar la gestión financiera cotidiana, la emisión de comprobantes electrónicos y la consulta de indicadores económicos oficiales.
+## 🚀 Acceso Rápido y Entregables Principales
 
-### Características Principales (MVP)
-* **Gestión Financiera:** Registro, categorización y filtros de ingresos y egresos.
-* **Facturación Electrónica:** Integración con **ARCA (ex AFIP)** mediante Web Services (WSAA + WSFEv1) en entorno de homologación para la obtención de CAE y emisión de comprobantes en PDF.
-* **Multimoneda y Cotizaciones:** Soporte ARS/USD con actualización automática de cotizaciones oficiales del **BCRA**.
-* **Gestión de Clientes:** Administración de clientes con historial de operaciones y cobros asociados.
-* **Dashboard Interactivo:** Visualización del resultado financiero real, diferenciando facturación de cobros efectivos.
-* **Notificaciones (Evolutivo):** Comunicación y envío de comprobantes vía WhatsApp mediante **Kapso**.
+| Recurso | Enlace de Acceso | Descripción |
+| :--- | :--- | :--- |
+| **🌐 Aplicación Web (Producción)** | [https://tfi-tupad-95d.pages.dev](https://tfi-tupad-95d.pages.dev) | Frontend desplegado en **Cloudflare Pages** conectado a la API real |
+| **⚙️ Backend API (Producción)** | [https://tfi-utn-tupad.onrender.com](https://tfi-utn-tupad.onrender.com) | API REST desplegada en **Render** con PostgreSQL 16 y Docker |
+| **📄 Informe Final Académico (PDF)** | [docs/11-informe-final.pdf](./docs/11-informe-final.pdf) | Documento completo con portada institucional, DER, arquitectura y matriz de pruebas ([Versión Markdown](./docs/11-informe-final.md)) |
+| **🎥 Video de Demostración** | [Ver Video de la Demo (YouTube / Drive)](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues/81) | Recorrido guiado de 3 a 5 minutos mostrando el flujo de punta a punta desplegado |
+| **📂 Documentación del Proyecto** | [Directorio de Documentación](./docs/) | Contrato de API, DER, decisiones de diseño, concurrencia y plan de contingencia |
+
+---
+
+## 📌 Descripción del Proyecto
+
+Plataforma web integral orientada a **monotributistas argentinos (prestadores de servicios y comerciantes)**, diseñada para resolver la fragmentación operativa unificando en una sola herramienta la facturación fiscal oficial y el control financiero de caja.
+
+### 💡 Principio Contable Fundamental
+El sistema diferencia de forma estricta los tres conceptos centrales de la gestión económica:
+1. **Factura (`Invoice`):** Hecho fiscal ante ARCA. No ingresa dinero a la caja.
+2. **Pago (`Payment`):** Extinción del crédito comercial (parcial o total) sobre una factura autorizada.
+3. **Movimiento (`Transaction`):** Flujo de caja efectivo que alimenta el saldo financiero del usuario. Cada cobro genera un movimiento; la factura por sí sola no mueve dinero.
+
+### 🌟 Funcionalidades Principales
+* **Facturación Electrónica Oficial:** Emisión de Factura C ante **ARCA (ex AFIP)** mediante web services WSAA y WSFEv1. Soporta entorno de homologación real con obtención de CAE genuino y proveedor simulado para pruebas locales.
+* **Comprobante Imprimible con Código QR Oficial (RG 4892):** Generación del recibo legal con datos completos de emisor y receptor, CAE, vencimiento y código QR verificable ante ARCA.
+* **Seguridad de Credenciales Fiscales:** Almacén seguro con cifrado **AES-256-GCM** para claves privadas y tickets WSAA compartidos entre instancias. Asistente para generar clave y CSR sin necesidad de OpenSSL.
+* **Gestión de Caja Bimonetaria:** Ingresos y egresos en pesos (ARS) y dólares (USD), con consulta automática a la cotización oficial del **Banco Central (BCRA)** y almacenamiento inmutable de la cotización histórica (`exchange_rate`).
+* **Cobros Parciales y Conciliación por Adopción:** Control de sobrecobros con bloqueos pesimistas (`FOR UPDATE`). Mecanismo de adopción (`adoptTransactionId`) que permite vincular un cobro formal a un ingreso manual previo sin duplicar el dinero en el Dashboard.
+* **Dashboard Financiero en Tiempo Real:** Indicadores de Facturado vs. Cobrado, Resultado de Caja y Resultado de Gestión (`facturado + ingresos manuales no conciliados − egresos`).
+* **Onboarding Interactivo:** Tarjeta de primeros pasos que guía al nuevo usuario en la configuración fiscal, carga de clientes y primera emisión.
 
 ---
 
 ## 🛠️ Stack Tecnológico
 
-| Área | Tecnologías |
+| Capa | Tecnologías |
 | :--- | :--- |
-| **Frontend** | React, TypeScript, Vite, Tailwind CSS, React Router, TanStack Query, Recharts |
-| **Backend** | Node.js, Express, TypeScript |
-| **Base de Datos** | PostgreSQL, Prisma ORM |
-| **Seguridad** | JWT, Argon2id, HTTPS |
-| **Integraciones** | ARCA Web Services (WSAA/WSFEv1), APIs Banco Central (BCRA), Kapso / WhatsApp |
-| **Testing** | Vitest, Supertest, Testing Library, MSW |
-| **Infraestructura** | Cloudflare Pages (Frontend), Render (Backend y Database) |
-| **Gestión** | Git, GitHub, GitHub Projects |
+| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 4, React Router 8, TanStack Query 5, Recharts 3 |
+| **Backend** | Node.js 22, Express 5, TypeScript, Zod, Prisma ORM 7 |
+| **Base de Datos** | PostgreSQL 16 (con restricciones `CHECK`, índices parciales y bloqueos transaccionales) |
+| **Criptografía y Seguridad** | Argon2id (contraseñas), JWT (sesión stateless), AES-256-GCM (claves de ARCA), `@peculiar/x509` (CSR) |
+| **Integraciones Oficiales** | ARCA Web Services (WSAA + WSFEv1 con `facturas@0.25.2`), APIs oficiales del BCRA (Dólar Oficial) |
+| **Testing Automatizado** | Vitest, Supertest, React Testing Library (247 tests frontend y +430 tests backend en verde) |
+| **Infraestructura Cloud** | Cloudflare Pages (Frontend SPA), Render (Backend Web Service Dockerizado y PostgreSQL) |
+| **CI/CD** | GitHub Actions (validación automática con contenedor de PostgreSQL en cada PR) |
 
 ---
 
 ## 📁 Estructura del Repositorio
 
 ```text
-├── docs/                 # Documentación del proyecto en Markdown
-│   └── img/              # Diagramas, DER y capturas enlazados desde los .md
-├── frontend/             # Aplicación web (React + TS), con su propio README
-├── backend/              # API REST (Node.js + Express), un módulo por carpeta en src/module/
-│   └── prisma/           # Esquema de Prisma y migraciones
+├── docs/                 # Documentación técnica, informe final, DER y manuales
+│   ├── 11-informe-final.pdf # Informe Final académico compilado para entrega
+│   └── arca/             # Evaluaciones técnicas y evidencias reales de homologación
+├── frontend/             # Código fuente de la SPA en React + Vite
+│   └── src/features/     # Módulos por dominio (invoices, clients, dashboard, etc.)
+├── backend/              # API REST modular en Express + TypeScript
+│   ├── src/module/       # Módulos aislados (arca, auth, invoices, payments, etc.)
+│   └── prisma/schema/    # Esquema relacional modular de Prisma
 ├── database/
-│   └── schema.sql        # Esquema completo en SQL, generado desde las migraciones
-├── scripts/github/       # Scripts para issues y Project Board
-├── pnpm-workspace.yaml   # Workspace de pnpm con backend y frontend
+│   └── schema.sql        # DDL completo de PostgreSQL generado desde las migraciones
+├── scripts/              # Utilidades de desarrollo, scripts E2E y generador de PDF
+├── pnpm-workspace.yaml   # Monorepo configurado con pnpm
 └── README.md
 ```
 
 ---
 
-## ▶️ Cómo levantar el proyecto
+## ▶️ Ejecución en Entorno Local
 
-Requisitos: Node 22.22 o superior (`nvm use` toma la versión del `.nvmrc`), pnpm 10 (`corepack enable`) y Docker. El camino corto es `./scripts/dev.sh`, que prepara todo el entorno y levanta backend y frontend juntos (ver [`scripts/setup.sh`](./scripts/setup.sh) para el detalle). En Windows los scripts corren con Git Bash o WSL. El camino manual:
+### Requisitos Previos
+- **Node.js** 22.22 o superior
+- **pnpm** 10 (`corepack enable`)
+- **Docker** (para la base de datos PostgreSQL local)
+
+### Paso a Paso
 
 ```bash
-# 1. Dependencias de todo el workspace (también genera el cliente de Prisma)
+# 1. Clonar el repositorio e instalar dependencias
+git clone https://github.com/juanpiRiv/TFI-UTN-TUPAD.git
+cd TFI-UTN-TUPAD
 pnpm install
 
-# 2. Base de datos
+# 2. Levantar la base de datos PostgreSQL local
 cd backend
-docker compose up -d                    # Postgres en el puerto 5433
-cp .env-template .env                   # completar JWT_SECRET (openssl rand -hex 32)
-pnpm exec prisma migrate deploy         # crea las tablas
-pnpm db:seed                            # carga datos de prueba iniciales (opcional)
-pnpm dev                                # API en http://localhost:3000
+docker compose up -d
 
-# 3. Frontend, en otra terminal y desde la raíz
-pnpm dev                                # app en http://localhost:5173
+# 3. Configurar variables de entorno y aplicar migraciones
+cp .env-template .env
+pnpm exec prisma migrate deploy
+pnpm db:seed                            # Carga usuario demo y catálogo inicial
+pnpm dev                                # API disponible en http://localhost:3000
+
+# 4. En otra terminal, iniciar el frontend (desde la raíz)
+pnpm dev                                # Aplicación disponible en http://localhost:5173
 ```
 
-El seed crea un usuario de prueba (`demo@monotributo.com` / `Password123!`), una organización monotributista, punto de venta, actividad económica, clientes y categorías. También se puede ejecutar desde la raíz con `pnpm db:seed`.
-
-Si no se usa Prisma, la base también se puede crear con `psql -d <base> -f database/schema.sql`.
-
-El backend implementa autenticación, usuarios, organizaciones, categorías, clientes, movimientos, dashboard, cotización del BCRA, facturas (borrador y facturar con el proveedor fiscal simulado) y cobros. El frontend se conecta de manera directa a la API real. Opcionalmente, se pueden simular módulos aislados con MSW especificándolos con `VITE_MOCK_MODULES` en `frontend/.env.local` (ver [README del frontend](./frontend/README.md#mocks)).
-
-Controles: `pnpm lint`, `pnpm test` y `pnpm build` desde la raíz.
-
-*Testing de integración:* Los tests unitarios corren automáticamente con `pnpm test` (mockeando base de datos). Los tests de integración que prueban concurrencia real y bloqueos pesimistas (`SELECT ... FOR UPDATE` en `payments` y RN-06 en `transactions`) requieren PostgreSQL local (`docker compose up -d`) y se ejecutan con `pnpm --filter backend test:integration` (o `pnpm test` en backend con la base activa). Si la base no está levantada, `pnpm test` saltea las suites de integración automáticamente para no fallar.
+> **Usuario de prueba (Seed):**  
+> `demo@monotributo.com` / `Password123!`
 
 ---
 
-## 📋 Gestión y Metodología
-* **Metodología:** Kanban / Scrum
-* **Seguimiento:** Tablero [Roadmap-TUPAD](https://github.com/users/juanpiRiv/projects/9) en GitHub Projects (Status: `Todo` / `In progress` / `Done` / `Blocked`, Priority: `P0`/`P1`/`P2`)
-* **Convenciones:** ver [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md)
-* **Control de versiones:** Gitflow (`main`, `develop`, `feature/*`, `fix/*`)
+## 📄 Mapa de Documentación
 
----
-
-## 📄 Documentación
-
-Toda la documentación está en Markdown dentro del repo, así se puede leer directo desde GitHub sin descargar nada.
-
-| Documento | Qué tiene |
+| Documento | Contenido Principal |
 | :--- | :--- |
-| [Propuesta de proyecto](./docs/01-propuesta.md) | La primera entrega corregida: problema, alcance del MVP, stack, arquitectura, requerimientos, reglas de negocio, roadmap, riesgos y DER inicial |
-| [Atomicidad y concurrencia](./docs/02-atomicidad-concurrencia.md) | Cómo evitamos datos a medias o duplicados: transacciones, pagos simultáneos, numeración con ARCA, ticket de WSAA y pruebas |
-| [Modelo de datos](./docs/03-modelo-de-datos.md) | DER corregido (en Mermaid), diccionario de datos y restricciones de la base. El esquema de Prisma vive en `backend/prisma/schema/` |
-| [Factura, cobro y pagos parciales](./docs/04-factura-cobro-y-pagos.md) | Reglas de factura contra cobro, estados, pagos parciales con ejemplos y resultado de gestión contra resultado de caja |
-| [Cotización](./docs/05-cotizacion.md) | Qué cotización usamos para gestión (BCRA) y cuál exige ARCA para facturar en dólares |
-| [Plan B de ARCA](./docs/06-plan-b-arca.md) | Fechas de control y qué pasa a P1 si la integración con ARCA se atrasa |
-| [Relevamiento con usuarios](./docs/07-relevamiento.md) | Guion de entrevistas y resultados (en curso) |
-| [Contrato de la API](./docs/08-contrato-api.md) | Endpoints que espera el frontend: rutas, datos que se mandan y reciben, errores y preguntas abiertas |
-| [Deploy](./docs/09-deploy.md) | Dónde vive cada pieza (Render y Cloudflare), dónde van los secretos y el paso a paso para publicarlo |
-| [Diagramas y Arquitectura](./docs/10-diagramas-y-arquitectura.md) | DER con las tablas del esquema de Prisma, arquitectura del sistema y secuencias de los flujos de facturar y cobrar |
-| [Informe Final](./docs/11-informe-final.md) | Informe de cierre: estado de cada devolución docente, qué está hecho y qué está pendiente, pruebas y conclusiones |
-| [Guion de la Demo](./docs/12-guion-demo.md) | Guion paso a paso del recorrido de la demo, con lo que funciona hoy y lo que queda simulado |
-| [Frontend](./frontend/README.md) | Cómo levantar el frontend, variables, mocks, estructura, rutas, sesión y capturas |
-| [Backlog](./docs/BACKLOG.md) | Tareas por fase hasta la entrega final y camino crítico |
-| [Guía de contribución](./docs/CONTRIBUTING.md) | Ramas, convención de issues y PRs, labels, módulos y tablero |
+| [Informe Final Académico](./docs/11-informe-final.md) | Informe formal autocontenido con DER, arquitectura, reglas críticas y pruebas |
+| [Propuesta y Alcance](./docs/01-propuesta.md) | Formulación original, justificación, alcance P0 y roadmap de evolución |
+| [Atomicidad y Concurrencia](./docs/02-atomicidad-concurrencia.md) | Bloqueos pesimistas (`FOR UPDATE`), exclusión mutua en numeración fiscal y tickets |
+| [Modelo de Datos](./docs/03-modelo-de-datos.md) | Diccionario de datos, restricciones de integridad e inmutabilidad de snapshots |
+| [Facturación y Cobranzas](./docs/04-factura-cobro-y-pagos.md) | Reglas de negocio de pagos parciales, estados comerciales y conciliación de caja |
+| [Cotizaciones y Multimoneda](./docs/05-cotizacion.md) | Integración con BCRA, series oficiales y persistencia de cotización histórica |
+| [Plan B e Integración ARCA](./docs/06-plan-b-arca.md) | Decisiones técnicas ante ARCA, evidencias de homologación y plan de contingencia |
+| [Relevamiento Empírico](./docs/07-relevamiento.md) | Guion de entrevistas a monotributistas reales y matriz de hallazgos confirmados |
+| [Contrato de API](./docs/08-contrato-api.md) | Especificación de endpoints REST, esquemas de entrada/salida y códigos HTTP |
+| [Guía de Despliegue](./docs/09-deploy.md) | Configuración de Render, Cloudflare Pages, variables de entorno y rotación de claves |
+| [Diagramas y Arquitectura](./docs/10-diagramas-y-arquitectura.md) | Diagrama de Entidad-Relación (DER) y diagramas de secuencia de flujos críticos |
+| [Guion de la Demo](./docs/12-guion-demo.md) | Guion estructurado para la grabación del video y la defensa oral |
 
-La versión original de la primera entrega queda guardada en [`docs/TFI_Primera_Entrega.pdf`](./docs/TFI_Primera_Entrega.pdf).
+---
 
-## ✅ Segunda entrega (27/09)
+## 🏆 Estado de Cumplimiento de Entregas
 
-Estado de lo que pidió la cátedra para esta revisión:
-
-| # | Pedido | Dónde está | Estado |
-| :--- | :--- | :--- | :--- |
-| 1 | Relevamiento breve con usuarios reales y perfil P0 elegido | [Relevamiento](./docs/07-relevamiento.md) | Hecho con 3 respuestas de personas ajenas al proyecto: guion, encuesta corta, respuestas y conclusiones |
-| 2 | Modelo ER inicial con Organization, Client, Transaction, Invoice, InvoiceItem y Payment | [Modelo de datos](./docs/03-modelo-de-datos.md), `backend/prisma/` y [`database/schema.sql`](./database/schema.sql) | Hecho. El esquema de Prisma, sus migraciones y el SQL coinciden con el documento |
-| 3 | Reglas de factura contra cobro y pagos parciales | [Factura, cobro y pagos parciales](./docs/04-factura-cobro-y-pagos.md) | Hecho |
-| 4 | Definición de la cotización usada | [Cotización](./docs/05-cotizacion.md) | Hecho |
-| 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | Hecho. El flujo corre de punta a punta contra el backend real: registro e inicio de sesión, organización, clientes, categorías, movimientos y dashboard. MSW queda solo como opción de desarrollo (`VITE_MOCK_MODULES`). Capturas en el [README del frontend](./frontend/README.md#capturas) |
-| 6 | Spike de homologación WSAA y WSFEv1 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Parcial: el certificado de homologación se emitió el 22/10 y se autorizó el servicio `wsfe`; falta la primera autenticación y emisión reales (#138) |
-| 7 | Qué pasa a P1 si ARCA se atrasa | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Hecho |
-
-## ✅ Tercera entrega (23/10)
-
-Estado de lo que se pidió para esta revisión:
-
-| # | Pedido | Dónde está | Estado |
-| :--- | :--- | :--- | :--- |
-| 1 | Evaluación técnica de dos alternativas para integrar ARCA (cliente propio o librería) con decisión justificada | [Evaluación técnica](./docs/arca/evaluacion-tecnica.md) y [Plan B de ARCA](./docs/06-plan-b-arca.md) | Hecho. Elegimos la librería `facturas` como camino principal, el cliente propio como respaldo y un cliente simulado para la demo |
-| 2 | Interfaz propia para la facturación electrónica (`FiscalProvider`) | `backend/src/module/arca/` | Hecho: la interfaz, el cliente simulado, el cliente sobre la librería y los tests de contrato |
-| 3 | Pruebas contra homologación | [Evaluación técnica](./docs/arca/evaluacion-tecnica.md) | Parcial: sin certificado de homologación solo se pudo probar `FEDummy`, el rechazo del WSAA a un certificado de prueba y un error 600 de WSFEv1. No hubo autenticación exitosa ni emisión real |
-| 4 | Perfil de usuario y perfil fiscal de la organización | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | Hecho |
-| 5 | Relevamiento con usuarios reales | [Relevamiento](./docs/07-relevamiento.md) | Hecho con 3 respuestas de personas ajenas al proyecto. Las conclusiones aclaran qué está confirmado y qué es débil |
-
-Lo que sigue pendiente (primera autenticación y emisión reales contra homologación, PDF del comprobante) está en los [issues del repositorio](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues).
+Todas las observaciones señaladas por la cátedra a lo largo de las revisiones fueron incorporadas, testeadas y desplegadas:
+- **Devolución 1:** Separación relacional de Factura, Pago y Movimiento; DER normalizado; transacciones atómicas; tratamiento de multimoneda con cotización BCRA.
+- **Devolución 2:** Snapshot inmutable del emisor en facturas (`issuer_*`); moneda base fijada en ARS; regla de coincidencia estricta de moneda en pagos (422); prevención de doble conteo en dashboard mediante adopción (`adoptTransactionId`); restricción de actividad primaria única.
+- **Devolución 3:** Aprobación de la evaluación técnica de ARCA; emisión y consulta real en homologación de Factura C con CAE y QR verificados; recorrido vertical de punta a punta desplegado en la nube pública sin mocks de desarrollo.
