@@ -3,7 +3,7 @@
 Este documento da cumplimiento al requerimiento **F10-4 (Issue #79: docs(der): armar los diagramas finales)** del proyecto. Reúne el Diagrama de Entidad-Relación (DER) con las tablas y columnas del esquema de Prisma (`backend/prisma/schema/`), el diagrama de arquitectura y los diagramas de secuencia de dos flujos críticos.
 
 Qué parte está implementada:
-- El DER coincide, tabla por tabla y columna por columna, con el esquema de Prisma. Lo que aparece en el esquema no siempre tiene pantalla o endpoint (por ejemplo, `PASSWORD_RESET_TOKEN`, `ACTIVITY` y `ARCA_CREDENTIAL` existen como tablas, pero todavía no hay recuperación de contraseña ni carga de actividades o credenciales).
+- El DER coincide, tabla por tabla y columna por columna, con el esquema de Prisma. Lo que aparece en el esquema no siempre tiene pantalla o endpoint (por ejemplo, `PASSWORD_RESET_TOKEN`, `ACTIVITY` y `ARCA_CREDENTIAL` existen como tablas, pero todavía no hay recuperación de contraseña ni carga de credenciales de ARCA; las actividades sí tienen endpoints y pantalla).
 - Los dos flujos de secuencia están implementados. El de facturar funciona con el proveedor fiscal simulado.
 
 ---
@@ -233,7 +233,7 @@ erDiagram
 2. **Inmutabilidad y Snapshot Histórico:**
    - La tabla `Invoice` contiene campos de snapshot del receptor (`recipient_*`). Si el cliente asociado cambia de domicilio o razón social posteriormente, el comprobante fiscal permanece inalterado.
    - Todo movimiento en moneda extranjera (`USD`) guarda su tipo de cambio histórico en `exchange_rate`, asegurando que fluctuaciones cambiarias posteriores no alteren la caja histórica.
-   - El snapshot del emisor (`Organization`) todavía no está: hoy la factura copia solo los datos del receptor (issue #95, pendiente).
+   - El snapshot del emisor (`Organization`) se copia a la factura al pasar de borrador a pendiente, igual que el del receptor (issue #95, resuelto).
 3. **Desacoplamiento Fiscal y Comercial (Factura vs. Pago vs. Movimiento):**
    - Una `Invoice` autorizada representa un hecho fiscal y comercial, pero no mueve la caja por sí sola.
    - Cada `Payment` representa un cobro parcial o total y se vincula de forma exactamente 1:1 con un `Transaction` (`payment_id UNIQUE`).
@@ -439,7 +439,7 @@ sequenceDiagram
 | Snapshot del emisor al pasar a pendiente | Los datos del emisor se copian a la factura cuando deja de ser borrador, no al crearla: un borrador puede quedar días y los datos de la organización podrían cambiar antes de facturar. |
 | Numeración de comprobantes | El número es el mayor entre el último que informa el proveedor y el último autorizado en la base, más uno, bajo un bloqueo por punto de venta. El simulador vive en memoria, así que se adelanta con lo que ya hay en la base. |
 | Punto de venta N° 1 al crear la organización | Una organización nueva no podía crear facturas por no tener punto de venta. El alta deja el N° 1; el número real de ARCA se carga después. |
-| Despliegue: Railway y Cloudflare | Se evaluó Fly.io pero no tiene plan gratuito. Backend y PostgreSQL van juntos en Railway, y el frontend en Cloudflare Pages desde un workflow de GitHub Actions. |
+| Despliegue: Render y Cloudflare | Se evaluó Fly.io (sin plan gratuito) y Railway, pero el backend se desplegó en Render con su base PostgreSQL, y el frontend en Cloudflare Pages desde un workflow de GitHub Actions. |
 | Facturas rechazadas | Hoy una factura `REJECTED` no se puede corregir ni reenviar, porque todavía no hay edición de borradores. Es una limitación conocida, no una decisión de diseño. |
 
 ---

@@ -102,7 +102,7 @@ Es una decisión nuestra, no algo que diga ARCA.
 
 - **Prueba real con el certificado:** algoritmo de firma (SHA-1 o SHA-256), formato de fechas del pedido, resultados reales de factura aprobada, rechazada y parcial, y los catálogos de ARCA. Está en el issue #138.
 - **Punto de venta:** no verificamos qué tipo corresponde a un monotributista; lo vamos a consultar a ARCA.
-- **Interfaz `FiscalProvider`:** la suite de contrato ya corre sobre el simulador y sobre B (contra una simulación local). Falta correrla sobre A y unificar su comportamiento con B ante un error 600 o una falla del login (A lanza una excepción, B devuelve un resultado indeterminado). Falta también elegir el proveedor por configuración (`ARCA_PROVIDER`) y mostrar la leyenda "sin validez fiscal" cuando se use el simulador. Son los issues #134, #135 y #136.
+- **Interfaz `FiscalProvider`:** la suite de contrato ya corre sobre el simulador y sobre B (contra una simulación local). Falta correrla sobre A y unificar su comportamiento con B ante un error 600 o una falla del login (A lanza una excepción, B devuelve un resultado indeterminado). El proveedor ya se elige por configuración (`ARCA_PROVIDER`: `simulated` y `sdk`; `direct` espera el PR #141) y la pantalla de la factura muestra la leyenda "sin validez fiscal" cuando se usa el simulador (#134 y #135 en lo que respecta a la pantalla). Falta unificar el manejo de errores (#136).
 - **Edición del manual:** hay dos (4.7 y 4.8), y la 4.8 vuelve obligatorio `CondicionIVAReceptorId`. No pudimos confirmar cuál rige hoy ni desde cuándo.
 - **Mediciones:** la latencia sale de muy pocas capturas de un solo día, y no medimos horas de trabajo.
 

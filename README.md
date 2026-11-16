@@ -32,10 +32,10 @@ Plataforma web orientada inicialmente a **monotributistas que venden productos, 
 | **Frontend** | React, TypeScript, Vite, Tailwind CSS, React Router, TanStack Query, Recharts |
 | **Backend** | Node.js, Express, TypeScript |
 | **Base de Datos** | PostgreSQL, Prisma ORM |
-| **Seguridad** | JWT, bcrypt / Argon2, HTTPS |
+| **Seguridad** | JWT, Argon2id, HTTPS |
 | **Integraciones** | ARCA Web Services (WSAA/WSFEv1), APIs Banco Central (BCRA), Kapso / WhatsApp |
-| **Testing** | Vitest, Jest, Supertest, Postman |
-| **Infraestructura** | Cloudflare Pages (Frontend), Railway (Backend), Railway / Supabase (Database) |
+| **Testing** | Vitest, Supertest, Testing Library, MSW |
+| **Infraestructura** | Cloudflare Pages (Frontend), Render (Backend y Database) |
 | **Gestión** | Git, GitHub, GitHub Projects |
 
 ---
@@ -111,7 +111,7 @@ Toda la documentación está en Markdown dentro del repo, así se puede leer dir
 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Fechas de control y qué pasa a P1 si la integración con ARCA se atrasa |
 | [Relevamiento con usuarios](./docs/07-relevamiento.md) | Guion de entrevistas y resultados (en curso) |
 | [Contrato de la API](./docs/08-contrato-api.md) | Endpoints que espera el frontend: rutas, datos que se mandan y reciben, errores y preguntas abiertas |
-| [Deploy](./docs/09-deploy.md) | Dónde vive cada pieza (Railway y Cloudflare), dónde van los secretos y el paso a paso para publicarlo |
+| [Deploy](./docs/09-deploy.md) | Dónde vive cada pieza (Render y Cloudflare), dónde van los secretos y el paso a paso para publicarlo |
 | [Diagramas y Arquitectura](./docs/10-diagramas-y-arquitectura.md) | DER con las tablas del esquema de Prisma, arquitectura del sistema y secuencias de los flujos de facturar y cobrar |
 | [Informe Final](./docs/11-informe-final.md) | Informe de cierre: estado de cada devolución docente, qué está hecho y qué está pendiente, pruebas y conclusiones |
 | [Guion de la Demo](./docs/12-guion-demo.md) | Guion paso a paso del recorrido de la demo, con lo que funciona hoy y lo que queda simulado |
@@ -131,8 +131,8 @@ Estado de lo que pidió la cátedra para esta revisión:
 | 2 | Modelo ER inicial con Organization, Client, Transaction, Invoice, InvoiceItem y Payment | [Modelo de datos](./docs/03-modelo-de-datos.md), `backend/prisma/` y [`database/schema.sql`](./database/schema.sql) | Hecho. El esquema de Prisma, sus migraciones y el SQL coinciden con el documento |
 | 3 | Reglas de factura contra cobro y pagos parciales | [Factura, cobro y pagos parciales](./docs/04-factura-cobro-y-pagos.md) | Hecho |
 | 4 | Definición de la cotización usada | [Cotización](./docs/05-cotizacion.md) | Hecho |
-| 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | En curso. Funciona de punta a punta en el frontend: registro e inicio de sesión contra el backend real, y organización, clientes, movimientos y dashboard simulados con MSW siguiendo el contrato de la API. En el backend están auth y el esquema; organizaciones está en una rama sin mergear y faltan clientes, categorías, movimientos y dashboard. Capturas en el [README del frontend](./frontend/README.md#capturas) |
-| 6 | Spike de homologación WSAA y WSFEv1 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Pendiente: falta el certificado de homologación |
+| 5 | Flujo usuario, organización, cliente, movimiento y dashboard funcionando | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | Hecho. El flujo corre de punta a punta contra el backend real: registro e inicio de sesión, organización, clientes, categorías, movimientos y dashboard. MSW queda solo como opción de desarrollo (`VITE_MOCK_MODULES`). Capturas en el [README del frontend](./frontend/README.md#capturas) |
+| 6 | Spike de homologación WSAA y WSFEv1 | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Parcial: el certificado de homologación se emitió el 22/10 y se autorizó el servicio `wsfe`; falta la primera autenticación y emisión reales (#138) |
 | 7 | Qué pasa a P1 si ARCA se atrasa | [Plan B de ARCA](./docs/06-plan-b-arca.md) | Hecho |
 
 ## ✅ Tercera entrega (23/10)
@@ -147,4 +147,4 @@ Estado de lo que se pidió para esta revisión:
 | 4 | Perfil de usuario y perfil fiscal de la organización | `backend/`, [`frontend/`](./frontend/README.md) y [Contrato de la API](./docs/08-contrato-api.md) | Hecho |
 | 5 | Relevamiento con usuarios reales | [Relevamiento](./docs/07-relevamiento.md) | Hecho con 3 respuestas de personas ajenas al proyecto. Las conclusiones aclaran qué está confirmado y qué es débil |
 
-Lo que sigue pendiente (certificado de homologación, emisión real, leyenda de comprobante de prueba, mocks de MSW por retirar) está en los [issues del repositorio](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues).
+Lo que sigue pendiente (primera autenticación y emisión reales contra homologación, PDF del comprobante) está en los [issues del repositorio](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues).

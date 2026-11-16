@@ -168,7 +168,7 @@ Para mantener un alcance viable en los plazos disponibles, las siguientes funcio
 | **Seguridad** | JWT · bcrypt / Argon2 · HTTPS · Validación de datos |
 | **Integraciones** | ARCA (WSAA + WSFEv1) · BCRA APIs · Kapso / WhatsApp |
 | **Testing** | Vitest · Jest · Supertest · Postman |
-| **Infraestructura** | Frontend en Cloudflare Pages · Backend en Railway · Base de datos en Railway o Supabase |
+| **Infraestructura** | Frontend en Cloudflare Pages · Backend y base de datos en Render |
 | **Gestión** | Git · GitHub · GitHub Projects |
 
 ## 10. Arquitectura propuesta
@@ -178,7 +178,7 @@ Se adoptará una arquitectura web cliente-servidor con un **monolito modular** e
 ### Capas principales
 
 - **Frontend (React/TypeScript):** interfaz de usuario. Desplegado en Cloudflare Pages.
-- **Backend (Node.js/Express/TS):** API REST, lógica de negocio e integración con servicios externos. Desplegado en Railway.
+- **Backend (Node.js/Express/TS):** API REST, lógica de negocio e integración con servicios externos. Desplegado en Render.
 - **Base de datos (PostgreSQL):** persistencia de datos, gestionada con Prisma ORM.
 - **Servicios externos:** ARCA (facturación) · BCRA (cotizaciones) · Kapso (WhatsApp).
 
