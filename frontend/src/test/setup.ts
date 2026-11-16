@@ -3,6 +3,7 @@ import { cleanup, configure } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { clearToken } from '@/lib/auth'
 import { resetDb } from '@/mocks/db'
+import { resetArcaCredentials } from '@/mocks/handlers/arca-credential'
 import { server } from '@/mocks/node'
 
 // Lazy route chunks (Recharts is big) can take a while to load when files run in parallel.
@@ -22,6 +23,7 @@ afterEach(() => {
   server.resetHandlers()
   clearToken()
   resetDb()
+  resetArcaCredentials()
 })
 
 afterAll(() => server.close())

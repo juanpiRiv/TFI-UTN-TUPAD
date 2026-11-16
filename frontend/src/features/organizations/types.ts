@@ -43,3 +43,14 @@ export type ArcaCredentialStatus =
       updatedAt: string
       pendingCsr?: ArcaPendingCsr
     }
+
+/** State of the delegation of ARCA invoicing to the platform. */
+export type ArcaDelegationStatus = {
+  /** False when the platform cannot receive delegations: the option is not offered at all. */
+  available: boolean
+  platformCuit?: string
+  status: 'NOT_STARTED' | 'VERIFIED' | 'FAILED'
+  verifiedAt?: string
+  lastCheckedAt?: string
+  message?: string
+}

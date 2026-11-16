@@ -2,6 +2,7 @@ import { http, HttpResponse } from 'msw'
 import type { ArcaCredentialStatus, ArcaPendingCsr } from '@/features/organizations/types'
 import { API_URL } from '@/lib/api'
 import { nowIso } from '../db'
+import { resetArcaDelegation } from './arca-delegation'
 import { resolveOrganization } from './context'
 
 type Stored = Extract<ArcaCredentialStatus, { configured: true }>
@@ -14,6 +15,7 @@ const pendingCsrs = new Map<number, ArcaPendingCsr>()
 export function resetArcaCredentials(): void {
   credentials.clear()
   pendingCsrs.clear()
+  resetArcaDelegation()
 }
 
 /** Lets a test start with a pending certificate request, as if it had been generated before. */

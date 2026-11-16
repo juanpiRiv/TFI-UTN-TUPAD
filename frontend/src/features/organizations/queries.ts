@@ -86,3 +86,32 @@ export function useUploadArcaCertificate() {
   const invalidate = useInvalidateArcaCredential()
   return useMutation({ mutationFn: organizationsApi.uploadArcaCertificate, onSuccess: invalidate })
 }
+
+export const arcaDelegationKeys = {
+  all: ['arca-delegation'] as const,
+}
+
+export function useArcaDelegation() {
+  return useQuery({
+    queryKey: arcaDelegationKeys.all,
+    queryFn: ({ signal }) => organizationsApi.getArcaDelegation(signal),
+    // The option is a nice-to-have: when it cannot be queried, the own certificate remains.
+    retry: false,
+  })
+}
+
+export function useVerifyArcaDelegation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: organizationsApi.verifyArcaDelegation,
+    onSuccess: (status) => queryClient.setQueryData(arcaDelegationKeys.all, status),
+  })
+}
+
+export function useDeleteArcaDelegation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: organizationsApi.deleteArcaDelegation,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: arcaDelegationKeys.all }),
+  })
+}

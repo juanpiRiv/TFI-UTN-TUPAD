@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'msw'
 import { arcaCredentialHandlers } from './arca-credential'
+import { arcaDelegationHandlers } from './arca-delegation'
 import { categoryHandlers } from './categories'
 import { clientHandlers } from './clients'
 import { dashboardHandlers } from './dashboard'
@@ -15,6 +16,7 @@ import { transactionHandlers } from './transactions'
 export const domainHandlers: RequestHandler[] = [
   ...organizationHandlers,
   ...arcaCredentialHandlers,
+  ...arcaDelegationHandlers,
   ...clientHandlers,
   ...categoryHandlers,
   ...transactionHandlers,

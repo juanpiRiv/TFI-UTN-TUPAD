@@ -3,6 +3,7 @@ import type { ArcaCertificateInput, ArcaCredentialInput } from './arca-credentia
 import type { OrganizationInput } from './schemas'
 import type {
   ArcaCredentialStatus,
+  ArcaDelegationStatus,
   ArcaCsr,
   Organization,
   OrganizationWithCompleteness,
@@ -45,4 +46,18 @@ export function getOrganizationWithCompleteness(
   signal?: AbortSignal,
 ): Promise<OrganizationWithCompleteness> {
   return apiFetch<OrganizationWithCompleteness>('/api/organizations/me', { signal })
+}
+
+const ARCA_DELEGATION_PATH = '/api/organizations/me/arca-delegation'
+
+export function getArcaDelegation(signal?: AbortSignal): Promise<ArcaDelegationStatus> {
+  return apiFetch<ArcaDelegationStatus>(ARCA_DELEGATION_PATH, { signal })
+}
+
+export function verifyArcaDelegation(): Promise<ArcaDelegationStatus> {
+  return apiFetch<ArcaDelegationStatus>(`${ARCA_DELEGATION_PATH}/verify`, { method: 'POST' })
+}
+
+export async function deleteArcaDelegation(): Promise<undefined> {
+  await apiFetch<unknown>(ARCA_DELEGATION_PATH, { method: 'DELETE' })
 }
