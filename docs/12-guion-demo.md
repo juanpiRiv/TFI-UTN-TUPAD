@@ -10,7 +10,7 @@ Decirlo en el video, de entrada. Si no se aclara, parece que se emitió una fact
 
 - **Simulado:** la autorización. El backend corre con `ARCA_PROVIDER=simulated`, así que el CAE lo genera un cliente simulado y **no tiene validez fiscal**. La pantalla lo avisa con el texto "Comprobante de prueba, sin validez fiscal".
 - **Real:** todo lo demás. Los datos viven en PostgreSQL; las cuentas, clientes, movimientos, cobros y el dashboard son los del sistema; la cotización sugerida sale del BCRA.
-- **Pendiente:** la primera autenticación y emisión reales contra homologación de ARCA (issue #138). No se muestra en la demo.
+- **ARCA en homologación:** la emisión real se verificó contra homologación el 14 y el 15/11/2026, con CAE reales (evidencia en `docs/arca/respuestas-reales`). Producción no se probó.
 
 ## Antes de grabar
 
@@ -61,7 +61,7 @@ Este guion describe el recorrido sobre el release de `main`.
 - Mostrar el gráfico por categoría.
 
 ### 7:30 a 8:00: cierre
-- Resumir lo que funciona y decir qué falta: la prueba real contra homologación de ARCA, el PDF del comprobante, la reconciliación de facturas pendientes y el despliegue público.
+- Resumir lo que funciona y lo que queda como evolución futura: emisión en producción, otros tipos de comprobante, notificaciones, reportes, recuperación de contraseña y límite de intentos.
 
 ## Checklist de grabación
 
