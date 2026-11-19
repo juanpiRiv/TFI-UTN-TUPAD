@@ -11,13 +11,13 @@
 
 **Docente / Tutor de Tesis:** Lic. Oscar  
 **Fecha:** Noviembre 2026  
-**Estado:** Entrega Final (Release en `main` — Commit `274b3a4`)
+**Estado:** Entrega Final (release [`entrega-final`](https://github.com/juanpiRiv/TFI-UTN-TUPAD/releases/tag/entrega-final))
 
 ### Enlaces de Acceso y Verificación Pública
 - **Repositorio de Código:** [GitHub - juanpiRiv/TFI-UTN-TUPAD](https://github.com/juanpiRiv/TFI-UTN-TUPAD)
 - **Frontend Desplegado en Producción:** [https://tfi-tupad-95d.pages.dev](https://tfi-tupad-95d.pages.dev)
 - **Backend API Desplegada en Producción:** [https://tfi-utn-tupad.onrender.com](https://tfi-utn-tupad.onrender.com)
-- **Video Demostrativo del Sistema (Demo):** [Enlace al video de la defensa] (Issue #81 / #183)
+- **Video de Presentación:** [Ver el video en YouTube](https://youtu.be/l_pVbDO7ppU)
 
 ---
 
@@ -83,6 +83,9 @@ Diseñar, implementar y desplegar una plataforma web integral para monotributist
 - **Notificaciones por WhatsApp (#85):** Automatización secundaria condicionada a la existencia previa de comprobantes emitidos.
 - **Comprobantes A y B (#86):** Comprobantes que exigen discriminación de alícuotas de IVA y Libro de IVA Digital, ajenos al régimen de Monotributo donde rige la Factura C.
 - **Reportes descargables en PDF/Excel (#87):** El dashboard interactivo cubre las necesidades de consulta en pantalla para el MVP.
+- **Recuperación de contraseña:** prevista en la propuesta, se posterga por la indicación docente de no ampliar el alcance en el cierre.
+- **Límite de intentos de inicio de sesión e invalidación de sesiones al cambiar la contraseña (#128, #129):** mejoras de seguridad para una próxima versión.
+- **Emisión en producción y reconciliación automática de facturas pendientes:** hoy la emisión se verificó en homologación y una factura pendiente se resuelve de forma manual.
 
 ---
 
@@ -233,11 +236,9 @@ La solución se encuentra completamente operativa en entornos de nube pública:
 
 ## 9. Resultados de Testing y Verificación
 
-Las pruebas se ejecutan mediante el framework **Vitest**:
-- **Frontend SPA:** **247 pruebas aprobadas** (20 archivos de suite) cubriendo componentes visuales, formularios, asistentes de ARCA, tabla de movimientos, recibo imprimible con QR y guardas de navegación.
-- **Backend API:** Más de **430 pruebas unitarias y de contrato aprobadas** en local, y **suite completa (incluyendo integración PostgreSQL y concurrencia) aprobada al 100% en GitHub Actions CI** sobre Linux.
-- **Verificación de Tipos y Compilación:** `tsc -b` en frontend y backend terminan sin advertencias ni errores.
-- **Corte de Métricas:** Fecha 16 de Noviembre de 2026 sobre commit `274b3a4`.
+- **Backend API:** **764 pruebas** con Vitest y Supertest, incluidas las de integración y concurrencia contra PostgreSQL real, que corren en GitHub Actions en cada pull request.
+- **Verificación de Tipos y Compilación:** `tsc` en frontend y backend termina sin errores.
+- **Corte de Métricas:** 16 de noviembre de 2026, sobre la versión publicada como release `entrega-final`.
 
 ---
 

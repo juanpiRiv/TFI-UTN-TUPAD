@@ -20,7 +20,7 @@
 | **🌐 Aplicación Web (Producción)** | [https://tfi-tupad-95d.pages.dev](https://tfi-tupad-95d.pages.dev) | Frontend desplegado en **Cloudflare Pages** conectado a la API real |
 | **⚙️ Backend API (Producción)** | [https://tfi-utn-tupad.onrender.com](https://tfi-utn-tupad.onrender.com) | API REST desplegada en **Render** con PostgreSQL 16 y Docker |
 | **📄 Informe Final Académico (PDF)** | [docs/11-informe-final.pdf](./docs/11-informe-final.pdf) | Documento completo con portada institucional, DER, arquitectura y matriz de pruebas ([Versión Markdown](./docs/11-informe-final.md)) |
-| **🎥 Video de Demostración** | [Ver Video de la Demo (YouTube / Drive)](https://github.com/juanpiRiv/TFI-UTN-TUPAD/issues/81) | Recorrido guiado de 3 a 5 minutos mostrando el flujo de punta a punta desplegado |
+| **🎥 Video de Presentación** | [Ver el video en YouTube](https://youtu.be/l_pVbDO7ppU) | Presentación con los tres integrantes: problema, modelo, demo, cobros y concurrencia, arquitectura, ARCA en homologación y pruebas |
 | **📂 Documentación del Proyecto** | [Directorio de Documentación](./docs/) | Contrato de API, DER, decisiones de diseño, concurrencia y plan de contingencia |
 
 ---
@@ -55,7 +55,7 @@ El sistema diferencia de forma estricta los tres conceptos centrales de la gesti
 | **Base de Datos** | PostgreSQL 16 (con restricciones `CHECK`, índices parciales y bloqueos transaccionales) |
 | **Criptografía y Seguridad** | Argon2id (contraseñas), JWT (sesión stateless), AES-256-GCM (claves de ARCA), `@peculiar/x509` (CSR) |
 | **Integraciones Oficiales** | ARCA Web Services (WSAA + WSFEv1 con `facturas@0.25.2`), APIs oficiales del BCRA (Dólar Oficial) |
-| **Testing Automatizado** | Vitest, Supertest, React Testing Library (247 tests frontend y +430 tests backend en verde) |
+| **Testing Automatizado** | Vitest, Supertest, React Testing Library (764 tests de backend y 247 de frontend) |
 | **Infraestructura Cloud** | Cloudflare Pages (Frontend SPA), Render (Backend Web Service Dockerizado y PostgreSQL) |
 | **CI/CD** | GitHub Actions (validación automática con contenedor de PostgreSQL en cada PR) |
 
